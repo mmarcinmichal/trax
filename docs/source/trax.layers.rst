@@ -71,6 +71,11 @@ research.efficient\_attention
 
 .. automodule:: trax.layers.research.efficient_attention
 
+research.flash_attention
+------------------------
+
+.. automodule:: trax.layers.research.flash_attention
+
 research.position\_encodings
 ----------------------------
 

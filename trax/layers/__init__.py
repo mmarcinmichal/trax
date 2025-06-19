@@ -34,6 +34,7 @@ from trax.layers.metrics import *
 from trax.layers.normalization import *
 from trax.layers.pooling import *
 from trax.layers.research.efficient_attention import *
+from trax.layers.research.flash_attention import *
 from trax.layers.research.position_encodings import *
 from trax.layers.research.rel_attention import *
 from trax.layers.research.resampling import *
@@ -81,6 +82,7 @@ DotProductCausalAttention = layer_configure(
     DotProductCausalAttention, denylist=["mode"]
 )
 SelfAttention = layer_configure(SelfAttention, denylist=["mode"])
+FlashSelfAttention = layer_configure(FlashSelfAttention, denylist=["mode"])
 ModularCausalAttention = layer_configure(ModularCausalAttention, denylist=["mode"])
 LowRankCausalAttention = layer_configure(LowRankCausalAttention, denylist=["mode"])
 MultiplicativeCausalAttention = layer_configure(
