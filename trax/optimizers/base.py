@@ -183,12 +183,13 @@ class Optimizer:
           and flattened into a single vector, and then the L2 norm of that vector
           was calculated.
         """
-        if fastmath.is_backend(fastmath.Backend.JAX):
-            norm = jnp.sqrt(sum(jnp.vdot(x, x) for x in flat_list))
-        else:
-            norm = jnp.sqrt(sum(jnp.sum(x * x) for x in flat_list))
+        if not flat_list:
+            return jnp.array(0.0)
 
-        return norm
+        # Combine all arrays into one vector for a single norm computation.
+        # This avoids repeated Python looping over JAX operations.
+        flat = jnp.concatenate([jnp.ravel(x) for x in flat_list])
+        return jnp.linalg.norm(flat)
 
     def _update_and_check(self, step, grads, weights, slots, opt_params):
         """Updates a single weight array and checks types."""
