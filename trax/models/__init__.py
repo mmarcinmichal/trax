@@ -16,22 +16,18 @@
 """Models defined in trax."""
 import gin
 
-from trax.models import atari_cnn
-from trax.models import mlp
-from trax.models import neural_gpu
-from trax.models import resnet
-from trax.models import rl
-from trax.models import rnn
-from trax.models import transformer
+from trax.models import atari_cnn, gnn, mlp, neural_gpu, resnet, rl, rnn, transformer
 from trax.models.reformer import reformer
-from trax.models.research import bert
-from trax.models.research import configurable_transformer
-from trax.models.research import hourglass
-from trax.models.research import layerdrop_transformer
-from trax.models.research import rezero
-from trax.models.research import rse
-from trax.models.research import terraformer
-from trax.models.research import transformer2
+from trax.models.research import (
+  bert,
+  configurable_transformer,
+  hourglass,
+  layerdrop_transformer,
+  rezero,
+  rse,
+  terraformer,
+  transformer2,
+)
 
 
 # Ginify
@@ -90,3 +86,6 @@ GRULM = model_configure(rnn.GRULM)
 LSTMSeq2SeqAttn = model_configure(rnn.LSTMSeq2SeqAttn)
 ResidualShuffleExchange = model_configure(rse.ResidualShuffleExchange)
 HourglassLM = model_configure(hourglass.HourglassLM)
+GraphConvNet = model_configure(gnn.GraphConvNet)
+GraphAttentionNet = model_configure(gnn.GraphAttentionNet)
+GraphEdgeNet = model_configure(gnn.GraphEdgeNet)
