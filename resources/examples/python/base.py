@@ -35,6 +35,7 @@ class Dataset(Enum):
     IRIS = "iris"
     DIGITS = "digits"
     MNIST = "mnist"
+    IMDB = "imdb"
 
 
 class Splits(Enum):
@@ -62,6 +63,14 @@ def load_mnist(split: str = Splits.TRAIN.value) -> Tuple[np.ndarray, np.ndarray]
         i += 1
 
     return X, y
+
+
+def load_imdb(split: str = Splits.TRAIN.value) -> Tuple[np.ndarray, np.ndarray]:
+    """Load the IMDB sentiment dataset as text and labels."""
+    dataset = datasets.load_dataset("imdb", split=split)
+    texts = np.array(dataset["text"], dtype=object)
+    labels = np.array(dataset["label"], dtype=np.int64)
+    return texts, labels
 
 
 def load_dataset(
@@ -108,6 +117,9 @@ def load_dataset(
     elif dataset_name == Dataset.MNIST.value:
         x, y = load_mnist(split=split)
         return  x, y
+    elif dataset_name == Dataset.IMDB.value:
+        x, y = load_imdb(split=split)
+        return x, y
     else:
         raise ValueError(f"Unsupported dataset: {dataset_name}")
 

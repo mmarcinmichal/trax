@@ -26,6 +26,15 @@ Here are a few example notebooks:-
 * [**trax.data API explained**](https://github.com/google/trax/blob/master/trax/examples/trax_data_Explained.ipynb) : Explains some of the major functions in the `trax.data` API 
 * [**Named Entity Recognition using Reformer**](https://github.com/google/trax/blob/master/trax/examples/NER_using_Reformer.ipynb) : Uses a [Kaggle dataset](https://www.kaggle.com/abhinavwalia95/entity-annotated-corpus) for implementing Named Entity Recognition using the [Reformer](https://arxiv.org/abs/2001.04451) architecture.
 * [**Deep N-Gram models**](https://github.com/google/trax/blob/master/trax/examples/Deep_N_Gram_Models.ipynb) : Implementation of deep n-gram models trained on Shakespeares works
+* **Graph neural networks**: baseline models available via
+  `trax.models.GraphConvNet`,
+  `trax.models.GraphEdgeNet` for node and edge updates, or the
+  attention-based `trax.models.GraphAttentionNet`.
+* Example Python scripts using these GNNs for MNIST and IMDB classification are
+  in
+  [`resources/examples/python/gnn_mnist/train.py`](resources/examples/python/gnn_mnist/train.py)
+  and
+  [`resources/examples/python/gnn_imdb/train.py`](resources/examples/python/gnn_imdb/train.py).
 
 
 
