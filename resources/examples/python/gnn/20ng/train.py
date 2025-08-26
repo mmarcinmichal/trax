@@ -7,6 +7,8 @@ import trax.fastmath as fastmath
 
 from resources.examples.python.base import (
     DeviceType,
+    evaluate_model,
+    graph_batch_generator,
     initialize_model,
     train_model,
 )
@@ -15,8 +17,8 @@ from trax import optimizers
 from trax.models import gnn
 from trax.trainers import jax as trainers
 
-MAX_LEN = 40
-VOCAB_SIZE = 8000
+MAX_LEN = 2000
+VOCAB_SIZE = 200_000
 
 
 def build_vocab(texts):
@@ -45,8 +47,10 @@ def chain_adjacency(length=MAX_LEN):
 
 
 def load_data():
-    train_ds = datasets.load_dataset("imdb", split="train[:2000]")
-    test_ds = datasets.load_dataset("imdb", split="test[:1000]")
+    train_ds = datasets.load_dataset("SetFit/20_newsgroups", split="train")
+    test_ds = datasets.load_dataset("SetFit/20_newsgroups", split="test")
+    # train_ds = datasets.load_dataset("imdb", split="train[:2000]")
+    # test_ds = datasets.load_dataset("imdb", split="test[:1000]")
 
     vocab = build_vocab(train_ds["text"])
     x_train = np.stack([encode(t, vocab) for t in train_ds["text"]])
@@ -61,28 +65,25 @@ def load_data():
     return (x_train, a_train, y_train), (x_test, a_test, y_test), len(vocab)
 
 
-def graph_batch_generator(nodes, adjs, labels, batch_size=32, seed=0):
-    rng = np.random.default_rng(seed)
-    n = nodes.shape[0]
-    while True:
-        idx = rng.choice(n, batch_size, replace=False)
-        yield ((nodes[idx], adjs[idx]), labels[idx], np.ones(batch_size))
-
-
 def build_model(vocab_size):
     return tl.Serial(
-        tl.Parallel(tl.Embedding(vocab_size, 32), None),
-        gnn.GraphAttentionNet(hidden_sizes=(32, 16), num_heads=2),
+        tl.Parallel(tl.Embedding(vocab_size, 1024), None),
+        gnn.GraphAttentionNet(hidden_sizes=(1024, 512, 64), num_heads=2),
         tl.Select([0]),
         tl.Mean(axis=1),
-        tl.Dense(2),
-        tl.LogSoftmax(),
+        tl.Dense(20),
+        tl.Select([0, 2, 3]),
     )
 
 
 def main():
-    (x_train, a_train, y_train), _, vocab_size = load_data()
-    batch_gen = graph_batch_generator(x_train, a_train, y_train, batch_size=16)
+    DEFAULT_BATCH_SIZE = 8
+    STEPS_NUMBER = 120_000
+
+    (x_train, a_train, y_train), (x_test, a_test, y_test), vocab_size = load_data()
+    batch_gen = graph_batch_generator(
+        x_train, a_train, y_train, batch_size=DEFAULT_BATCH_SIZE
+    )
     example_batch = next(batch_gen)
 
     model_with_loss = tl.Serial(
@@ -90,17 +91,31 @@ def main():
     )
     initialize_model(model_with_loss, example_batch)
 
-    optimizer = optimizers.Adam(0.001)
+    optimizer = optimizers.Adam(0.00001)
     trainer = trainers.Trainer(model_with_loss, optimizer)
 
     base_rng = fastmath.random.get_prng(0)
     train_model(
         trainer,
         batch_gen,
-        num_steps=100,
+        num_steps=STEPS_NUMBER,
         base_rng=base_rng,
-        device_type=DeviceType.CPU.value,
+        device_type=DeviceType.GPU.value,
     )
+
+    test_batch_gen = graph_batch_generator(
+        x_test, a_test, y_test, batch_size=DEFAULT_BATCH_SIZE
+    )
+
+    # Evaluate model on a test set
+    test_results = evaluate_model(
+        trainer=trainer,
+        batch_gen=test_batch_gen,
+        device_type=DeviceType.CPU.value,
+        num_batches=500,
+    )
+
+    print(f"Final test accuracy: {test_results['accuracy']:.4f}")
 
 
 if __name__ == "__main__":
