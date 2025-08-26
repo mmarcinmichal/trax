@@ -54,13 +54,16 @@ def main():
         dataset_name=Dataset.MNIST.value, split=Splits.TEST.value
     )
 
-    # Evaluate model on test set
+    # Create batch generator for test data
+    test_batch_gen = create_batch_generator(
+        test_data, test_labels, None, DEFAULT_BATCH_SIZE, 0
+    )
+
+    # Evaluate model on a test set
     test_results = evaluate_model(
         trainer=trainer,
-        test_data=test_data,
-        test_labels=test_labels,
+        batch_gen=test_batch_gen,
         device_type=DeviceType.CPU.value,
-        batch_size=DEFAULT_BATCH_SIZE,
         num_batches=100,
     )
 

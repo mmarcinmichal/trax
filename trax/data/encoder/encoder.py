@@ -193,14 +193,9 @@ def _bert_is_punctuation(char):
     cp = ord(char)
     # We treat all non-letter/number ASCII as punctuation.
     # Characters such as "^", "$", and "`" are not in the Unicode
-    # Punctuation class but we treat them as punctuation anyways, for
+    # Punctuation class, but we treat them as punctuation anyway, for
     # consistency.
-    if (
-        (cp >= 33 and cp <= 47)
-        or (cp >= 58 and cp <= 64)
-        or (cp >= 91 and cp <= 96)
-        or (cp >= 123 and cp <= 126)
-    ):
+    if (33 <= cp <= 47) or (58 <= cp <= 64) or (91 <= cp <= 96) or (123 <= cp <= 126):
         return True
     cat = unicodedata.category(char)
     if cat.startswith("P"):
@@ -325,6 +320,8 @@ def _get_vocab(vocab_type="subword", vocab_file=None, vocab_dir=None, extra_ids=
 
     if vocab_type == "sentencepiece":
         return SentencePieceEncoder(path, extra_ids=extra_ids)
+
+    return None
 
 
 def vocab_size(vocab_type="subword", vocab_file=None, vocab_dir=None, n_reserved_ids=0):

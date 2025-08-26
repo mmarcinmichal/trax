@@ -5,6 +5,9 @@ import trax.fastmath as fastmath
 from resources.examples.python.base import (
     Dataset,
     DeviceType,
+    Splits,
+    evaluate_model,
+    graph_batch_generator,
     initialize_model,
     load_dataset,
     train_model,
@@ -16,7 +19,7 @@ from trax.trainers import jax as trainers
 
 
 def grid_adjacency(height=28, width=28):
-    """Returns 4-neighbour adjacency for an image grid."""
+    """Returns 4-neighbor adjacency for an image grid."""
     n = height * width
     adj = np.zeros((n, n), dtype=np.float32)
     for y in range(height):
@@ -40,39 +43,59 @@ def create_graph_data(images):
     return nodes, adj
 
 
-def graph_batch_generator(nodes, adjs, labels, batch_size=32, seed=0):
-    rng = np.random.default_rng(seed)
-    n = nodes.shape[0]
-    while True:
-        idx = rng.choice(n, batch_size, replace=False)
-        yield ((nodes[idx], adjs[idx]), labels[idx], np.ones(batch_size))
-
-
 def build_model():
     return tl.Serial(
-        gnn.GraphConvNet(hidden_sizes=(32, 16)),
+        gnn.GraphAttentionNet(hidden_sizes=(128, 64, 32, 16)),
         tl.Select([0]),
         tl.Mean(axis=1),
         tl.Dense(10),
-        tl.LogSoftmax(),
+        tl.Select([0, 2, 3]),
     )
 
 
 def main():
-    images, labels = load_dataset(Dataset.MNIST.value)
-    nodes, adjs = create_graph_data(images)
+    DEFAULT_BATCH_SIZE = 8
+    STEPS_NUMBER = 20_000
 
-    batch_gen = graph_batch_generator(nodes, adjs, labels, batch_size=8)
-    example_batch = next(batch_gen)
+    images, labels = load_dataset(Dataset.MNIST.value)
+    nodes, adjacency = create_graph_data(images)
+
+    batch_generator = graph_batch_generator(
+        nodes, adjacency, labels, batch_size=DEFAULT_BATCH_SIZE
+    )
+    example_batch = next(batch_generator)
 
     model_with_loss = tl.Serial(build_model(), tl.CrossEntropyLossWithLogSoftmax())
     initialize_model(model_with_loss, example_batch)
 
-    optimizer = optimizers.Adam(0.001)
+    optimizer = optimizers.Adam(0.0001)
     trainer = trainers.Trainer(model_with_loss, optimizer)
 
     base_rng = fastmath.random.get_prng(0)
-    train_model(trainer, batch_gen, num_steps=100, base_rng=base_rng, device_type=DeviceType.CPU.value)
+    train_model(
+        trainer,
+        batch_generator,
+        STEPS_NUMBER,
+        base_rng,
+        device_type=DeviceType.GPU.value,
+    )
+
+    images, labels = load_dataset(Dataset.MNIST.value, Splits.TEST.value)
+    nodes, adjacency = create_graph_data(images)
+
+    test_batch_gen = graph_batch_generator(
+        nodes, adjacency, labels, batch_size=DEFAULT_BATCH_SIZE
+    )
+
+    # Evaluate model on a test set
+    test_results = evaluate_model(
+        trainer=trainer,
+        batch_gen=test_batch_gen,
+        device_type=DeviceType.CPU.value,
+        num_batches=100,
+    )
+
+    print(f"Final test accuracy: {test_results['accuracy']:.4f}")
 
 
 if __name__ == "__main__":

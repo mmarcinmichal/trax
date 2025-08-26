@@ -1,9 +1,9 @@
-"""Machine learning utilities for dataset handling, model training and evaluation."""
+"""Machine learning utilities for dataset handling, model training, and evaluation."""
 
 import time
 
 from enum import Enum
-from typing import Callable, Dict, Generator, Optional, Tuple, Union
+from typing import Dict, Generator, Optional, Tuple, Union
 
 import datasets
 import numpy as np
@@ -14,6 +14,7 @@ from sklearn.datasets import load_digits, load_iris
 import trax.fastmath as fastmath
 
 from trax.fastmath import numpy as jnp
+from trax.fastmath.jax import jax
 from trax.utils import shapes
 
 # Set global logging verbosity
@@ -26,12 +27,14 @@ LOG_INTERVAL = 10
 
 class DeviceType(Enum):
     """Supported device types for computation."""
+
     CPU = "cpu"
     GPU = "gpu"
 
 
 class Dataset(Enum):
     """Supported datasets."""
+
     IRIS = "iris"
     DIGITS = "digits"
     MNIST = "mnist"
@@ -40,6 +43,7 @@ class Dataset(Enum):
 
 class Splits(Enum):
     """Supported datasets."""
+
     TRAIN = "train"
     TEST = "test"
 
@@ -56,7 +60,7 @@ def load_mnist(split: str = Splits.TRAIN.value) -> Tuple[np.ndarray, np.ndarray]
 
     # Process each example in the dataset
     i = 0
-    for image, label in zip(dataset['image'], dataset['label']):
+    for image, label in zip(dataset["image"], dataset["label"]):
         # Flatten image from (28, 28) to (784,) and normalize
         X[i] = np.array(image).reshape(-1).astype(np.float32) / 255.0
         y[i] = label
@@ -92,7 +96,7 @@ def load_dataset(
         dataset = load_iris()
         data, labels = dataset.data, dataset.target
         # For sklearn datasets, we'll simulate train/test split
-        if split == 'test':
+        if split == "test":
             # Use last 20% as test
             test_size = len(data) // 5
             return data[-test_size:], labels[-test_size:]
@@ -105,7 +109,7 @@ def load_dataset(
         dataset = load_digits()
         data, labels = dataset.data, dataset.target
         # For sklearn datasets, we'll simulate train/test split
-        if split == 'test':
+        if split == "test":
             # Use last 20% as test
             test_size = len(data) // 5
             return data[-test_size:], labels[-test_size:]
@@ -116,7 +120,7 @@ def load_dataset(
 
     elif dataset_name == Dataset.MNIST.value:
         x, y = load_mnist(split=split)
-        return  x, y
+        return x, y
     elif dataset_name == Dataset.IMDB.value:
         x, y = load_imdb(split=split)
         return x, y
@@ -124,13 +128,12 @@ def load_dataset(
         raise ValueError(f"Unsupported dataset: {dataset_name}")
 
 
-
 def create_batch_generator(
     data: np.ndarray,
     labels: np.ndarray,
     weights: Optional[np.ndarray] = None,
     batch_size: int = DEFAULT_BATCH_SIZE,
-    seed: Optional[int] = None
+    seed: Optional[int] = None,
 ) -> Generator[Tuple[np.ndarray, np.ndarray, np.ndarray], None, None]:
     """
     Create an infinite generator that produces shuffled batches.
@@ -165,7 +168,9 @@ def create_batch_generator(
             batch_indices = indices[batch_index:end_index]
         else:
             overflow = end_index - n_samples
-            batch_indices = np.concatenate([indices[batch_index:], indices[:overflow]], axis=0)
+            batch_indices = np.concatenate(
+                [indices[batch_index:], indices[:overflow]], axis=0
+            )
             rng.shuffle(indices)
 
         # Yield batch data converted to jax arrays
@@ -175,10 +180,18 @@ def create_batch_generator(
             np.array(weights[batch_indices]),
         )
 
-        # Update index for next batch
+        # Update index for the next batch
         batch_index = (batch_index + batch_size) % n_samples
         if batch_index == 0:
             rng.shuffle(indices)
+
+
+def graph_batch_generator(nodes, adjacency, labels, batch_size=32, seed=0):
+    rng = np.random.default_rng(seed)
+    n = nodes.shape[0]
+    while True:
+        idx = rng.choice(n, batch_size, replace=False)
+        yield nodes[idx], adjacency[idx], labels[idx], np.ones(batch_size)
 
 
 def initialize_model(model_with_loss, example_batch) -> Tuple[float, float]:
@@ -219,10 +232,10 @@ def _get_target_device(device_type: str):
 
 def train_model(
     trainer,
-    batch_generator: Callable,
+    batch_generator: Generator[Tuple[np.ndarray, np.ndarray, np.ndarray], None, None],
     num_steps: int,
     base_rng,
-    device_type: str = DeviceType.CPU.value
+    device_type: str = DeviceType.CPU.value,
 ) -> list:
     """
     Train a model for a specified number of steps.
@@ -248,7 +261,7 @@ def train_model(
     # Set target device via context
     target_device = _get_target_device(device_type)
 
-    with fastmath.jax.jax.default_device(target_device):
+    with jax.default_device(target_device):
         for step in range(num_steps):
             step_start = time.time()
             step_rng, base_rng = fastmath.random.split(base_rng)
@@ -259,12 +272,16 @@ def train_model(
 
             # Log progress at regular intervals
             if step % LOG_INTERVAL == 0 or step == num_steps - 1:
-                logging.info(f"Step {step}, Loss: {loss:.4f}, Step time: {step_time:.4f} sec")
+                logging.info(
+                    f"Step {step}, Loss: {loss:.4f}, Step time: {step_time:.4f} sec"
+                )
 
     # Print training summary
     training_time = time.time() - training_start
     avg_step_time = training_time / num_steps
-    logging.info(f"Total training time: {training_time:.4f} sec, Average step: {avg_step_time:.4f} sec")
+    logging.info(
+        f"Total training time: {training_time:.4f} sec, Average step: {avg_step_time:.4f} sec"
+    )
 
     return losses
 
@@ -275,7 +292,7 @@ def compute_accuracy(predicted: jnp.ndarray, true_labels: jnp.ndarray) -> float:
 
     Args:
         predicted: 1D array of integer class predictions, shape [N].
-        true_labels: 1D array of integer ground-truth labels, shape [N].
+        True_labels: 1D array of integer ground-truth labels, shape [N].
 
     Returns:
         Accuracy as a float between 0 and 1.
@@ -285,34 +302,23 @@ def compute_accuracy(predicted: jnp.ndarray, true_labels: jnp.ndarray) -> float:
 
 def evaluate_model(
     trainer,
-    test_data,
-    test_labels,
+    batch_gen: Generator[Tuple[np.ndarray, ...], None, None],
     device_type: str = DeviceType.CPU.value,
-    batch_size: int = DEFAULT_BATCH_SIZE,
-    seed: int = 42,
-    num_batches: int = 100
+    num_batches: int = 100,
 ) -> Dict[str, float]:
     """
     Evaluate a trained model on test data.
 
     Args:
         trainer: The trained model trainer.
-        test_data: Test data array.
-        test_labels: Test labels array.
+        batch_gen:
         device_type: Type of device to use for evaluation.
-        batch_size: Batch size for evaluation.
-        seed: Random seed for batch generation.
         num_batches: Number of batches to evaluate.
 
     Returns:
         Dictionary with evaluation metrics including accuracy and mean loss.
     """
     logging.info(f"\n\n{'='*20} EVALUATING MODEL {'='*20}")
-
-    # Create batch generator for test data
-    test_batch_gen = create_batch_generator(
-        test_data, test_labels, None, batch_size, seed
-    )
 
     # Set up evaluation environment
     target_device = _get_target_device(device_type)
@@ -322,10 +328,10 @@ def evaluate_model(
     total_loss = 0.0
     total_accuracy = 0.0
 
-    # Evaluate model on test set
+    # Evaluate model on a test set
     with fastmath.jax.jax.default_device(target_device):
         for i in range(num_batches):
-            batch = next(test_batch_gen)
+            batch = next(batch_gen)
 
             # Get model predictions
             predictions = trainer.model_with_loss.sublayers[0](
@@ -347,7 +353,9 @@ def evaluate_model(
 
             # Log progress
             if i % LOG_INTERVAL == 0 or i == num_batches - 1:
-                logging.info(f"Test batch {i}, Accuracy: {batch_accuracy:.4f}, Loss: {batch_loss:.4f}")
+                logging.info(
+                    f"Test batch {i}, Accuracy: {batch_accuracy:.4f}, Loss: {batch_loss:.4f}"
+                )
 
     # Calculate final metrics
     mean_accuracy = total_accuracy / num_batches
