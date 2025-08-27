@@ -14,11 +14,13 @@ from resources.examples.python.base import (
 )
 from trax import layers as tl
 from trax import optimizers
+from trax.fastmath import numpy as jnp
 from trax.models import gnn
 from trax.trainers import jax as trainers
 
 MAX_LEN = 2000
 VOCAB_SIZE = 200_000
+WINDOW_SIZE = 5
 
 
 def build_vocab(texts):
@@ -38,11 +40,15 @@ def encode(text, vocab):
     return np.array(tokens)
 
 
-def chain_adjacency(length=MAX_LEN):
+def window_adjacency(length=MAX_LEN, window=WINDOW_SIZE):
+    """Create adjacency connecting tokens within a sliding window."""
     adj = np.zeros((length, length), dtype=np.float32)
-    for i in range(length - 1):
-        adj[i, i + 1] = 1
-        adj[i + 1, i] = 1
+    for i in range(length):
+        left, right = max(0, i - window), min(length, i + window + 1)
+        for j in range(left, right):
+            if i != j:
+                adj[i, j] = 1.0
+    np.fill_diagonal(adj, 1.0)
     return adj
 
 
@@ -58,11 +64,29 @@ def load_data():
     x_test = np.stack([encode(t, vocab) for t in test_ds["text"]])
     y_test = np.array(test_ds["label"], dtype=np.int64)
 
-    adj = chain_adjacency()
+    adj = window_adjacency()
     a_train = np.broadcast_to(adj, (x_train.shape[0], MAX_LEN, MAX_LEN))
     a_test = np.broadcast_to(adj, (x_test.shape[0], MAX_LEN, MAX_LEN))
 
     return (x_train, a_train, y_train), (x_test, a_test, y_test), len(vocab)
+
+
+def attention_pool():
+    """Compute weighted average of node embeddings."""
+    return tl.Serial(
+        tl.Branch(
+            tl.Identity(),
+            tl.Serial(
+                tl.Dense(1),
+                tl.Flatten(n_axes_to_keep=2),
+                tl.Softmax(),
+            ),
+        ),
+        tl.Fn(
+            "AttnPool",
+            lambda x, w: jnp.sum(x * jnp.expand_dims(w, -1), axis=1),
+        ),
+    )
 
 
 def build_model(vocab_size):
@@ -70,7 +94,7 @@ def build_model(vocab_size):
         tl.Parallel(tl.Embedding(vocab_size, 1024), None),
         gnn.GraphAttentionNet(hidden_sizes=(1024, 512, 64), num_heads=2),
         tl.Select([0]),
-        tl.Mean(axis=1),
+        attention_pool(),
         tl.Dense(20),
         tl.Select([0, 2, 3]),
     )
