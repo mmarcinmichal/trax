@@ -1,3 +1,5 @@
+import re
+
 from collections import Counter
 
 import datasets
@@ -23,13 +25,25 @@ VOCAB_SIZE = 200_000
 WINDOW_SIZE = 5
 
 
-def build_vocab(texts):
+def clean(text):
+    t = text.lower()
+    t = re.sub(r"\S+@\S+", " ", t)  # emails
+    t = re.sub(r"http\S+|www\.\S+", " ", t)
+    t = re.sub(r"[_A-Za-z]:/[^ \n]+", " ", t)  # paths/urls
+    t = re.sub(r"[^a-z0-9\s]", " ", t)
+    t = re.sub(r"\s+", " ", t).strip()
+    return t
+
+
+def build_vocab(texts, min_freq=5):
     counter = Counter()
     for t in texts:
-        counter.update(t.lower().split()[:MAX_LEN])
+        counter.update(clean(t).split()[:MAX_LEN])
     vocab = {"<PAD>": 0, "<UNK>": 1}
-    for i, (w, _) in enumerate(counter.most_common(VOCAB_SIZE - 2), start=2):
-        vocab[w] = i
+    for w, c in counter.most_common():
+        if c < min_freq or len(vocab) >= VOCAB_SIZE:
+            break
+        vocab[w] = len(vocab)
     return vocab
 
 
@@ -75,7 +89,7 @@ def attention_pool():
     """Compute weighted average of node embeddings."""
     return tl.Serial(
         tl.Branch(
-            tl.Identity(),
+            None,
             tl.Serial(
                 tl.Dense(1),
                 tl.Flatten(n_axes_to_keep=2),
@@ -84,15 +98,15 @@ def attention_pool():
         ),
         tl.Fn(
             "AttnPool",
-            lambda x, w: jnp.sum(x * jnp.expand_dims(w, -1), axis=1),
+            lambda x, w: jnp.sum(x * w, axis=1),
         ),
     )
 
 
 def build_model(vocab_size):
     return tl.Serial(
-        tl.Parallel(tl.Embedding(vocab_size, 1024), None),
-        gnn.GraphAttentionNet(hidden_sizes=(1024, 512, 64), num_heads=2),
+        tl.Parallel(tl.Embedding(vocab_size, 512), None),
+        gnn.GraphAttentionNet(hidden_sizes=(512, 32), num_heads=2),
         tl.Select([0]),
         attention_pool(),
         tl.Dense(20),
@@ -102,7 +116,7 @@ def build_model(vocab_size):
 
 def main():
     DEFAULT_BATCH_SIZE = 8
-    STEPS_NUMBER = 120_000
+    STEPS_NUMBER = 4_000
 
     (x_train, a_train, y_train), (x_test, a_test, y_test), vocab_size = load_data()
     batch_gen = graph_batch_generator(
@@ -115,7 +129,7 @@ def main():
     )
     initialize_model(model_with_loss, example_batch)
 
-    optimizer = optimizers.Adam(0.00001)
+    optimizer = optimizers.Adam(0.0001)
     trainer = trainers.Trainer(model_with_loss, optimizer)
 
     base_rng = fastmath.random.get_prng(0)
@@ -136,7 +150,7 @@ def main():
         trainer=trainer,
         batch_gen=test_batch_gen,
         device_type=DeviceType.CPU.value,
-        num_batches=500,
+        num_batches=50,
     )
 
     print(f"Final test accuracy: {test_results['accuracy']:.4f}")
