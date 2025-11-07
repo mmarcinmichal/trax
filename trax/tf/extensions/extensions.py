@@ -1181,7 +1181,9 @@ def scan(f, init, xs, length=None, reverse=False):
         raise ValueError("Can't determine length. Please set the `length` argument.")
     xs_ta = tf.nest.map_structure(
         lambda t: (
-            tf.TensorArray(t.dtype, size=length, dynamic_size=False).unstack(  # pylint: disable=g-long-lambda
+            tf.TensorArray(
+                t.dtype, size=length, dynamic_size=False
+            ).unstack(  # pylint: disable=g-long-lambda
                 t
             )
             if t is not None
@@ -1681,7 +1683,9 @@ class ShardedNdArray(object):
 
     @property
     def shape(self):
-        return (self.n_devices,) + self.tensors[0]._shape_tuple()  # pylint: disable=protected-access
+        return (self.n_devices,) + self.tensors[
+            0
+        ]._shape_tuple()  # pylint: disable=protected-access
 
     @property
     def dtype(self):

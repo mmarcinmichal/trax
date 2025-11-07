@@ -64,5 +64,5 @@ class NormalizationTest(absltest.TestCase):
         np.testing.assert_almost_equal(x, y)
 
 
-if __name__ == '__main__':
-  absltest.main()
+if __name__ == "__main__":
+    absltest.main()

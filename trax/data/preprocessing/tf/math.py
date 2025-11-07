@@ -763,7 +763,9 @@ def CreateMathQAInputs(  # pylint: disable=invalid-name
                         var_dict = {}
                         # We generate a python code and want to check whether the answer
                         # is coorect.
-                        exec(target_values, globals(), var_dict)  # pylint: disable=exec-used
+                        exec(
+                            target_values, globals(), var_dict
+                        )  # pylint: disable=exec-used
                         if math.isclose(
                             answer_num, var_dict["answer"], rel_tol=tolerance
                         ):

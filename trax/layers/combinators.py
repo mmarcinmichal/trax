@@ -468,7 +468,9 @@ class Scan(base.Layer):
         if n_carry > 0:
             xs = inputs[:-n_carry]  # Split input stack into inputs and carry.
             xs_carry = inputs[-n_carry:]
-            if self._mode == "predict" and self._state[1] is not ():  # pylint: disable=literal-comparison
+            if (
+                self._mode == "predict" and self._state[1] is not ()
+            ):  # pylint: disable=literal-comparison
                 xs_carry = self._state[1]
             init = (xs_carry, self.state[0], jnp.array(0, dtype=jnp.int32))
         else:

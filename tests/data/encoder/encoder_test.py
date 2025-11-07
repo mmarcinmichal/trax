@@ -678,5 +678,6 @@ class TestTokenCounts(tf.test.TestCase):
         }
         self.assertDictEqual(expected, token_counts)
 
+
 if __name__ == "__main__":
     tf.test.main()

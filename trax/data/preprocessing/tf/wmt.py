@@ -1,4 +1,3 @@
-
 import gin
 import numpy as np
 import tensorflow as tf
@@ -6,8 +5,11 @@ import tensorflow as tf
 
 # TODO(lukaszkaiser): find a single more abstract way of text pre-processing.
 @gin.configurable(module="trax.data", denylist=["dataset", "training"])
-def wmt_preprocess(dataset, training, max_length=-1, max_eval_length=-1, tokenizer=None):
+def wmt_preprocess(
+    dataset, training, max_length=-1, max_eval_length=-1, tokenizer=None
+):
     """Preprocessing for LM1B: filter out targets exceeding maximum length."""
+
     def train_right_length(example):
         input_length = tf.strings.length(example["inputs"])
         target_length = tf.strings.length(example["targets"])
@@ -38,6 +40,7 @@ def wmt_preprocess(dataset, training, max_length=-1, max_eval_length=-1, tokeniz
         Returns:
             A dictionary with tokenized 'inputs' and 'targets'
         """
+
         def _encode_text(text_tensor):
             # Convert tensor to string
             if hasattr(text_tensor, "numpy"):
@@ -61,7 +64,6 @@ def wmt_preprocess(dataset, training, max_length=-1, max_eval_length=-1, tokeniz
 
         # Update the example with encoded data
         return {"inputs": encoded_inputs, "targets": encoded_targets}, encoded_targets
-
 
     # Apply to your dataset
     dataset = dataset.map(
@@ -88,4 +90,3 @@ def wmt_concat_preprocess(dataset, training, max_length=-1, max_eval_length=-1):
 
     dataset = dataset.map(concat_and_add_mask)
     return dataset
-

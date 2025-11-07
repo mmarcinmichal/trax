@@ -38,7 +38,9 @@ Backend = fastmath.Backend
 def _tf_setup_from_flags():
     """Processes TensorFlow-relevant flags."""
     if FLAGS.enable_eager_execution:
-        tf.compat.v1.enable_eager_execution()
+        # In TF2 eager is default; guard to avoid errors if already eager.
+        if not tf.executing_eagerly():
+            tf.compat.v1.enable_eager_execution()
     if FLAGS.tf_xla:
         tf.config.optimizer.set_jit(True)
         fastmath.tf.set_tf_xla_forced_compile(FLAGS.tf_xla_forced_compile)

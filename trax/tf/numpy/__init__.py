@@ -35,9 +35,9 @@ from tensorflow.python.ops.numpy_ops.np_dtypes import (
 
 # Define what should be accessible when someone imports from this module
 __all__ = [
-    'bfloat16',
-    'canonicalize_dtype',
-    'default_float_type',
-    'is_allow_float64',
-    'set_allow_float64',
+    "bfloat16",
+    "canonicalize_dtype",
+    "default_float_type",
+    "is_allow_float64",
+    "set_allow_float64",
 ]

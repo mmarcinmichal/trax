@@ -110,7 +110,9 @@ class Trajectory:
         """Returns a `Trajectory` with the last `length` observations."""
         assert length >= 1
         t = Trajectory(self._last_observation)
-        t._timesteps = self._timesteps[-(length - 1) :]  # pylint: disable=protected-access
+        t._timesteps = self._timesteps[
+            -(length - 1) :
+        ]  # pylint: disable=protected-access
         return t
 
     @property
@@ -776,7 +778,9 @@ class RLTask:
                 continue
 
             # Catch up if we have a new epoch or we've restarted the experiment.
-            for epoch_id in self._trajectories.keys() - epoch_to_ns_slices.keys():  # pylint:disable=g-builtin-op
+            for epoch_id in (
+                self._trajectories.keys() - epoch_to_ns_slices.keys()
+            ):  # pylint:disable=g-builtin-op
                 new_epoch(epoch_id)
 
             # Sample an epoch proportionally to number of slices in each epoch.

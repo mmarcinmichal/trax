@@ -638,7 +638,9 @@ def UnBatch():  # pylint: disable=invalid-name
             assert len(batch_sizes) == 1
             # Now unbatch examples.
             for example_idx in range(batch_sizes[0]):
-                yield tuple(map(lambda x: x[example_idx], batched_example))  # pylint: disable=cell-var-from-loop
+                yield tuple(
+                    map(lambda x: x[example_idx], batched_example)
+                )  # pylint: disable=cell-var-from-loop
 
     return _unbatch
 
@@ -661,7 +663,9 @@ def Prefetch(n_prefetch=2):  # pylint: disable=invalid-name
 
 
 @gin.configurable(module="trax.data")
-def UniformlySeek(name=None, host_id=None, n_hosts=None, dataset_size=None):  # pylint: disable=invalid-name
+def UniformlySeek(
+    name=None, host_id=None, n_hosts=None, dataset_size=None
+):  # pylint: disable=invalid-name
     """Sets each host at (dataset_size/n_hosts)-th of the dataset."""
     if not dataset_size:
         dataset_size = 2**18  # 512 * 512
@@ -2106,6 +2110,7 @@ def ConvertToUnicode(keys=None):  # pylint: disable=invalid-name
 
     return _convert_to_unicode_str
 
+
 def _to_unicode(s):
     # Errors of the casting are ignored (e.g. sequences not allowed by UTF-8),
     # in order not to stay with incomplete examples (with empty values).
@@ -2147,5 +2152,3 @@ def classification_vector(generator, vocab_size=8192):
         # Create output tuple with the classification vector replacing tokens
         output = (class_vector,) + example[1:]
         yield output
-
-

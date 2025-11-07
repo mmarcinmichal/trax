@@ -197,5 +197,5 @@ class ValueTasksTest(absltest.TestCase):
         loop.run(n_steps=10)
 
 
-if __name__ == '__main__':
-  absltest.main()
+if __name__ == "__main__":
+    absltest.main()

@@ -538,7 +538,9 @@ class ClassLabelEncoder(TextEncoder):
 class OneHotClassLabelEncoder(ClassLabelEncoder):
     """One-hot encoder for class labels."""
 
-    def encode(self, label_str, on_value=1, off_value=0):  # pylint: disable=arguments-differ
+    def encode(
+        self, label_str, on_value=1, off_value=0
+    ):  # pylint: disable=arguments-differ
         e = np.full(self.vocab_size, off_value, dtype=np.int32)
         e[self._class_labels.index(label_str)] = on_value
         return e.tolist()
@@ -1175,7 +1177,9 @@ class SubwordTextEncoder(TextEncoder):
         """Initialize alphabet from an iterable of token or subtoken strings."""
         # Include all characters from all tokens in the alphabet to guarantee that
         # any token can be encoded. Additionally, include all escaping characters.
-        self._alphabet = {c for token in tokens for c in token}  # pylint: disable=g-complex-comprehension
+        self._alphabet = {
+            c for token in tokens for c in token
+        }  # pylint: disable=g-complex-comprehension
         self._alphabet |= _ESCAPE_CHARS
 
     def _load_from_file_object(self, f):
@@ -1278,16 +1282,15 @@ class ImageEncoder:
                     " ".join([str(i) for i in ids]),
                 )
             )
-        with tf.Graph().as_default():
-            raw = tf.constant(ids, dtype=tf.uint8)
-            if size is None:
-                img = tf.reshape(raw, [self._height, self._width, self._channels])
-            else:
-                img = tf.reshape(raw, [size, size, self._channels])
-            png = tf.image.encode_png(img)
-            op = tf.write_file(tmp_file_path, png)
-            with tf.Session() as sess:
-                sess.run(op)
+        # TF2 eager implementation: build image tensor and write PNG directly.
+        raw = tf.convert_to_tensor(ids, dtype=tf.uint8)
+        if size is None:
+            img = tf.reshape(raw, [self._height, self._width, self._channels])
+        else:
+            img = tf.reshape(raw, [size, size, self._channels])
+        png = tf.image.encode_png(img)
+        # Use TF2 IO API to write the encoded PNG to file.
+        tf.io.write_file(tmp_file_path, png)
         return tmp_file_path
 
     def decode_list(self, ids):

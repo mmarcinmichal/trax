@@ -259,7 +259,9 @@ class _RememberPad(base.Layer):
         super().__init__(name="_RememberPad")
         self._n_items_to_remember = n_items_to_remember
         self._mode = mode
-        self._portal_mask = self.monkey_patched_mask()  # pylint: disable=assignment-from-none
+        self._portal_mask = (
+            self.monkey_patched_mask()
+        )  # pylint: disable=assignment-from-none
 
     def monkey_patched_mask(self):
         # This is necessary for Terraformer model. See comments there.

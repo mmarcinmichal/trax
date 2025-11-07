@@ -48,54 +48,19 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
       - name: Set up Python ${{matrix.python-version}}
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v5
         with:
           python-version: ${{matrix.python-version}}
-      - name: Install system dependencies for matplotlib
-        run: |
-          sudo apt-get install -y pkg-config
-          sudo apt-get install -y libfreetype6-dev libpng-dev
+          cache: 'pip'
       - name: Install dependencies
+        env:
+          PIP_DISABLE_PIP_VERSION_CHECK: '1'
         run: |
-          # python -m pip install --upgrade pip
-          python -m pip install flake8==7.1.2 
-          python -m pip install setuptools==78.0.2 
-          python -m pip install numpy==1.26.4          
-          python -m pip install pytest==8.3.5
-          python -m pip install tensorflow_datasets==4.9.8
-          python -m pip install tensorflow-text==2.17.0
-          python -m pip install pandas==2.2.3
-          python -m pip install --only-binary=matplotlib matplotlib==3.10.1
-          python -m pip install nltk==3.9.1
-          python -m pip install scikit-learn==1.6.1
-          python -m pip install IPython==8.34.0
-          python -m pip install parameterized==0.9.0
-          python -m pip install mock==5.2.0
-          python -m pip install tfds-nightly==4.9.2.dev202308090034
-          python -m pip install editdistance==0.8.1
-          python -m pip install pyglove==0.4.4
-          python -m pip install sentencepiece==0.2.0
-          python -m pip install babel==2.17.0
-          python -m pip install rouge-score==0.1.2
-          python -m pip install sacrebleu==2.5.1
-          python -m pip install transformers==4.50.1
-          python -m pip install mesh-tensorflow==0.1.21
-          python -m pip install protobuf==3.20.3
-          python -m pip install t5==0.9.4 --no-dependencies tensorflow
-          python -m pip install absl-py==2.2.0
-          python -m pip install gym==0.26.2
-          python -m pip install gin-config==0.5.0
-          python -m pip install jax==0.5.3
-          python -m pip install jaxlib==0.5.3
-          python -m pip install psutil==7.0.0
-          python -m pip install scipy==1.15.2
-          python -m pip install six==1.14.0
-          python -m pip install attrs==25.3.0
-          python -m pip install wrapt==1.17.2
-          python -m pip install tensor2tensor==1.15.7
-          python -m pip install orbax-checkpoint==0.11.10
-          python -m pip install clu==0.0.12
-          python -m pip install flax==0.10.4
+          python -m pip install -U pip
+          # Install TensorFlow matching matrix version.
+          python -m pip install "tensorflow==${{ matrix.tf-version }}"
+          # Install package in editable mode with test and T5 extras (tests use T5 preprocessors).
+          python -m pip install -e .[tests,t5,rl]
       # Test out right now with only testing one directory.
       - name: Install trax package
         run: |

@@ -366,5 +366,5 @@ class TaskTest(absltest.TestCase):
         self.assertEqual(batch.observation.shape, (3, 4, 2))
 
 
-if __name__ == '__main__':
-  absltest.main()
+if __name__ == "__main__":
+    absltest.main()

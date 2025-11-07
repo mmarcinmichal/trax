@@ -577,7 +577,9 @@ class AdvantageBasedActorCriticAgent(ActorCriticAgent):
     def policy_loss(self, **unused_kwargs):
         """Policy loss."""
 
-        def LossInput(dist_inputs, actions, advantages, old_dist_inputs):  # pylint: disable=invalid-name
+        def LossInput(
+            dist_inputs, actions, advantages, old_dist_inputs
+        ):  # pylint: disable=invalid-name
             """Calculates action log probabilities and normalizes advantages."""
             advantages = self._preprocess_advantages(advantages)
             log_probs = self._policy_dist.log_prob(dist_inputs, actions)
@@ -608,7 +610,9 @@ class AdvantageBasedActorCriticAgent(ActorCriticAgent):
             [
                 # (dist_inputs, advantages, old_dist_inputs, mask)
                 tl.Select([1]),  # Select just the advantages.
-                tl.Fn("AdvantageMean", lambda x: jnp.mean(x)),  # pylint: disable=unnecessary-lambda
+                tl.Fn(
+                    "AdvantageMean", lambda x: jnp.mean(x)
+                ),  # pylint: disable=unnecessary-lambda
             ]
         )
 
@@ -618,7 +622,9 @@ class AdvantageBasedActorCriticAgent(ActorCriticAgent):
             [
                 # (dist_inputs, advantages, old_dist_inputs, mask)
                 tl.Select([1]),  # Select just the advantages.
-                tl.Fn("AdvantageStd", lambda x: jnp.std(x)),  # pylint: disable=unnecessary-lambda
+                tl.Fn(
+                    "AdvantageStd", lambda x: jnp.std(x)
+                ),  # pylint: disable=unnecessary-lambda
             ]
         )
 
@@ -760,7 +766,8 @@ class LoopActorCriticAgent(rl_training.Agent):
         def sync_also_at_epoch_boundaries(step):
             return sync_at(step) or (
                 # 0 - end of the epoch, 1 - beginning of the next.
-                step % n_steps_per_epoch in (0, 1)
+                step % n_steps_per_epoch
+                in (0, 1)
             )
 
         head_selector = tl.Select([1])
@@ -1052,9 +1059,8 @@ def awr_weights(advantages, beta, thresholds):
 # Helper functions for computing AWR metrics.
 def awr_metrics(beta, thresholds, preprocess_layer=None):
     return {  # pylint: disable=g-complex-comprehension
-        "awr_weight_" + name: awr_weight_stat(
-            name, fn, beta, thresholds, preprocess_layer
-        )
+        "awr_weight_"
+        + name: awr_weight_stat(name, fn, beta, thresholds, preprocess_layer)
         for (name, fn) in [
             ("mean", jnp.mean),
             ("std", jnp.std),
@@ -1104,7 +1110,9 @@ class AWR(AdvantageBasedActorCriticAgent):
     @property
     def policy_loss_given_log_probs(self):
         """Policy loss."""
-        return AWRLoss(beta=self._beta, w_max=self._w_max, thresholds=self._thresholds)  # pylint: disable=no-value-for-parameter
+        return AWRLoss(
+            beta=self._beta, w_max=self._w_max, thresholds=self._thresholds
+        )  # pylint: disable=no-value-for-parameter
 
 
 class LoopAWR(LoopActorCriticAgent):
@@ -1178,11 +1186,15 @@ class SamplingAWR(AdvantageBasedActorCriticAgent):
             "policy_loss": self.policy_loss,
             "advantage_mean": tl.Serial(
                 self._policy_inputs_to_advantages(False),
-                tl.Fn("Mean", lambda x: jnp.mean(x)),  # pylint: disable=unnecessary-lambda
+                tl.Fn(
+                    "Mean", lambda x: jnp.mean(x)
+                ),  # pylint: disable=unnecessary-lambda
             ),
             "advantage_std": tl.Serial(
                 self._policy_inputs_to_advantages(False),
-                tl.Fn("Std", lambda x: jnp.std(x)),  # pylint: disable=unnecessary-lambda
+                tl.Fn(
+                    "Std", lambda x: jnp.std(x)
+                ),  # pylint: disable=unnecessary-lambda
             ),
         }
         metrics.update(
@@ -1198,7 +1210,9 @@ class SamplingAWR(AdvantageBasedActorCriticAgent):
     def policy_loss(self, **unused_kwargs):
         """Policy loss."""
 
-        def LossInput(dist_inputs, actions, q_values, act_log_probs, mask):  # pylint: disable=invalid-name
+        def LossInput(
+            dist_inputs, actions, q_values, act_log_probs, mask
+        ):  # pylint: disable=invalid-name
             """Calculates action log probabilities and normalizes advantages."""
             # (batch_size, n_samples, ...) -> (n_samples, batch_size, ...)
             q_values = jnp.swapaxes(q_values, 0, 1)

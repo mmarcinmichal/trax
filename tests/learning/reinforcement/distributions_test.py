@@ -85,5 +85,5 @@ class DistributionsTest(parameterized.TestCase):
         np.testing.assert_allclose(probs, np.ones_like(probs), atol=0.05)
 
 
-if __name__ == '__main__':
-  absltest.main()
+if __name__ == "__main__":
+    absltest.main()

@@ -27,4 +27,3 @@ def bair_robot_pushing_hparams(
         hparams.video_num_target_frames = video_num_target_frames
     else:
         return video_num_input_frames, video_num_target_frames
-

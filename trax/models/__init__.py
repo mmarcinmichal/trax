@@ -19,21 +19,21 @@ import gin
 from trax.models import atari_cnn, gnn, mlp, neural_gpu, resnet, rl, rnn, transformer
 from trax.models.reformer import reformer
 from trax.models.research import (
-  bert,
-  configurable_transformer,
-  hourglass,
-  layerdrop_transformer,
-  rezero,
-  rse,
-  terraformer,
-  transformer2,
+    bert,
+    configurable_transformer,
+    hourglass,
+    layerdrop_transformer,
+    rezero,
+    rse,
+    terraformer,
+    transformer2,
 )
 
 
 # Ginify
 def model_configure(*args, **kwargs):
-  kwargs['module'] = 'trax.models'
-  return gin.external_configurable(*args, **kwargs)
+    kwargs["module"] = "trax.models"
+    return gin.external_configurable(*args, **kwargs)
 
 
 # pylint: disable=invalid-name
@@ -45,37 +45,34 @@ BERTClassifierHead = model_configure(bert.BERTClassifierHead)
 BERTRegressionHead = model_configure(bert.BERTRegressionHead)
 ConfigurableTerraformer = model_configure(terraformer.ConfigurableTerraformer)
 ConfigurableTransformer = model_configure(
-    configurable_transformer.ConfigurableTransformer)
+    configurable_transformer.ConfigurableTransformer
+)
 ConfigurableTransformerEncoder = model_configure(
-    configurable_transformer.ConfigurableTransformerEncoder)
+    configurable_transformer.ConfigurableTransformerEncoder
+)
 ConfigurableTransformerLM = model_configure(
-    configurable_transformer.ConfigurableTransformerLM)
+    configurable_transformer.ConfigurableTransformerLM
+)
 MLP = model_configure(mlp.MLP)
 NeuralGPU = model_configure(neural_gpu.NeuralGPU)
 Reformer = model_configure(reformer.Reformer)
 ReformerLM = model_configure(reformer.ReformerLM)
 ReformerShortenLM = model_configure(reformer.ReformerShortenLM)
 Resnet50 = model_configure(resnet.Resnet50)
-ReZeroTransformer = model_configure(
-    rezero.ReZeroTransformer)
-ReZeroTransformerDecoder = model_configure(
-    rezero.ReZeroTransformerDecoder)
-ReZeroTransformerEncoder = model_configure(
-    rezero.ReZeroTransformerEncoder)
-ReZeroTransformerLM = model_configure(
-    rezero.ReZeroTransformerLM)
-SkippingTransformerLM = model_configure(
-    layerdrop_transformer.SkippingTransformerLM)
-LayerDropTransformerLM = model_configure(
-    layerdrop_transformer.LayerDropTransformerLM)
+ReZeroTransformer = model_configure(rezero.ReZeroTransformer)
+ReZeroTransformerDecoder = model_configure(rezero.ReZeroTransformerDecoder)
+ReZeroTransformerEncoder = model_configure(rezero.ReZeroTransformerEncoder)
+ReZeroTransformerLM = model_configure(rezero.ReZeroTransformerLM)
+SkippingTransformerLM = model_configure(layerdrop_transformer.SkippingTransformerLM)
+LayerDropTransformerLM = model_configure(layerdrop_transformer.LayerDropTransformerLM)
 EveryOtherLayerDropTransformerLM = model_configure(
-    layerdrop_transformer.EveryOtherLayerDropTransformerLM)
+    layerdrop_transformer.EveryOtherLayerDropTransformerLM
+)
 Transformer = model_configure(transformer.Transformer)
 TransformerDecoder = model_configure(transformer.TransformerDecoder)
 TransformerEncoder = model_configure(transformer.TransformerEncoder)
 TransformerLM = model_configure(transformer.TransformerLM)
-Transformer2 = model_configure(
-    transformer2.Transformer2)
+Transformer2 = model_configure(transformer2.Transformer2)
 WideResnet = model_configure(resnet.WideResnet)
 Policy = model_configure(rl.Policy)
 PolicyAndValue = model_configure(rl.PolicyAndValue)

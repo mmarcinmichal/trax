@@ -17,8 +17,8 @@
 from absl import app, flags
 from six.moves import range
 
-from resources.examples.python.mnist.from_scratch import dataset
-from resources.examples.python.mnist.from_scratch import model as model_lib
+from resources.examples.python.nn.mnist.from_scratch import dataset
+from resources.examples.python.nn.mnist.from_scratch import model as model_lib
 
 FLAGS = flags.FLAGS
 

@@ -683,14 +683,7 @@ class A2CJoint(ActorCriticJointAgent):
         """A2C objective with local parameters."""
         return tl.Fn(
             "A2CObjective",
-            lambda dist_inputs,
-            values,
-            returns,
-            dones,
-            rewards,
-            actions,
-            old_log_probs,
-            mask: rl_layers.A2CObjective(
+            lambda dist_inputs, values, returns, dones, rewards, actions, old_log_probs, mask: rl_layers.A2CObjective(
                 dist_inputs,
                 values,
                 returns,

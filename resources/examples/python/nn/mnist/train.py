@@ -18,9 +18,7 @@ from trax.trainers import jax as trainers
 def build_model():
     # Build your model with loss function
     model = tl.Serial(
-        tl.Dense(128, use_bias=True),
-        tl.Relu(),
-        tl.Dense(10, use_bias=False)
+        tl.Dense(128, use_bias=True), tl.Relu(), tl.Dense(10, use_bias=False)
     )
     model_with_loss = tl.Serial(model, tl.CrossEntropyLossWithLogSoftmax())
     return model_with_loss
@@ -33,7 +31,9 @@ def main():
 
     # Load data
     X, y = load_dataset(Dataset.MNIST.value)
-    batch_generator = create_batch_generator(X, y, batch_size=DEFAULT_BATCH_SIZE, seed=42)
+    batch_generator = create_batch_generator(
+        X, y, batch_size=DEFAULT_BATCH_SIZE, seed=42
+    )
     example_batch = next(batch_generator)
 
     # Build and initialize model
@@ -47,7 +47,13 @@ def main():
     base_rng = fastmath.random.get_prng(0)
 
     # Run training on CPU and/or GPU
-    train_model(trainer, batch_generator, STEPS_NUMBER, base_rng, device_type=DeviceType.GPU.value)
+    train_model(
+        trainer,
+        batch_generator,
+        STEPS_NUMBER,
+        base_rng,
+        device_type=DeviceType.GPU.value,
+    )
 
     # Load test data
     test_data, test_labels = load_dataset(

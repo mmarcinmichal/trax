@@ -177,5 +177,5 @@ def _read_metric(metric_name, stdout):
     return float(metric_log.strip().split(" ")[-1])
 
 
-if __name__ == '__main__':
-  absltest.main()
+if __name__ == "__main__":
+    absltest.main()

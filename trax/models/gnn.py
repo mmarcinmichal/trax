@@ -47,6 +47,7 @@ def GraphConv(out_dim, activation=tl.Relu, add_self_loops=True):
     Returns:
       A :class:`~trax.layers.Serial` layer implementing graph convolution.
     """
+
     def _conv(f, a):
         a_norm = normalize_adjacency(a, add_self_loops=add_self_loops)
         return jnp.matmul(a_norm, f)
@@ -110,8 +111,12 @@ def GraphAttentionNet(hidden_sizes=(16, 2), activation=tl.Relu, num_heads=1):
     """Stack of :func:`GraphAttentionConv` layers for small graphs."""
     layers = []
     for size in hidden_sizes[:-1]:
-        layers.append(GraphAttentionConv(size, num_heads=num_heads, activation=activation))
-    layers.append(GraphAttentionConv(hidden_sizes[-1], num_heads=num_heads, activation=tl.Serial))
+        layers.append(
+            GraphAttentionConv(size, num_heads=num_heads, activation=activation)
+        )
+    layers.append(
+        GraphAttentionConv(hidden_sizes[-1], num_heads=num_heads, activation=tl.Serial)
+    )
     return tl.Serial(*layers)
 
 

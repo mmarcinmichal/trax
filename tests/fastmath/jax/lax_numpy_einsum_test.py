@@ -219,7 +219,9 @@ class EinsumTest(jtu.TestCase):
     # these tests are based on https://github.com/dask/dask/pull/3412/files
     @parameterized.named_parameters(
         {
-            "testcase_name": "_{}_dtype={}".format(einstr, dtype.__name__),  # pylint: disable=g-complex-comprehension
+            "testcase_name": "_{}_dtype={}".format(
+                einstr, dtype.__name__
+            ),  # pylint: disable=g-complex-comprehension
             "einstr": einstr,
             "dtype": dtype,
         }

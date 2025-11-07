@@ -17,4 +17,5 @@
 
 # pylint: disable=wildcard-import
 from trax.tf.extensions.extensions import *
+
 # pylint: enable=wildcard-import

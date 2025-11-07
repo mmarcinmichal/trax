@@ -125,7 +125,9 @@ def main(argv):
     if not FLAGS.output_dir:
         raise absl_app.UsageError("--output_dir needs to be provided.")
 
-    tf.compat.v1.enable_eager_execution()
+    # Ensure eager execution in TF2 without raising when already enabled.
+    if not tf.executing_eagerly():
+        tf.compat.v1.enable_eager_execution()
 
     # Check that checkpoint_dir is correct: should contain model.pkl.gz file.
     model_file = os.path.join(FLAGS.checkpoint_dir, "model.pkl.gz")

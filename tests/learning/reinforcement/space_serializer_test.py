@@ -163,5 +163,5 @@ class MultiDiscreteSpaceSerializerTest(test.TestCase):
         np.testing.assert_array_equal(self._serializer.significance_map, [0, 0])
 
 
-if __name__ == '__main__':
-  test.main()
+if __name__ == "__main__":
+    test.main()

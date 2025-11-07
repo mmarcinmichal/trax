@@ -42,9 +42,32 @@ from trax.data.preprocessing.tf.math import (
 _MAX_SKIP_EXAMPLES = 1e5
 
 _T2T_TO_TFDS_MAP = {
+    # Translation
     "t2t_translate_ende_wmt32k": "wmt14_translate/de-en",
-    # Add more legacy mappings here if needed
+    "t2t_wmt14_translate/de-en": "wmt14_translate/de-en",
+
+    # Language modeling
+    "t2t_languagemodel_lm1b32k": "lm1b",
+    "t2t_languagemodel_ptb10k": "ptb_text_only",
+
+    # Byte/text corpora
+    "t2t_enwik8_l2k": "enwik8",
+    "t2t_enwik8_l65k": "enwik8",
+
+    # Sentiment/classification
+    "t2t_sentiment_imdb": "imdb_reviews",
+
+    # Summarization
+    "t2t_summarize_cnn_dailymail32k": "cnn_dailymail",
+
+    # Vision
+    "t2t_image_imagenet224": "imagenet2012",
+    "t2t_image_imagenet64_gen_flat_rev": "downsampled_imagenet/64x64",
+
+    # Video
+    "t2t_video_bair_robot_pushing": "bair_robot_pushing_small",
 }
+
 
 def t5_data():
     """Get the T5 data module if available."""
@@ -57,6 +80,7 @@ def t5_data():
         logging.error("pip install t5")
         raise e
     return module
+
 
 def random_split_text_tf(max_words_per_segment=512, text_key="text"):
     """
@@ -90,11 +114,15 @@ def _select_features(example, feature_list=None):
     feature_list = feature_list or ["inputs", "targets"]
     return {f: example[f] for f in feature_list if f in example}
 
-def next_sentence_prediction_tf(text_key="text", label_sentences=True, buffer_size=50000):
+
+def next_sentence_prediction_tf(
+    text_key="text", label_sentences=True, buffer_size=50000
+):
     """
     Returns a TFDS preprocessing function for NSP.
     Each example must contain a text_key (e.g., 'text') with paragraph(s).
     """
+
     def preprocess_fn(dataset):
         # First, buffer examples into memory
         dataset = dataset.shuffle(buffer_size, reshuffle_each_iteration=True)
@@ -110,74 +138,36 @@ def next_sentence_prediction_tf(text_key="text", label_sentences=True, buffer_si
             text_a = a[text_key]
             text_b = b[text_key]
 
-            # Split into sentences
-            sent_a = tf.compat.v1.strings.split(
-                text_a, sep=". ", result_type="RaggedTensor"
-            )
-            sent_b = tf.compat.v1.strings.split(
-                text_b, sep=". ", result_type="RaggedTensor"
-            )
+            # Helper to obtain first and second sentences robustly in TF2.
+            def first_two_sentences(text):
+                # Split on '. ' into a RaggedTensor, then densify a single row.
+                rt = tf.strings.split([text], sep=". ")
+                dense = rt.to_tensor(default_value="")  # shape [1, N]
+                n = tf.shape(dense)[1]
+                first = tf.cond(
+                    tf.greater(n, 0),
+                    lambda: dense[0, 0],
+                    lambda: tf.constant("", dtype=tf.string),
+                )
+                second = tf.cond(
+                    tf.greater(n, 1),
+                    lambda: dense[0, 1],
+                    lambda: first,
+                )
+                return first, second
 
-            # Safe access to RaggedTensor A
-            sentences_a = sent_a.values
-            row_splits_a = sent_a.row_splits
-            has_sentences_a = tf.greater(tf.size(row_splits_a), 1)
-
-            # Safe access to RaggedTensor B
-            sentences_b = sent_b.values
-            row_splits_b = sent_b.row_splits
-            has_sentences_b = tf.greater(tf.size(row_splits_b), 1)
-
-            # Get first sentence from A safely
-            first_sentence = tf.cond(
-                has_sentences_a,
-                lambda: tf.cond(
-                    tf.greater(row_splits_a[1], row_splits_a[0]),
-                    lambda: sentences_a[row_splits_a[0]],
-                    lambda: tf.constant("Empty first sentence."),
-                ),
-                lambda: tf.constant("No sentences in A."),
-            )
+            first_sentence, a_second = first_two_sentences(text_a)
+            b_first, _ = first_two_sentences(text_b)
 
             # Random decision: use text from B or a subsequent sentence from A
             use_random = tf.random.uniform(()) < 0.5
+            second_sentence = tf.cond(use_random, lambda: b_first, lambda: a_second)
 
-            # Function to get the second sentence from A (if available)
-            def get_next_from_a():
-                has_second_sentence = tf.logical_and(
-                    has_sentences_a,
-                    tf.greater(tf.size(row_splits_a), 2)
-                )
-                return tf.cond(
-                    has_second_sentence,
-                    lambda: tf.cond(
-                        tf.greater(row_splits_a[2], row_splits_a[1]),
-                        lambda: sentences_a[row_splits_a[1]],
-                        lambda: first_sentence,
-                    ),
-                    lambda: first_sentence,
-                )
-
-            # Function to get first sentence from B
-            def get_next_from_b():
-                return tf.cond(
-                    has_sentences_b,
-                    lambda: tf.cond(
-                        tf.greater(row_splits_b[1], row_splits_b[0]),
-                        lambda: sentences_b[row_splits_b[0]],
-                        lambda: tf.constant("Empty sentence from B."),
-                    ),
-                    lambda: tf.constant("No sentences in B."),
-                )
-
-            # Select the second sentence
-            second_sentence = tf.cond(use_random, get_next_from_b, get_next_from_a)
-
-            # Format as requested in the second implementation
-            input_text = tf.strings.join(["sentence1: ", first_sentence, " sentence2: ", second_sentence])
-            label = tf.cond(use_random,
-                           lambda: tf.constant("not_next"),
-                           lambda: tf.constant("next"))
+            # Format output
+            input_text = tf.strings.join(
+                ["sentence1: ", first_sentence, " sentence2: ", second_sentence]
+            )
+            label = tf.where(use_random, "not_next", "next")
 
             return {"inputs": input_text, "targets": label}
 
@@ -440,6 +430,9 @@ def _train_and_eval_dataset(
        * supervised_keys: information what's the input and what's the target,
            ie., a pair of lists with input and target feature names.
     """
+    # Translate legacy T2T dataset names to TFDS equivalents early.
+    if dataset_name in _T2T_TO_TFDS_MAP:
+        dataset_name = _T2T_TO_TFDS_MAP[dataset_name]
     logging.info("Building TF data pipeline for %s", dataset_name)
     if dataset_name.startswith("t2t_"):
         return _train_and_eval_dataset_v1(
@@ -603,8 +596,14 @@ def TFDS(  # pylint: disable=invalid-name
     """
     data_dir = download_and_prepare(dataset_name, data_dir)
 
-    host_id = jax.process_index() if host_id is None else host_id
-    n_hosts = n_hosts or jax.host_count()
+    # Try to query JAX multi-host info; fall back to single-host CPU if JAX
+    # backends (e.g., CUDA) are unavailable in the current environment.
+    try:
+        host_id = jax.process_index() if host_id is None else host_id
+        n_hosts = n_hosts or jax.host_count()
+    except Exception:
+        host_id = 0 if host_id is None else host_id
+        n_hosts = n_hosts or 1
     if n_hosts > 1:
         subsplit = (host_id / n_hosts, (host_id + 1) / n_hosts)
     else:
@@ -635,7 +634,9 @@ def TFDS(  # pylint: disable=invalid-name
 
 
 @gin.configurable(module="trax.data")
-def CorpusToRandomChunks(dataset_name, num_tokens=512, train=True):  # pylint: disable=invalid-name
+def CorpusToRandomChunks(
+    dataset_name, num_tokens=512, train=True
+):  # pylint: disable=invalid-name
     return TFDS(
         dataset_name,
         tfds_preprocess_fn=random_split_text_tf(
@@ -903,7 +904,9 @@ def CreateAnnotatedDropInputs(  # pylint: disable=invalid-name
                     passages.add(example["passage"])
                     question = example["passage"] + " " + example["question"]
                     list_num = [
-                        float(num.replace(",", "").rstrip(".").lstrip("."))  # pylint: disable=g-complex-comprehension
+                        float(
+                            num.replace(",", "").rstrip(".").lstrip(".")
+                        )  # pylint: disable=g-complex-comprehension
                         for num in re.findall(
                             r"[-+]?[.]?[\d]+(?:,\d\d\d)*[\.]?\d*(?:[eE][-+]?\d+)?",
                             question,
@@ -1048,7 +1051,6 @@ def lm1b_preprocess(dataset, training, max_target_length=-1, max_eval_target_len
         dataset = dataset.filter(eval_target_right_length)
 
     return dataset
-
 
 
 @gin.configurable(module="trax.data", denylist=["dataset", "training"])
@@ -1196,7 +1198,9 @@ def add_eos_to_output_features(dataset, training, output_features="targets", eos
 
 
 @gin.configurable(module="trax.data", denylist=["dataset", "training"])
-def select_random_chunk_t5(dataset, training, sequence_length=None, output_features=None):
+def select_random_chunk_t5(
+    dataset, training, sequence_length=None, output_features=None
+):
     """Select a random chunk from the input tokens."""
     del training
 
@@ -1221,6 +1225,7 @@ def select_random_chunk_t5(dataset, training, sequence_length=None, output_featu
 
     return dataset.map(select_chunk, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
+
 @gin.configurable(module="trax.data", denylist=["dataset", "training"])
 def split_tokens_t5(dataset, training, sequence_length=None, output_features=None):
     """Split tokens into two parts."""
@@ -1242,10 +1247,11 @@ def split_tokens_t5(dataset, training, sequence_length=None, output_features=Non
 
     return dataset.map(split, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
+
 @gin.configurable(module="trax.data", denylist=["dataset", "training"])
 def denoise_t5(
-        dataset, training, sequence_length=None, output_features=None, noise_density=0.15
-    ):
+    dataset, training, sequence_length=None, output_features=None, noise_density=0.15
+):
     """Apply denoising to the tokens."""
     del training
 
@@ -1265,18 +1271,21 @@ def denoise_t5(
 
     return dataset.map(apply_noise, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
+
 def _pad_punctuation(text):
-  """Adds spaces around punctuation."""
-  # Add space around punctuation.
-  text = tf.strings.regex_replace(text, r'([[:punct:]])', r' \1 ')
-  # Collapse consecutive whitespace into one space.
-  text = tf.strings.regex_replace(text, r'\s+', ' ')
-  return text
+    """Adds spaces around punctuation."""
+    # Add space around punctuation.
+    text = tf.strings.regex_replace(text, r"([[:punct:]])", r" \1 ")
+    # Collapse consecutive whitespace into one space.
+    text = tf.strings.regex_replace(text, r"\s+", " ")
+    return text
+
 
 def _string_join(lst):
-  # Join on space, but collapse consecutive spaces.
-  out = tf.strings.join(lst, separator=' ')
-  return tf.strings.regex_replace(out, r'\s+', ' ')
+    # Join on space, but collapse consecutive spaces.
+    out = tf.strings.join(lst, separator=" ")
+    return tf.strings.regex_replace(out, r"\s+", " ")
+
 
 @gin.configurable(module="trax.data", denylist=["dataset", "training"])
 def squad_t5(dataset, training, include_context=True):
@@ -1389,10 +1398,14 @@ def unsupervised_preprocessors(
 
     for preprocessor in preprocessors:
         dataset = preprocessor(
-            dataset, None, sequence_length=sequence_length, output_features=output_features
+            dataset,
+            None,
+            sequence_length=sequence_length,
+            output_features=output_features,
         )
 
     return dataset
+
 
 @gin.configurable(module="trax.data", denylist=["dataset", "training"])
 def generic_text_dataset_preprocess_fn(
@@ -1439,6 +1452,7 @@ def generic_text_dataset_preprocess_fn(
 
     # Print debugging examples if needed before tokenization.
     if debug_print_examples:
+
         def print_examples(x):
             if np.random.uniform() < debug_print_examples_rate:
                 tf.print(x, output_stream=logging.info)
@@ -1475,6 +1489,7 @@ def generic_text_dataset_preprocess_fn(
             dataset = token_preprocess_fn(dataset, training)
 
     if debug_print_examples:
+
         def print_examples_and_shapes(x):
             if np.random.uniform() < debug_print_examples_rate:
                 tf.print(
