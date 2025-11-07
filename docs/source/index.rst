@@ -10,7 +10,6 @@ Trax Tutorials
 
    notebooks/trax_intro
    notebooks/layers_intro
-   notebooks/tf_numpy_and_keras
 
 
 Trax API

@@ -215,9 +215,9 @@ class AssertShape(base.Layer):
         if not isinstance(xs, (list, tuple)):
             xs = (xs,)
 
-        # Try-except below checks if something is wrong with shapes. It can happen
-        # e.g. when using trax2keras. If this is the case we cannot check if shapes
-        # are correct or not
+        # Try-except below checks if something is wrong with shapes. If tensors come
+        # from outside Trax (e.g., via custom wrappers), their metadata may be
+        # incomplete, so we skip asserts in that case.
         try:
             for x in xs:
                 for i in range(len(x.shape)):
@@ -225,8 +225,8 @@ class AssertShape(base.Layer):
                         raise TypeError()
         except TypeError:
             message = (
-                "AssertShape cannot check shapes. This often happens when"
-                " using trax2keras. Shape asserts are skipped."
+                "AssertShape cannot check shapes because tensor metadata is"
+                " incomplete. Shape asserts are skipped."
             )
             print(message)
             logging.warning(message)
