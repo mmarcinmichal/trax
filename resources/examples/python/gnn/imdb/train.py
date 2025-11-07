@@ -17,8 +17,8 @@ from trax import optimizers
 from trax.models import gnn
 from trax.trainers import jax as trainers
 
-MAX_LEN = 400
-VOCAB_SIZE = 36_000
+MAX_LEN = 2_000
+VOCAB_SIZE = 100_000
 
 
 def build_vocab(texts):
@@ -77,7 +77,7 @@ def build_model(vocab_size):
 
 
 def main():
-    DEFAULT_BATCH_SIZE = 16
+    DEFAULT_BATCH_SIZE = 8
     STEPS_NUMBER = 20_000
 
     (x_train, a_train, y_train), (x_test, a_test, y_test), vocab_size = load_data()

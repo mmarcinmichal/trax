@@ -421,6 +421,7 @@ def _train_and_eval_dataset(
         ignored for other datasets.
       subsplit: a pair of floats (x, y), both in [0, 1], saying which part of the
         full training dataset we should return (default: all of it, [0, 1]).
+      require_train_split: If True, raise when the dataset lacks a train split.
 
     Returns:
       a 4-tuple consisting of:

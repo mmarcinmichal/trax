@@ -16,6 +16,7 @@
 """Tests for tf numpy mathematical methods."""
 import functools
 import itertools
+import logging
 
 import jax
 import numpy as np
@@ -91,9 +92,11 @@ def spec(*args):
 
 
 class ExtensionsTest(tf.test.TestCase, parameterized.TestCase):
-    def __init__(self, methodName="runTest"):  # pylint: disable=invalid-name
-        super().__init__(methodName)
-        physical_devices = tf.config.experimental.list_physical_devices("CPU")
+  def __init__(self, methodName="runTest"):  # pylint: disable=invalid-name
+    super().__init__(methodName)
+    physical_devices = tf.config.experimental.list_physical_devices("CPU")
+    if physical_devices:
+      try:
         tf.config.experimental.set_virtual_device_configuration(
             physical_devices[0],
             [
@@ -101,9 +104,13 @@ class ExtensionsTest(tf.test.TestCase, parameterized.TestCase):
                 tf.config.experimental.VirtualDeviceConfiguration(),
             ],
         )
-        if extensions.tpu_devices():
-            resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu="local")
-            tf.tpu.experimental.initialize_tpu_system(resolver)
+      except RuntimeError:
+        logging.warning(
+            "Virtual CPU devices already initialized; continuing without reset."
+        )
+    if extensions.tpu_devices():
+      resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu="local")
+      tf.tpu.experimental.initialize_tpu_system(resolver)
 
     def _hasGPU(self):
         physical_devices = tf.config.experimental.list_physical_devices("GPU")
