@@ -109,7 +109,9 @@ def LSTM(n_units, mode="train", return_state=False, initial_state=False):
     """
 
     if not initial_state:
-        zero_state = MakeZeroState(depth_multiplier=2)  # pylint: disable=no-value-for-parameter
+        zero_state = MakeZeroState(
+            depth_multiplier=2
+        )  # pylint: disable=no-value-for-parameter
         if return_state:
             return cb.Serial(
                 cb.Branch([], zero_state),
@@ -196,7 +198,9 @@ class GRUCell(base.Layer):
 
 def GRU(n_units, mode="train"):
     """GRU running on axis 1."""
-    zero_state = MakeZeroState(depth_multiplier=1)  # pylint: disable=no-value-for-parameter
+    zero_state = MakeZeroState(
+        depth_multiplier=1
+    )  # pylint: disable=no-value-for-parameter
     return cb.Serial(
         cb.Branch([], zero_state),
         cb.Scan(GRUCell(n_units=n_units), axis=1, mode=mode),

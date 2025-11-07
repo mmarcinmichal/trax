@@ -18,13 +18,10 @@ from trax.trainers import jax as trainers
 def build_model():
     # Build your model with loss function
     model = tl.Serial(
-        tl.Dense(16, use_bias=True),
-        tl.Relu(),
-        tl.Dense(3, use_bias=False)
+        tl.Dense(16, use_bias=True), tl.Relu(), tl.Dense(3, use_bias=False)
     )
     model_with_loss = tl.Serial(model, tl.CrossEntropyLossWithLogSoftmax())
     return model_with_loss
-
 
 
 def main():
@@ -34,7 +31,9 @@ def main():
 
     # Load data
     X, y = load_dataset(Dataset.IRIS.value)
-    batch_generator = create_batch_generator(X, y, batch_size=DEFAULT_BATCH_SIZE, seed=42)
+    batch_generator = create_batch_generator(
+        X, y, batch_size=DEFAULT_BATCH_SIZE, seed=42
+    )
     example_batch = next(batch_generator)
 
     # Build and initialize model
@@ -49,7 +48,11 @@ def main():
 
     # Run training on CPU and/or GPU
     train_model(
-        trainer, batch_generator, STEPS_NUMBER, base_rng, device_type=DeviceType.GPU.value
+        trainer,
+        batch_generator,
+        STEPS_NUMBER,
+        base_rng,
+        device_type=DeviceType.GPU.value,
     )
 
     # Load test data
@@ -71,8 +74,6 @@ def main():
     )
 
     print(f"Final test accuracy: {test_results['accuracy']:.4f}")
-
-
 
 
 if __name__ == "__main__":

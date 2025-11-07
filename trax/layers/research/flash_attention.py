@@ -38,7 +38,9 @@ def flash_attention(q, k, v, *, block_size, mask=None):
 
     outputs = []
     for start in range(0, total_len, block_size):
-        q_block = lax.dynamic_slice(q, (0, start, 0), (q.shape[0], block_size, q.shape[2]))
+        q_block = lax.dynamic_slice(
+            q, (0, start, 0), (q.shape[0], block_size, q.shape[2])
+        )
         logits = jnp.einsum("bqd,bkd->bqk", q_block, k)
         if mask_b is not None:
             logits = jnp.where(mask_b, -1e9, logits)

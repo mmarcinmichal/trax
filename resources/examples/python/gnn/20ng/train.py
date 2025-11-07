@@ -106,7 +106,7 @@ def attention_pool():
 def build_model(vocab_size):
     return tl.Serial(
         tl.Parallel(tl.Embedding(vocab_size, 512), None),
-        gnn.GraphAttentionNet(hidden_sizes=(512, 32), num_heads=2),
+        gnn.GraphAttentionNet(hidden_sizes=(512, 64, 32), num_heads=16),
         tl.Select([0]),
         attention_pool(),
         tl.Dense(20),
@@ -116,7 +116,7 @@ def build_model(vocab_size):
 
 def main():
     DEFAULT_BATCH_SIZE = 8
-    STEPS_NUMBER = 4_000
+    STEPS_NUMBER = 14_000
 
     (x_train, a_train, y_train), (x_test, a_test, y_test), vocab_size = load_data()
     batch_gen = graph_batch_generator(
@@ -129,7 +129,7 @@ def main():
     )
     initialize_model(model_with_loss, example_batch)
 
-    optimizer = optimizers.Adam(0.0001)
+    optimizer = optimizers.Adam(0.00001)
     trainer = trainers.Trainer(model_with_loss, optimizer)
 
     base_rng = fastmath.random.get_prng(0)

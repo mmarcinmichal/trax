@@ -110,7 +110,9 @@ def c4_bare_preprocess_fn(
     dataset = dataset.map(tokenize, num_parallel_calls=tf.data.AUTOTUNE)
 
     # Preprocess the tokens - the exact preprocessors are set via gin.
-    dataset = unsupervised_preprocessors(dataset, training, sequence_length=sequence_length)
+    dataset = unsupervised_preprocessors(
+        dataset, training, sequence_length=sequence_length
+    )
 
     # Add EOS.
     dataset = add_eos_to_output_features(dataset, training)

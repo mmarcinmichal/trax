@@ -41,26 +41,20 @@ class GNNTest(absltest.TestCase):
 
     def test_graph_conv_net_forward_shape(self):
         model = gnn.GraphConvNet(hidden_sizes=(5, 2))
-        _, _ = model.init(
-            [shapes.signature(self.features), shapes.signature(self.adj)]
-        )
+        _, _ = model.init([shapes.signature(self.features), shapes.signature(self.adj)])
         out_features, out_adj = model([self.features, self.adj])
         self.assertEqual(out_features.shape, (2, 4, 2))
         self.assertEqual(out_adj.shape, (2, 4, 4))
 
     def test_graph_attention_net_forward_shape(self):
         model = gnn.GraphAttentionNet(hidden_sizes=(5, 2), num_heads=2)
-        _, _ = model.init(
-            [shapes.signature(self.features), shapes.signature(self.adj)]
-        )
+        _, _ = model.init([shapes.signature(self.features), shapes.signature(self.adj)])
         out_features, out_adj = model([self.features, self.adj])
         self.assertEqual(out_features.shape, (2, 4, 2))
         self.assertEqual(out_adj.shape, (2, 4, 4))
 
     def test_graph_edge_net_forward_shape(self):
-        model = gnn.GraphEdgeNet(
-            node_sizes=(5, 2), edge_sizes=(3, 2)
-        )
+        model = gnn.GraphEdgeNet(node_sizes=(5, 2), edge_sizes=(3, 2))
         model.init(
             [
                 shapes.signature(self.features),

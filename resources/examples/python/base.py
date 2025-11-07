@@ -366,7 +366,4 @@ def evaluate_model(
     logging.info(f"  Mean accuracy: {mean_accuracy:.4f}")
     logging.info(f"  Mean loss: {mean_loss:.4f}")
 
-    return {
-        "accuracy": float(mean_accuracy),
-        "loss": float(mean_loss)
-    }
+    return {"accuracy": float(mean_accuracy), "loss": float(mean_loss)}

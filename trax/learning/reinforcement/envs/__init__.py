@@ -17,7 +17,7 @@
 
 import gin
 
-from learning.rl.envs import data_envs
+from . import data_envs
 
 
 def configure_rl_env(*args, **kwargs):

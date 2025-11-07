@@ -34,26 +34,32 @@ setup(
     license="Apache 2.0",
     packages=find_packages(),
     install_requires=[
-        "seqio==0.0.18",
         "absl-py==2.2.0",
         "gin-config==0.5.0",
-        "gym==0.26.2",
         "jax==0.5.3",
         "jaxlib==0.5.3",
-        "matplotlib==3.10.1",
         "numpy==1.26.4",
         "psutil==7.0.0",
         "scipy==1.15.2",
-        "six==1.14.0",
         "tensorflow-datasets==4.9.8",
         "tensorflow-text==2.17.0",
-        "tensorflow-estimator==2.15.0",
-        "datasets==3.5.0",
     ],
     extras_require={
         "tensorflow": ["tensorflow==2.17.0"],
         "tensorflow_cuda": ["tensorflow[and-cuda]==2.17.0"],
-        "t5": ["t5==0.9.4"],
+        "t5": [
+            "t5==0.9.4",
+            "seqio==0.0.18",
+        ],
+        "rl": [
+            "gym==0.26.2",
+        ],
+        "viz": [
+            "matplotlib==3.10.1",
+        ],
+        "examples": [
+            "datasets==3.5.0",
+        ],
         "tests": [
             "attrs==25.3.0",
             "jupyter",

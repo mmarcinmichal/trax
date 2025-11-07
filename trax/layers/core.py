@@ -819,7 +819,9 @@ def Negate():
 @assert_shape("...->...")  # The output and input shapes are the same.
 def StopGradient():
     """Returns an identity layer with a stop gradient."""
-    return Fn("StopGradient", lambda x: fastmath.stop_gradient(x))  # pylint: disable=unnecessary-lambda
+    return Fn(
+        "StopGradient", lambda x: fastmath.stop_gradient(x)
+    )  # pylint: disable=unnecessary-lambda
 
 
 def one_hot(x, n_categories, dtype=jnp.float32):  # pylint: disable=invalid-name

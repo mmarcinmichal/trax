@@ -81,4 +81,3 @@ def cifar10_augmentation_flatten_preprocess(
     dataset = dataset.map(flatten_image)
 
     return dataset
-

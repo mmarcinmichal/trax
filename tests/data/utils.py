@@ -14,21 +14,26 @@ from trax.data.loader.tf import base as ds
 
 pkg_dir, _ = os.path.split(__file__)
 _TESTDATA = os.path.normpath(os.path.join(pkg_dir, "../../resources/data/testdata"))
-_CONFIG_DIR = os.path.normpath(os.path.join(pkg_dir, "../../resources/supervised/configs/"))
-_SUPERVISED_TESTDATA = os.path.normpath(os.path.join(pkg_dir, "../../resources/supervised/testdata"))
+_CONFIG_DIR = os.path.normpath(
+    os.path.join(pkg_dir, "../../resources/supervised/configs/")
+)
+_SUPERVISED_TESTDATA = os.path.normpath(
+    os.path.join(pkg_dir, "../../resources/supervised/testdata")
+)
 
 # _ProxyTest is required because py2 does not allow instantiating
 # absltest.TestCase directly.
 class _ProxyTest(absltest.TestCase):
-  """Instance of TestCase to reuse methods for testing."""
+    """Instance of TestCase to reuse methods for testing."""
 
-  maxDiff = None
+    maxDiff = None
 
-  def runTest(self):
-    pass
+    def runTest(self):
+        pass
 
 
 _pyunit_proxy = _ProxyTest()
+
 
 def _test_dataset_ints(inp_lengths, tgt_lengths):
     """Create a test dataset of int64 tensors of given shapes."""
@@ -109,11 +114,12 @@ def _t5_gin_config():
 
 
 def _maybe_as_bytes(v):
-  if isinstance(v, list):
-    return [_maybe_as_bytes(x) for x in v]
-  if isinstance(v, str):
-    return tf.compat.as_bytes(v)
-  return v
+    if isinstance(v, list):
+        return [_maybe_as_bytes(x) for x in v]
+    if isinstance(v, str):
+        return tf.compat.as_bytes(v)
+    return v
+
 
 def assert_dataset(
     dataset: tf.data.Dataset,
@@ -122,54 +128,52 @@ def assert_dataset(
     rtol=1e-7,
     atol=0,
 ):
-  """Tests whether the entire dataset == expected or [expected].
+    """Tests whether the entire dataset == expected or [expected].
 
-  Args:
-    dataset: a tf.data dataset
-    expected: either a single example, or a list of examples. Each example is a
-      dictionary.
-    expected_dtypes: an optional mapping from feature key to expected dtype.
-    rtol: the relative tolerance.
-    atol: the absolute tolerance.
-  """
+    Args:
+      dataset: a tf.data dataset
+      expected: either a single example, or a list of examples. Each example is a
+        dictionary.
+      expected_dtypes: an optional mapping from feature key to expected dtype.
+      rtol: the relative tolerance.
+      atol: the absolute tolerance.
+    """
 
-  if not isinstance(expected, list):
-    expected = [expected]
-  actual = list(tfds.as_numpy(dataset))
-  _pyunit_proxy.assertEqual(len(actual), len(expected))
+    if not isinstance(expected, list):
+        expected = [expected]
+    actual = list(tfds.as_numpy(dataset))
+    _pyunit_proxy.assertEqual(len(actual), len(expected))
 
-  def _compare_dict(actual_dict, expected_dict):
-    _pyunit_proxy.assertEqual(
-        set(actual_dict.keys()), set(expected_dict.keys())
-    )
-    for key, actual_value in actual_dict.items():
-      if isinstance(actual_value, dict):
-        _compare_dict(actual_value, expected_dict[key])
-      elif isinstance(actual_value, tf.RaggedTensor) or isinstance(
-          actual_value, tf.compat.v1.ragged.RaggedTensorValue
-      ):
-        actual_value = actual_value.to_list()
-        np.testing.assert_array_equal(
-            np.array(actual_value, dtype=object),
-            np.array(_maybe_as_bytes(expected_dict[key]), dtype=object),
-            key,
-        )
-      elif (
-          isinstance(actual_value, np.floating)
-          or isinstance(actual_value, np.ndarray)
-          and np.issubdtype(actual_value.dtype, np.floating)
-      ):
-        np.testing.assert_allclose(
-            actual_value, expected_dict[key], err_msg=key, rtol=rtol, atol=atol
-        )
-      else:
-        np.testing.assert_array_equal(
-            actual_value, _maybe_as_bytes(expected_dict[key]), key
-        )
+    def _compare_dict(actual_dict, expected_dict):
+        _pyunit_proxy.assertEqual(set(actual_dict.keys()), set(expected_dict.keys()))
+        for key, actual_value in actual_dict.items():
+            if isinstance(actual_value, dict):
+                _compare_dict(actual_value, expected_dict[key])
+            elif isinstance(actual_value, tf.RaggedTensor) or isinstance(
+                actual_value, tf.compat.v1.ragged.RaggedTensorValue
+            ):
+                actual_value = actual_value.to_list()
+                np.testing.assert_array_equal(
+                    np.array(actual_value, dtype=object),
+                    np.array(_maybe_as_bytes(expected_dict[key]), dtype=object),
+                    key,
+                )
+            elif (
+                isinstance(actual_value, np.floating)
+                or isinstance(actual_value, np.ndarray)
+                and np.issubdtype(actual_value.dtype, np.floating)
+            ):
+                np.testing.assert_allclose(
+                    actual_value, expected_dict[key], err_msg=key, rtol=rtol, atol=atol
+                )
+            else:
+                np.testing.assert_array_equal(
+                    actual_value, _maybe_as_bytes(expected_dict[key]), key
+                )
 
-  for actual_ex, expected_ex in zip(actual, expected):
-    _compare_dict(actual_ex, expected_ex)
+    for actual_ex, expected_ex in zip(actual, expected):
+        _compare_dict(actual_ex, expected_ex)
 
-  if expected_dtypes:
-    actual_dtypes = {k: dataset.element_spec[k].dtype for k in expected_dtypes}
-    _pyunit_proxy.assertDictEqual(expected_dtypes, actual_dtypes)
+    if expected_dtypes:
+        actual_dtypes = {k: dataset.element_spec[k].dtype for k in expected_dtypes}
+        _pyunit_proxy.assertDictEqual(expected_dtypes, actual_dtypes)

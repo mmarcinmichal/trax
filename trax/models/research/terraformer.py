@@ -335,7 +335,9 @@ def ConfigurableTerraformer(
         # After initializing the decoder we can revert to original state of
         # previously monkey-patched classes/functions.
         tl.attention.DotProductCausalAttention.monkey_patched_mask = lambda x: None
-        tl.research.sparsity._RememberPad.monkey_patched_mask = lambda x: None  # pylint: disable=protected-access
+        tl.research.sparsity._RememberPad.monkey_patched_mask = (
+            lambda x: None
+        )  # pylint: disable=protected-access
         tl.rnn.ScanSRUCell = originalScanSRUCell
 
     def _Loss():

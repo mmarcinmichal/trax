@@ -190,5 +190,5 @@ class TrainingTest(absltest.TestCase):
         self.assertEqual(2, trainer.current_epoch)
 
 
-if __name__ == '__main__':
-  absltest.main()
+if __name__ == "__main__":
+    absltest.main()

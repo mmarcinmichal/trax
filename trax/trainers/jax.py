@@ -235,12 +235,7 @@ class Trainer:
 
         if self._n_devices == 1:
             # Single device => just run the function directly (already jitted).
-            (
-                new_weights,
-                new_state,
-                new_slots,
-                loss,
-            ) = self._accelerated_update_fn(
+            (new_weights, new_state, new_slots, loss,) = self._accelerated_update_fn(
                 weights,
                 state,
                 self._slots,
@@ -978,15 +973,18 @@ def extract_reversible_blocks(layer):
     # Group layers into reversible blocks
     i = 0
     while i < len(sublayers):
-        if (isinstance(sublayers[i], tl.ReversibleLayer) or
-                (hasattr(sublayers[i], 'has_backward') and sublayers[i].has_backward)):
+        if isinstance(sublayers[i], tl.ReversibleLayer) or (
+            hasattr(sublayers[i], "has_backward") and sublayers[i].has_backward
+        ):
             blocks.append(sublayers[i])
             i += 1
-        elif (i + 1 < len(sublayers) and
-              isinstance(sublayers[i], tl.ReversibleHalfResidual) and
-              isinstance(sublayers[i+1], tl.ReversibleHalfResidual)):
+        elif (
+            i + 1 < len(sublayers)
+            and isinstance(sublayers[i], tl.ReversibleHalfResidual)
+            and isinstance(sublayers[i + 1], tl.ReversibleHalfResidual)
+        ):
             # Pair of ReversibleHalfResidual layers make a reversible block
-            blocks.append(tl.ReversibleResidual(sublayers[i], sublayers[i+1]))
+            blocks.append(tl.ReversibleResidual(sublayers[i], sublayers[i + 1]))
             i += 2
         else:
             # Non-reversible layer - wrap it in a serial block

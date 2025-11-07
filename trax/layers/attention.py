@@ -542,7 +542,9 @@ class DotProductCausalAttention(base.Layer):
         self._dropout = dropout
         self._mode = mode
         self._max_len = max_inference_length
-        self._portal_mask = self.monkey_patched_mask()  # pylint: disable=assignment-from-none
+        self._portal_mask = (
+            self.monkey_patched_mask()
+        )  # pylint: disable=assignment-from-none
 
     def monkey_patched_mask(self):
         # This is necessary for Terraformer model. See comments there.

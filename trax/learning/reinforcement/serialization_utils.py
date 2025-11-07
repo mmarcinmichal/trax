@@ -308,7 +308,9 @@ def RawPolicy(seq_model, n_controls, n_actions):
     )
 
 
-def substitute_inner_policy_raw(raw_policy, inner_policy):  # pylint: disable=invalid-name
+def substitute_inner_policy_raw(
+    raw_policy, inner_policy
+):  # pylint: disable=invalid-name
     """Substitutes the weights/state of the inner model in a RawPolicy."""
     return raw_policy[:1] + [inner_policy] + raw_policy[2:]
 
@@ -393,7 +395,9 @@ def SerializedPolicy(
     )
 
 
-def substitute_inner_policy_serialized(serialized_policy, inner_policy):  # pylint: disable=invalid-name
+def substitute_inner_policy_serialized(
+    serialized_policy, inner_policy
+):  # pylint: disable=invalid-name
     """Substitutes the weights/state of the inner model in a SerializedPolicy."""
     return serialized_policy[:4] + [inner_policy] + serialized_policy[5:]
 
@@ -418,7 +422,9 @@ def analyze_action_space(action_space):  # pylint: disable=invalid-name
     return (n_controls, n_actions)
 
 
-def wrap_policy(seq_model, observation_space, action_space, vocab_size):  # pylint: disable=invalid-name
+def wrap_policy(
+    seq_model, observation_space, action_space, vocab_size
+):  # pylint: disable=invalid-name
     """Wraps a sequence model in either RawPolicy or SerializedPolicy.
 
     Args:
@@ -444,7 +450,9 @@ def wrap_policy(seq_model, observation_space, action_space, vocab_size):  # pyli
     return policy_wrapper(seq_model, n_controls, n_actions)
 
 
-def substitute_inner_policy(wrapped_policy, inner_policy, vocab_size):  # pylint: disable=invalid-name
+def substitute_inner_policy(
+    wrapped_policy, inner_policy, vocab_size
+):  # pylint: disable=invalid-name
     """Substitutes the inner weights/state in a {Raw,Serialized}Policy.
 
     Args:

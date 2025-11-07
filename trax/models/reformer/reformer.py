@@ -204,7 +204,9 @@ def ReformerLM(
 
     positional_embedder = [
         tl.Embedding(vocab_size, d_model),
-        tl.Dropout(rate=dropout, shared_axes=[-2], mode=mode),  # pylint: disable=no-value-for-parameter
+        tl.Dropout(
+            rate=dropout, shared_axes=[-2], mode=mode
+        ),  # pylint: disable=no-value-for-parameter
         positional_encoding,
     ]
 
@@ -253,7 +255,9 @@ def ReformerLM(
         # # TODO(kitaev): Test whether dropout should go before or after the
         # LayerNorm, and whether dropout broadcasting is needed here.
         tl.LayerNorm(),
-        tl.Dropout(rate=dropout, shared_axes=[-2], mode=mode),  # pylint: disable=no-value-for-parameter
+        tl.Dropout(
+            rate=dropout, shared_axes=[-2], mode=mode
+        ),  # pylint: disable=no-value-for-parameter
         dense_loss_layer,
     )
 
@@ -329,7 +333,9 @@ def ReformerShortenLM(
 
     positional_embedder = [
         tl.Embedding(vocab_size, d_embedding),
-        tl.Dropout(rate=dropout, shared_axes=[-2], mode=mode),  # pylint: disable=no-value-for-parameter
+        tl.Dropout(
+            rate=dropout, shared_axes=[-2], mode=mode
+        ),  # pylint: disable=no-value-for-parameter
         positional_encoding,
     ]
 
@@ -385,7 +391,9 @@ def ReformerShortenLM(
         tl.ReversibleSerial(decoder_blocks),
         tl.Select([0], n_in=2),
         tl.LayerNorm(),
-        tl.Dropout(rate=dropout, shared_axes=[-2], mode=mode),  # pylint: disable=no-value-for-parameter
+        tl.Dropout(
+            rate=dropout, shared_axes=[-2], mode=mode
+        ),  # pylint: disable=no-value-for-parameter
         tl.Dense(shorten_factor * d_embedding),
         tl.Fn(
             "ProlongBack",

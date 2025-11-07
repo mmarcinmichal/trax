@@ -291,5 +291,5 @@ class ActorCriticTest(parameterized.TestCase):
         self.assertEqual(1, trainer.current_epoch)
 
 
-if __name__ == '__main__':
-  absltest.main()
+if __name__ == "__main__":
+    absltest.main()

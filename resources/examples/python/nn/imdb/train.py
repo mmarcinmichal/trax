@@ -58,7 +58,6 @@ def run_training(device_type="cpu", num_steps=100):
     logging.info(f"JAX devices: {fastmath.devices(device_type)[0]}")
     logging.info(f"JAX target device: {fastmath.devices(device_type)[0]}")
 
-
     # ====== Create data pipeline =======
     # VOCAB_TYPE = "subword"
     # VOCAB_FILE = "en_8k.subword"
@@ -114,9 +113,10 @@ def run_training(device_type="cpu", num_steps=100):
             # Yield the batch
             yield (features, labels, weights)
 
-
     train_batches_stream = create_batch_generator()
-    example_batch = next(train_batches_stream)  # Cache first batch to ensure fair comparison
+    example_batch = next(
+        train_batches_stream
+    )  # Cache first batch to ensure fair comparison
     # train_batches_stream = data_pipeline(train_stream)
     # example_batch = next(train_batches_stream)  # Cache first batch to ensure fair comparison
 
@@ -147,7 +147,7 @@ def run_training(device_type="cpu", num_steps=100):
     print(f"Compilation time: {compile_time:.4f} seconds")
 
     # Setup optimizer
-    #optimizer = optimizers.Adafactor(0.001)
+    # optimizer = optimizers.Adafactor(0.001)
     optimizer = optimizers.SGD(0.0001)
     trainer = optimizers.Trainer(model_with_loss, optimizer)
 
@@ -196,8 +196,9 @@ def run_training(device_type="cpu", num_steps=100):
         "compile_time": compile_time,
         "total_training_time": training_time,
         "avg_step_time": avg_step_time,
-        "final_loss": losses[-1]
+        "final_loss": losses[-1],
     }
+
 
 # Run and compare
 NUM_STEPS = 5_000  # Use a smaller number for testing, then increase for full benchmark
@@ -209,19 +210,19 @@ cpu_results = run_training(device_type="cpu", num_steps=NUM_STEPS)
 gpu_results = run_training(device_type="gpu", num_steps=NUM_STEPS)
 
 # Print comparison
-print("\n" + "="*50)
+print("\n" + "=" * 50)
 print("PERFORMANCE COMPARISON: CPU vs GPU")
-print("="*50)
+print("=" * 50)
 print(f"{'Metric':<25} {'CPU':<15} {'GPU':<15} {'Speedup':<10}")
-print("-"*65)
+print("-" * 65)
 
 for metric in ["init_time", "compile_time", "total_training_time", "avg_step_time"]:
     cpu_val = cpu_results[metric]
     gpu_val = gpu_results[metric]
-    speedup = cpu_val / gpu_val if gpu_val > 0 else float('inf')
+    speedup = cpu_val / gpu_val if gpu_val > 0 else float("inf")
     print(f"{metric:<25} {cpu_val:.4f}s{' ':<9} {gpu_val:.4f}s{' ':<9} {speedup:.2f}x")
 
-print("="*65)
+print("=" * 65)
 
 
 def create_batch_generator(batch_size=32, feature_dim=10_000, num_classes=20, seed=42):
@@ -245,8 +246,12 @@ def create_batch_generator(batch_size=32, feature_dim=10_000, num_classes=20, se
         key, subkey1, subkey2 = fastmath.random.split(key, 3)
 
         # Generate features, labels and weights
-        features = fastmath.random.randint(subkey1, (batch_size, feature_dim), minval=0, maxval=10_000)
-        labels = fastmath.random.randint(subkey2, (batch_size,), minval=0, maxval=num_classes)
+        features = fastmath.random.randint(
+            subkey1, (batch_size, feature_dim), minval=0, maxval=10_000
+        )
+        labels = fastmath.random.randint(
+            subkey2, (batch_size,), minval=0, maxval=num_classes
+        )
         weights = jnp.ones((batch_size,))
 
         # Yield the batch
