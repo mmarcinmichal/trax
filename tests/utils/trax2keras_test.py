@@ -81,6 +81,17 @@ _RNG_UPDATERS = [
 
 # Needs tf.test.TestCase for `assertAllClose` and `get_temp_dir`
 class Trax2KerasTest(tf.test.TestCase, parameterized.TestCase):
+    def _assert_nested_close(self, expected, actual, **kwargs):
+        """Assert that two pytrees match element-wise."""
+
+        tf.nest.assert_same_structure(expected, actual)
+        for exp_leaf, act_leaf in zip(
+            tf.nest.flatten(expected), tf.nest.flatten(actual)
+        ):
+            exp_tensor = tf.convert_to_tensor(exp_leaf)
+            act_tensor = tf.convert_to_tensor(act_leaf)
+            super().assertAllClose(exp_tensor, act_tensor, **kwargs)
+
     @parameterized.named_parameters(
         [
             {
@@ -204,14 +215,18 @@ class Trax2KerasTest(tf.test.TestCase, parameterized.TestCase):
                     keras_layer.trainable_variables,
                     keras_grads,
                 )
-                self.assertAllClose(
+                self._assert_nested_close(
                     to_tensors(weights),
                     read_values(keras_layer._weights),
                     rtol=2e-6,
                     atol=4.5e-4 if has_gpu() else 1e-6,
                 )
-                self.assertAllClose(to_tensors(state), read_values(keras_layer._state))
-                self.assertAllClose(to_tensors(rng), read_values(keras_layer._rng))
+                self._assert_nested_close(
+                    to_tensors(state), read_values(keras_layer._state)
+                )
+                self._assert_nested_close(
+                    to_tensors(rng), read_values(keras_layer._rng)
+                )
             if use_model:
                 fname = os.path.join(self.get_temp_dir(), "checkpoint")
                 keras_model.save(fname)

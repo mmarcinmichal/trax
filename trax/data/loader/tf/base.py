@@ -400,6 +400,7 @@ def _train_and_eval_dataset(
     eval_shuffle_files=False,
     use_alt_eval=False,
     subsplit=None,
+    require_train_split=True,
 ):
     """Return train and evaluation datasets, feature info and supervised keys.
 
@@ -441,28 +442,38 @@ def _train_and_eval_dataset(
     dataset_builder = tfds.builder(dataset_name, data_dir=data_dir)
     info = dataset_builder.info
     splits = dataset_builder.info.splits
-    if dataset_name != "c4/multilingual" and tfds.Split.TRAIN not in splits:
-        raise ValueError("To train we require a train split in the dataset.")
-    train_split = tfds.Split.TRAIN if dataset_name != "c4/multilingual" else "en"
+    has_train_split = tfds.Split.TRAIN in splits
+
+    train_split = None
     eval_split = None
-    train_examples = info.splits[train_split].num_examples
-    eval_holdout_examples = int(train_examples * eval_holdout_size)
-    if eval_holdout_examples > 0 or subsplit is not None:
-        if subsplit is None:
-            subsplit = (0, 1)
-        n_train = train_examples - eval_holdout_examples
-        train_start = int(n_train * subsplit[0])
-        train_end = int(n_train * subsplit[1])
-        if train_end - train_start < 1:
-            raise ValueError(
-                "Requested train subsplit has no examples: "
-                "n_train %d subsplit %s" % (n_train, subsplit)
-            )
-        # Eval holdout examples from the end of the training set.
-        if eval_holdout_examples > 0:
-            eval_split = f"{train_split}[-{eval_holdout_examples}:]"
-        # Shard the training set for this host.
-        train_split = f"{train_split}[{train_start}:{train_end}]"
+
+    if dataset_name == "c4/multilingual":
+        train_split = "en"
+        has_train_split = True
+    elif has_train_split:
+        train_split = tfds.Split.TRAIN
+    elif require_train_split:
+        raise ValueError("To train we require a train split in the dataset.")
+
+    if train_split is not None:
+        train_examples = info.splits[train_split].num_examples
+        eval_holdout_examples = int(train_examples * eval_holdout_size)
+        if eval_holdout_examples > 0 or subsplit is not None:
+            if subsplit is None:
+                subsplit = (0, 1)
+            n_train = train_examples - eval_holdout_examples
+            train_start = int(n_train * subsplit[0])
+            train_end = int(n_train * subsplit[1])
+            if train_end - train_start < 1:
+                raise ValueError(
+                    "Requested train subsplit has no examples: "
+                    "n_train %d subsplit %s" % (n_train, subsplit)
+                )
+            # Eval holdout examples from the end of the training set.
+            if eval_holdout_examples > 0:
+                eval_split = f"{train_split}[-{eval_holdout_examples}:]"
+            # Shard the training set for this host.
+            train_split = f"{train_split}[{train_start}:{train_end}]"
 
     if dataset_name == "glue/mnli":
         eval_split = "validation_mismatched" if use_alt_eval else "validation_matched"
@@ -475,12 +486,14 @@ def _train_and_eval_dataset(
         if tfds.Split.VALIDATION not in splits:
             eval_split = tfds.Split.TEST
 
-    train = tfds.load(
-        name=dataset_name,
-        split=train_split,
-        data_dir=data_dir,
-        shuffle_files=train_shuffle_files,
-    )
+    train = None
+    if train_split is not None:
+        train = tfds.load(
+            name=dataset_name,
+            split=train_split,
+            data_dir=data_dir,
+            shuffle_files=train_shuffle_files,
+        )
     valid = tfds.load(
         name=dataset_name,
         split=eval_split,
@@ -615,7 +628,12 @@ def TFDS(  # pylint: disable=invalid-name
         train_shuffle_files=shuffle_train,
         use_alt_eval=use_alt_eval,
         subsplit=subsplit,
+        require_train_split=train,
     )
+    if train and train_data is None:
+        raise ValueError(
+            f"Dataset {dataset_name} does not provide a train split for training."
+        )
     dataset = train_data if train else eval_data
     dataset = dataset if tfds_preprocess_fn is None else tfds_preprocess_fn(dataset)
 
