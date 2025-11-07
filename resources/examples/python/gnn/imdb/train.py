@@ -91,7 +91,7 @@ def main():
     )
     initialize_model(model_with_loss, example_batch)
 
-    optimizer = optimizers.Adam(0.001)
+    optimizer = optimizers.Adam(0.0001)
     trainer = trainers.Trainer(model_with_loss, optimizer)
 
     base_rng = fastmath.random.get_prng(0)
@@ -110,7 +110,7 @@ def main():
     # Evaluate model on a test set
     test_results = evaluate_model(
         trainer=trainer,
-        batch_gen=batch_gen,
+        batch_gen=test_batch_gen,
         device_type=DeviceType.CPU.value,
         num_batches=500,
     )

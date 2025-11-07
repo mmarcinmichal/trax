@@ -286,7 +286,19 @@ def play(env, policy, dm_suite=False, max_steps=None, last_observation=None):
             )
             info = {}
         else:
-            (observation, reward, done, info) = step
+            if isinstance(step, tuple) and len(step) == 5:
+                observation, reward, terminated, truncated, info = step
+                done = bool(terminated) or bool(truncated)
+                info = info or {}
+                # Surface termination flags so agents may inspect them if needed.
+                info = {
+                    **info,
+                    "terminated": terminated,
+                    "truncated": truncated,
+                }
+            else:
+                observation, reward, done, info = step
+                info = info or {}
 
         # Make an EnvInfo out of the supported keys in the info dict.
         env_info = EnvInfo(
