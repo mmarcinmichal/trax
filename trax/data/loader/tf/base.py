@@ -222,10 +222,17 @@ def dataset_to_stream(dataset, input_name):
     for example in fastmath.dataset_as_numpy(dataset):
         features = example[0]
 
-        if not isinstance(features[input_name], np.ndarray):
-            input = np.array(features[input_name]).reshape(1, -1)
+        # Some preprocessors rename fields to 'inputs'; fall back gracefully.
+        chosen_input = input_name if input_name in features else "inputs"
+        if chosen_input not in features:
+            raise KeyError(
+                f"Expected input feature '{input_name}' (or 'inputs') not found in features: {list(features.keys())}"
+            )
+
+        if not isinstance(features[chosen_input], np.ndarray):
+            input = np.array(features[chosen_input]).reshape(1, -1)
         else:
-            input = features[input_name]
+            input = features[chosen_input]
 
         if not isinstance(example[1], np.ndarray):
             output = np.array(example[1]).reshape(1, -1)

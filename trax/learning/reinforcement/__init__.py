@@ -17,7 +17,7 @@
 
 import gin
 
-from learning.reinforcement import (
+from . import (
     actor_critic,
     actor_critic_joint,
     serialization_utils,
