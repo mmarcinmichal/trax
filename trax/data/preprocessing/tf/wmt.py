@@ -10,6 +10,24 @@ def wmt_preprocess(
 ):
     """Preprocessing for LM1B: filter out targets exceeding maximum length."""
 
+    def _ensure_inputs_targets(features, targets):
+        """Normalize feature dict to always have 'inputs' and 'targets' keys."""
+        example = dict(features)
+
+        # Prefer explicit inputs/targets keys if they already exist.
+        if "inputs" not in example:
+            # Translation datasets often provide language-specific keys.
+            if "en" in example and "de" in example:
+                example["inputs"] = example["en"]
+            elif "targets" in example:
+                example["inputs"] = example["targets"]
+        if "targets" not in example:
+            if "de" in example:
+                example["targets"] = example["de"]
+            else:
+                example["targets"] = targets
+        return example
+
     def train_right_length(example):
         input_length = tf.strings.length(example["inputs"])
         target_length = tf.strings.length(example["targets"])
@@ -22,7 +40,8 @@ def wmt_preprocess(
         max_tensor_length = tf.maximum(input_length, target_length)
         return tf.less(max_tensor_length, max_eval_length + 1)
 
-    dataset = dataset.map(lambda x, y: x)
+    # Map tuple (features, targets) to a normalized feature dict with required keys.
+    dataset = dataset.map(_ensure_inputs_targets)
 
     if max_length > 0 and training:
         dataset = dataset.filter(train_right_length)

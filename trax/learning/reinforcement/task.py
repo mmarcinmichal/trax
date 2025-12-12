@@ -272,7 +272,15 @@ def play(env, policy, dm_suite=False, max_steps=None, last_observation=None):
     if last_observation is None:
         # TODO(pkozakowski): Make a Gym wrapper over DM envs to get rid of branches
         # like that.
-        last_observation = env.reset().observation if dm_suite else env.reset()
+        if dm_suite:
+            last_observation = env.reset().observation
+        else:
+            reset_result = env.reset()
+            if isinstance(reset_result, tuple):
+                # Gym >= 0.26 returns (observation, info); ignore the info part.
+                last_observation, _ = reset_result
+            else:
+                last_observation = reset_result
     cur_trajectory = Trajectory(last_observation)
     while not done and (max_steps is None or cur_step < max_steps):
         action, dist_inputs = policy(cur_trajectory)

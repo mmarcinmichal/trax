@@ -22,14 +22,14 @@ import gym
 import numpy as np
 import tensorflow as tf
 
-from learning.reinforcement import advantages as rl_advantages
-from learning.reinforcement import distributions, policy_tasks, value_tasks
-from learning.reinforcement import training as rl_training
+from . import advantages as rl_advantages
+from . import distributions, policy_tasks, value_tasks
+from . import training as rl_training
 
 from trax import data, fastmath
 from trax import layers as tl
 from trax.fastmath import numpy as jnp
-from trax.learning import supervised
+from trax.learning.supervised import trainer_lib
 from trax.learning.supervised import lr_schedules as lr
 from trax.optimizers import adam
 from trax.utils import shapes
@@ -176,7 +176,7 @@ class ActorCriticAgent(rl_training.PolicyAgent):
         self._value_inputs = data.inputs.Inputs(
             train_stream=lambda _: self.value_batches_stream()
         )
-        self._value_trainer = supervised.Trainer(
+        self._value_trainer = trainer_lib.Trainer(
             model=value_model,
             optimizer=value_optimizer,
             lr_schedule=value_lr_schedule(),
@@ -843,7 +843,7 @@ class LoopActorCriticAgent(rl_training.Agent):
             else:
                 return 0
 
-        self._loop = supervised.training.Loop(
+        self._loop = trainer_lib.training.Loop(
             model=train_model,
             tasks=(policy_train_task, value_train_task),
             eval_model=eval_model,

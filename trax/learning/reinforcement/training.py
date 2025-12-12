@@ -28,7 +28,7 @@ import tensorflow as tf
 from trax import data, fastmath, models
 from trax import layers as tl
 from trax.fastmath import numpy as jnp
-from trax.learning import supervised
+from trax.learning.supervised import trainer_lib
 from trax.learning.reinforcement import (
     advantages,
     distributions,
@@ -229,16 +229,16 @@ class Agent:
                 avg_return = self._collect_trajectories()
                 self._avg_returns.append(avg_return)
                 if self._n_trajectories_per_epoch:
-                    supervised.trainer_lib.log(
+                    trainer_lib.log(
                         "Collecting %d episodes took %.2f seconds."
                         % (self._n_trajectories_per_epoch, time.time() - cur_time)
                     )
                 else:
-                    supervised.trainer_lib.log(
+                    trainer_lib.log(
                         "Collecting %d interactions took %.2f seconds."
                         % (self._n_interactions_per_epoch, time.time() - cur_time)
                     )
-                supervised.trainer_lib.log(
+                trainer_lib.log(
                     "Average return in epoch %d was %.2f." % (self._epoch, avg_return)
                 )
                 if self._n_eval_episodes > 0:
@@ -250,7 +250,7 @@ class Agent:
                                 max_steps=steps,
                                 only_eval=True,
                             )
-                            supervised.trainer_lib.log(
+                            trainer_lib.log(
                                 "Eval return in epoch %d with temperature %.2f was %.2f."
                                 % (self._epoch, eval_t, avg_return_temperature)
                             )
@@ -293,7 +293,7 @@ class Agent:
 
                 cur_time = time.time()
                 self.train_epoch()
-                supervised.trainer_lib.log(
+                trainer_lib.log(
                     "RL training took %.2f seconds." % (time.time() - cur_time)
                 )
 
@@ -378,7 +378,7 @@ class PolicyAgent(Agent):
         # This is the policy Trainer that will be used to train the policy model.
         # * inputs to the trainers come from self.policy_batches_stream
         # * outputs, targets and weights are passed to self.policy_loss
-        self._policy_trainer = supervised.Trainer(
+        self._policy_trainer = trainer_lib.Trainer(
             model=policy_model,
             optimizer=policy_optimizer,
             lr_schedule=policy_lr_schedule(),
@@ -565,7 +565,7 @@ class LoopPolicyAgent(Agent):
             policy_output_dir = None
         # Checkpoint every epoch.
         checkpoint_at = lambda step: step % n_train_steps_per_epoch == 0
-        self._loop = supervised.training.Loop(
+        self._loop = trainer_lib.training.Loop(
             model=model_fn(mode="train"),
             tasks=[train_task],
             eval_model=model_fn(mode="eval"),
@@ -916,7 +916,7 @@ class ValueAgent(Agent):
         # This is the value Trainer that will be used to train the value model.
         # * inputs to the trainers come from self.value_batches_stream
         # * outputs, targets and weights are passed to self.value_loss
-        self._value_trainer = supervised.Trainer(
+        self._value_trainer = trainer_lib.Trainer(
             model=value_model,
             optimizer=value_optimizer,
             lr_schedule=value_lr_schedule(),
