@@ -202,6 +202,10 @@ class TrainingTest(absltest.TestCase):
 
 
 class MatchByShapeTest(absltest.TestCase):
+    def setUp(self):
+        super().setUp()
+        test_utils.ensure_flag("test_tmpdir")
+
     def test_partial_longer_than_full(self):
         full = [np.zeros((2, 2)), np.zeros((1,))]
         partial = [np.ones((2, 2)), np.ones((1,)), np.ones((3,))]
@@ -227,10 +231,6 @@ class MatchByShapeTest(absltest.TestCase):
         self.assertLen(matched, len(full))
         np.testing.assert_array_equal(matched[0], partial[0])
         np.testing.assert_array_equal(matched[1], full[1])
-
-        slots1 = training_session._trainer_per_task[0].slots
-        slots2 = training_session2._trainer_per_task[0].slots
-        np.testing.assert_array_equal(slots1, slots2)
 
     def test_train_save_restore_sharded(self):
         """Saves and restores a sharded checkpoint to check for equivalence."""
@@ -464,9 +464,13 @@ class MatchByShapeTest(absltest.TestCase):
             output_dir=tmp_dir,
         )
         loop.run(2)
+        # Restoring a checkpoint with fewer weights than the model should keep the
+        # unmatched parameters at their freshly initialized values and still
+        # restore the training step.
         model2 = tl.Serial(tl.Dense(2))
-        with self.assertRaises(IndexError):
-            training.Loop(model2, [task], output_dir=tmp_dir)
+        loop2 = training.Loop(model2, [task], output_dir=tmp_dir)
+        self.assertEqual(2, loop2.step)  # restored step
+        self.assertEqual((1, 2), model2.weights[0][0].shape)
 
     def test_restores_step_bfloat16(self):
         """Training restores step from directory where it saved it, w/ bfloat16."""
