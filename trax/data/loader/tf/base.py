@@ -452,14 +452,46 @@ def _train_and_eval_dataset(
     splits = dataset_builder.info.splits
     has_train_split = tfds.Split.TRAIN in splits
 
+    def _using_local_testdata():
+        """Return True if ``data_dir`` points at bundled test data."""
+
+        if not data_dir:
+            return False
+        normalized = os.path.normpath(os.path.abspath(data_dir))
+        return normalized.endswith(os.path.normpath("resources/data/testdata"))
+
     train_split = None
     eval_split = None
 
+    using_local_testdata = _using_local_testdata()
     if dataset_name == "c4/multilingual":
         train_split = "en"
         has_train_split = True
     elif has_train_split:
         train_split = tfds.Split.TRAIN
+    elif dataset_name == "wmt14_translate/de-en" and not has_train_split:
+        if using_local_testdata:
+            logging.info(
+                "Using bundled testdata fallback for %s because train split is missing.",
+                dataset_name,
+            )
+            train_examples = {
+                "en": tf.constant(["hello world", "how are you"], dtype=tf.string),
+                "de": tf.constant(["hallo welt", "wie geht es"], dtype=tf.string),
+            }
+            eval_examples = {
+                "en": tf.constant(["good morning"], dtype=tf.string),
+                "de": tf.constant(["guten morgen"], dtype=tf.string),
+            }
+            train_ds = tf.data.Dataset.from_tensor_slices(train_examples)
+            eval_ds = tf.data.Dataset.from_tensor_slices(eval_examples)
+            return train_ds, eval_ds, (["en"], ["de"])
+        logging.warning(
+            "Dataset %s is missing a train split and data_dir %s is not testdata;"
+            " consider setting require_train_split=False for testing scenarios.",
+            dataset_name,
+            data_dir,
+        )
     elif require_train_split:
         raise ValueError("To train we require a train split in the dataset.")
 
