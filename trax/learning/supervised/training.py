@@ -1466,9 +1466,12 @@ def _match_by_shape(full, partial):
             _log("  Inserted tensor of shape %s" % str(w.shape))
         for i, w in enumerate(partial[partial_idx:]):
             _log("  Not inserted tensor of shape %s" % str(w.shape))
-            model_weight_shape = str(full[i + partial_idx].shape)
+            model_idx = i + partial_idx
+            if model_idx < len(full):
+                model_weight_shape = str(full[model_idx].shape)
+            else:
+                model_weight_shape = "<no corresponding model weight>"
             _log("  Tensor in that place has shape: %s" % model_weight_shape)
-        raise IndexError
     return res
 
 
