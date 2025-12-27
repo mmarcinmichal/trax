@@ -107,13 +107,12 @@ class TrainingTest(absltest.TestCase):
         agent2.run(1)
         self.assertEqual(agent2.current_epoch, 3)
         self.assertEqual(agent2.loop.step, 3)
-        # Manually set saved epoch to 1.
-        dictionary = {
-            "epoch": 1,
-            "avg_returns": [0.0],
-            "avg_returns_temperature_0.0": {200: [0.0]},
-        }
-        with tf.io.gfile.GFile(os.path.join(tmp_dir, "reinforcement.pkl"), "wb") as f:
+        # Manually set saved epoch to 1 while keeping the saved structure intact.
+        reinforcement_path = os.path.join(tmp_dir, "reinforcement.pkl")
+        with tf.io.gfile.GFile(reinforcement_path, "rb") as f:
+            dictionary = pickle.load(f)
+        dictionary["epoch"] = 1
+        with tf.io.gfile.GFile(reinforcement_path, "wb") as f:
             pickle.dump(dictionary, f)
 
         # Trainer 3 restores from a checkpoint with Agent/Loop step mistmatch,
