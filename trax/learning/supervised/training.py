@@ -991,12 +991,18 @@ class Loop:
                 self._to_bits(_flatten_and_remove_empty(trainer.slots)),
                 _flatten_and_remove_empty(slots),
             )
-            matched_slots, _ = fastmath.tree_unflatten(
-                self._from_bits(matched_flat_slots),
-                trainer.slots,
-                copy_from_tree=[None, ()],
-            )
-            trainer.slots = matched_slots
+            try:
+                matched_slots, _ = fastmath.tree_unflatten(
+                    self._from_bits(matched_flat_slots),
+                    trainer.slots,
+                    copy_from_tree=[None, ()],
+                )
+                trainer.slots = matched_slots
+            except IndexError:
+                _log(
+                    "Failed loading optimizer slots from checkpoint, using"
+                    " newly initialized slots instead.",
+                )
         self._step = d["step"]
         self._history = trax_history.History.from_dict(d["history"])
         # This is self._model.init_from_file but optimized to not re-read.
