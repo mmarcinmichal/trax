@@ -17,7 +17,7 @@
 
 import functools
 
-import gym
+import gymnasium as gym
 import numpy as np
 
 from trax import layers as tl

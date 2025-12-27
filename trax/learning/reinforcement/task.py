@@ -19,7 +19,7 @@ import collections
 import os
 
 import gin
-import gym
+import gymnasium as gym
 import numpy as np
 
 from trax import fastmath
