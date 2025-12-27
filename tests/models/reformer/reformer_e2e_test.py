@@ -50,7 +50,7 @@ class ReformerE2ETest(absltest.TestCase):
             )
         )
 
-        gin.parse_config_file("reformer_wmt_ende.gin")
+        gin.parse_config_file(os.path.join(_CONFIG_DIR, "reformer_wmt_ende.gin"))
 
         gin.bind_parameter("data_streams.data_dir", _TESTDATA)
         gin.bind_parameter("wmt_preprocess.tokenizer", tokenizer)
@@ -70,7 +70,7 @@ class ReformerE2ETest(absltest.TestCase):
         d_ff = 32
         d_model = 32
 
-        gin.parse_config_file("reformer_copy.gin")
+        gin.parse_config_file(os.path.join(_CONFIG_DIR, "reformer_copy.gin"))
 
         gin.bind_parameter("data_streams.data_dir", _TESTDATA)
         gin.bind_parameter("batcher.batch_size_per_device", batch_size_per_device)
