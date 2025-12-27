@@ -53,7 +53,7 @@ setup(
             "seqio==0.0.18",
         ],
         "rl": [
-            "gym==0.26.2",
+            "gymnasium==0.29.1",
         ],
         "viz": [
             "matplotlib==3.10.1",
@@ -63,6 +63,7 @@ setup(
         ],
         "tests": [
             "attrs==25.3.0",
+            "gymnasium==0.29.1",
             "jupyter",
             "mock==5.1.0",
             "parameterized==0.9.0",

@@ -16,7 +16,7 @@
 """Tests for trax.reinforcement.distributions."""
 
 import gin
-import gym
+import gymnasium as gym
 import numpy as np
 
 from absl.testing import absltest, parameterized
