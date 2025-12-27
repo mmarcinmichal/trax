@@ -39,6 +39,7 @@ setup(
         "jax==0.5.3",
         "jaxlib==0.5.3",
         "numpy==1.26.4",
+        "matplotlib==3.10.1",
         "psutil==7.0.0",
         "scipy==1.15.2",
         "tensorflow-datasets==4.9.8",
