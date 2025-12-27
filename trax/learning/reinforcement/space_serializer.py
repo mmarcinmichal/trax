@@ -17,7 +17,7 @@
 import copy
 
 import gin
-import gym
+import gymnasium as gym
 
 from absl import logging
 from jax import numpy as np

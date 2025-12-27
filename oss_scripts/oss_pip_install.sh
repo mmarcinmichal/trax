@@ -43,8 +43,8 @@ pip install -q -e .
 
 # Then install the test dependencies
 pip install -q -e .[tests]
-# Make sure to install the atari extras for gym
-pip install "gym[atari]"
+# Make sure to install the atari extras for gymnasium
+pip install "gymnasium[atari]"
 
 # Coverage.
 pip install coverage coveralls

@@ -215,7 +215,7 @@ autodoc_mock_imports = [
     "funcsigs",
     "trax.tf",
     "absl",
-    "gym",
+    "gymnasium",
     "tensor2tensor",
     "tensorflow_text",
     "matplotlib",

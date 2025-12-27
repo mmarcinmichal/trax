@@ -15,7 +15,7 @@
 
 """Tests for trax.reinforcement.space_serializer."""
 import gin
-import gym
+import gymnasium as gym
 import numpy as np
 
 from tensorflow import test
