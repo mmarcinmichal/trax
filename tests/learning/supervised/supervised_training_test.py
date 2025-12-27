@@ -16,6 +16,8 @@
 """Tests for supervised training: core classes and flows."""
 
 import collections
+import contextlib
+import io
 import os
 import time
 
@@ -197,6 +199,34 @@ class TrainingTest(absltest.TestCase):
         y1 = model(x, rng=fastmath.random.get_prng(0))
         y2 = model2(x, rng=fastmath.random.get_prng(0))
         self.assertNotEqual(str(y1), str(y2))
+
+
+class MatchByShapeTest(absltest.TestCase):
+    def test_partial_longer_than_full(self):
+        full = [np.zeros((2, 2)), np.zeros((1,))]
+        partial = [np.ones((2, 2)), np.ones((1,)), np.ones((3,))]
+
+        stdout = io.StringIO()
+        with contextlib.redirect_stdout(stdout):
+            matched = training._match_by_shape(full, partial)
+
+        self.assertLen(matched, len(full))
+        np.testing.assert_array_equal(matched[0], partial[0])
+        np.testing.assert_array_equal(matched[1], partial[1])
+
+        log_output = stdout.getvalue()
+        self.assertIn("Not inserted tensor of shape (3,)", log_output)
+        self.assertIn("Tensor in that place has shape: <no corresponding model weight>", log_output)
+
+    def test_full_longer_than_partial(self):
+        full = [np.zeros((2, 2)), np.zeros((1,))]
+        partial = [np.ones((2, 2))]
+
+        matched = training._match_by_shape(full, partial)
+
+        self.assertLen(matched, len(full))
+        np.testing.assert_array_equal(matched[0], partial[0])
+        np.testing.assert_array_equal(matched[1], full[1])
 
         slots1 = training_session._trainer_per_task[0].slots
         slots2 = training_session2._trainer_per_task[0].slots
