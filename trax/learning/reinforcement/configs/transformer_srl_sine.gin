@@ -18,7 +18,7 @@
 import trax.data.tf_inputs
 import trax.models
 import trax.optimizers
-import trax.supervised.trainer_lib
+import trax.supervised.training
 
 # Module trax.data.inputs:
 # ==============================================================================
@@ -52,7 +52,7 @@ multifactor.constant = 0.1
 multifactor.factors = 'constant * linear_warmup * rsqrt_decay'
 multifactor.warmup_steps = 1000
 
-# Module trax.supervised.trainer_lib:
+# Module trax.supervised.training:
 # ==============================================================================
 train.inputs = @trax.data.sine_inputs
 train.eval_frequency = 1000
