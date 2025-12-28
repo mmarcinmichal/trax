@@ -64,6 +64,14 @@ from trax.utils import jaxboard, shapes
 _Evaluator = collections.namedtuple("_Evaluator", ["weights", "state", "metrics_fn"])
 
 
+def ensure_optimizer_instance(optimizer):
+    """Ensures an optimizer factory is materialized before use."""
+
+    if isinstance(optimizer, functools.partial):
+        return optimizer()
+    return optimizer
+
+
 class Loop:
     """Loop that can run for a given number of steps to train a supervised model.
 
@@ -345,6 +353,9 @@ class Loop:
 
     def _init_trainer(self, task):
         """Initializes the per-task trainers."""
+        optimizer = ensure_optimizer_instance(task.optimizer)
+        task._optimizer = optimizer
+
         # Build the per-task model, sharing weights with other tasks.
         if not self._use_memory_efficient_trainer:
             model_in_training = _model_with_ends(
@@ -354,12 +365,10 @@ class Loop:
                 sharded_weights = fastmath.nested_map(
                     lambda x: x[0], tl.shard(model_in_training.weights)
                 )
-                task.optimizer.tree_init(sharded_weights)
+                optimizer.tree_init(sharded_weights)
             else:
-                task.optimizer.tree_init(model_in_training.weights)
-            return trainer.Trainer(
-                model_in_training, task.optimizer, adasum=self._adasum
-            )
+                optimizer.tree_init(model_in_training.weights)
+            return trainer.Trainer(model_in_training, optimizer, adasum=self._adasum)
         # In the memory-efficient path, we initialize the model here.
         blocks, loss_layer = trainer.extract_reversible_blocks(
             [self._model, task.loss_layer], loss_chunk_size=self._loss_chunk_size
@@ -371,7 +380,7 @@ class Loop:
         return trainer.ReversibleSerialTrainer(
             blocks,
             loss_layer,
-            task.optimizer,
+            optimizer,
             free_accelerators_on_step=(self._use_memory_efficient_trainer == 2),
             adasum=self._adasum,
         )
