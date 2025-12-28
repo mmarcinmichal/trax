@@ -27,8 +27,23 @@ from absl import app, flags, logging
 from jax.lib import xla_extension as xc
 
 from trax import fastmath
-from trax.learning.supervised import trainer_lib
+from trax import layers as tl
+from trax import optimizers as trax_opt
+from trax.data.preprocessing import inputs as trax_inputs
+from trax.learning.supervised import lr_schedules as lr
+from trax.learning.supervised import training
+from trax.layers import base
 from trax.tf import numpy as tf_np
+
+_DEFAULT_METRICS = {
+    "loss": tl.WeightedCategoryCrossEntropy(),
+    "accuracy": tl.WeightedCategoryAccuracy(),
+    "sequence_accuracy": tl.MaskedSequenceAccuracy(),
+    "neg_log_perplexity": tl.Serial(
+        tl.WeightedCategoryCrossEntropy(), tl.Negate()
+    ),
+    "weights_per_batch_per_core": tl.Serial(tl.Drop(), tl.Drop(), tl.Sum()),
+}
 
 FLAGS = flags.FLAGS
 Backend = fastmath.Backend
@@ -68,7 +83,10 @@ def _gin_parse_configs():
     if FLAGS.data_dir:
         configs.append("data_streams.data_dir='%s'" % FLAGS.data_dir)
     if FLAGS.model:
-        configs.append("train.model=@trax.models.%s" % FLAGS.model)
+        configs.append(
+            "trax.supervised.training.train.model=@trax.models.%s"
+            % FLAGS.model
+        )
     gin.parse_config_files_and_bindings(FLAGS.config_file, configs)
 
 
@@ -76,7 +94,7 @@ def _output_dir_or_default():
     """Returns a path to the output directory."""
     if FLAGS.output_dir:
         output_dir = FLAGS.output_dir
-        trainer_lib.log("Using --output_dir {}".format(output_dir))
+        logging.info("Using --output_dir %s", output_dir)
         return os.path.expanduser(output_dir)
 
     # Else, generate a default output dir (under the user's home directory).
@@ -85,15 +103,17 @@ def _output_dir_or_default():
     except ValueError:
         dataset_name = "random"
     output_name = "{model_name}_{dataset_name}_{timestamp}".format(
-        model_name=gin.query_parameter("train.model").configurable.name,
+        model_name=gin.query_parameter(
+            "trax.supervised.training.train.model"
+        ).configurable.name,
         dataset_name=dataset_name,
         timestamp=datetime.datetime.now().strftime("%Y%m%d_%H%M"),
     )
     output_dir = os.path.join("~", "trax", output_name)
     output_dir = os.path.expanduser(output_dir)
     print()
-    trainer_lib.log("No --output_dir specified")
-    trainer_lib.log("Using default output_dir: {}".format(output_dir))
+    logging.info("No --output_dir specified")
+    logging.info("Using default output_dir: %s", output_dir)
     return output_dir
 
 
@@ -115,13 +135,13 @@ def _jax_and_tf_configure_for_devices():  # pylint: disable=missing-function-doc
 def _train_using_tf(output_dir):
     worker_cpu = tf_init_tpu()
     with tf.device(worker_cpu):
-        if trainer_lib.num_devices() == 1:
+        if num_devices() == 1:
             # TF's device priority is GPU > CPU > TPU, so we need to explicitly make
             # the TPU core the default device here.
             with tf.device("/device:TPU:0"):
-                trainer_lib.train(output_dir=output_dir)
+                train(output_dir=output_dir)
         else:
-            trainer_lib.train(output_dir=output_dir)
+            train(output_dir=output_dir)
 
 
 @gin.configurable
@@ -170,6 +190,137 @@ def _make_jax_gpu_cluster(host_id, server_ip, n_hosts, server_port=5005):
     jax.lib.xla_bridge.register_backend_factory("gpu", factory, priority=300)
 
 
+@gin.configurable(module="trax.supervised.training")
+def num_devices(value=None):
+    """Returns how many devices to use (if None, default, use all available)."""
+    return value
+
+
+@gin.configurable(module="trax.supervised.training")
+def train(
+    output_dir,
+    model=gin.REQUIRED,
+    loss_fn=tl.WeightedCategoryCrossEntropy(),
+    inputs=trax_inputs.batcher,
+    optimizer=trax_opt.Adafactor,
+    lr_schedule_fn=lr.multifactor,
+    steps=1000,
+    checkpoints_at=None,
+    permanent_checkpoints_at=None,
+    eval_steps=10,
+    eval_frequency=100,
+    permanent_checkpoint_frequency=None,
+    random_seed=None,
+    metrics=None,
+    checkpoint_highest=None,
+    checkpoint_lowest=None,
+    loss_chunk_size=0,
+    use_memory_efficient_trainer=False,
+    adasum=False,
+    init_checkpoint=None,
+    callbacks=None,
+    n_weights_shards=1,
+    additional_train_tasks=None,
+    additional_eval_tasks=None,
+    additional_eval_streams=None,
+):
+    base.N_WEIGHTS_SHARDS = n_weights_shards
+    if (
+        permanent_checkpoint_frequency is not None
+        and permanent_checkpoints_at is not None
+    ):
+        raise ValueError(
+            'Only one of ["permanent_checkpoint_frequency", '
+            '"permanent_checkpoints_at"] should be set.'
+        )
+
+    n_local_devices = num_devices() or fastmath.local_device_count()
+    # Prepare the training task.
+    # Inputs is either an Inputs instance or a function that returns it.
+    if callable(inputs):  # If we pass a function, e.g., through gin, call it.
+        inputs = inputs()
+    opt = optimizer if use_memory_efficient_trainer else optimizer()
+    train_task = training.TrainTask(
+        inputs.train_stream(n_local_devices),
+        loss_layer=loss_fn,
+        optimizer=opt,
+        lr_schedule=lr_schedule_fn(),
+        n_steps_per_checkpoint=eval_frequency,
+        n_steps_per_permanent_checkpoint=permanent_checkpoint_frequency,
+    )
+
+    if additional_train_tasks is None:
+        additional_train_tasks = []
+
+    # Prepare the evaluation.
+    metrics_dict = metrics if metrics is not None else _DEFAULT_METRICS
+    names, metrics_layers = zip(*metrics_dict.items())
+    eval_task = training.EvalTask(
+        inputs.eval_stream(n_local_devices),
+        metrics_layers,
+        metric_names=names,
+        n_eval_batches=eval_steps,
+    )
+
+    if additional_eval_tasks is None:
+        additional_eval_tasks = []
+
+    additional_eval_tasks_from_streams = []
+    if additional_eval_streams is not None:
+        for stream in additional_eval_streams:
+            additional_eval_tasks_from_streams.append(
+                training.EvalTask(
+                    stream.stream,
+                    metrics_layers,
+                    metric_names=names,
+                    n_eval_batches=eval_steps,
+                    export_prefix=stream.name,
+                )
+            )
+
+    checkpoint_at = None
+    if checkpoints_at is not None:
+        checkpoint_at = lambda step: step in checkpoints_at
+    permanent_checkpoint_at = None
+    if permanent_checkpoints_at is not None:
+        permanent_checkpoint_at = lambda step: step in permanent_checkpoints_at
+
+    model_train = model(mode="train")
+    model_predict_eval = model(mode="eval")
+    if init_checkpoint:
+        model_train.init_from_file(init_checkpoint, weights_only=True)
+        model_predict_eval.init_from_file(init_checkpoint, weights_only=True)
+    loop = training.Loop(
+        model_train,
+        [train_task] + additional_train_tasks,
+        eval_model=model_predict_eval,
+        eval_tasks=[eval_task]
+        + additional_eval_tasks
+        + additional_eval_tasks_from_streams,
+        output_dir=output_dir,
+        checkpoint_at=checkpoint_at,
+        checkpoint_low_metric=checkpoint_lowest,
+        checkpoint_high_metric=checkpoint_highest,
+        permanent_checkpoint_at=permanent_checkpoint_at,
+        n_devices=n_local_devices,
+        loss_chunk_size=loss_chunk_size,
+        use_memory_efficient_trainer=use_memory_efficient_trainer,
+        adasum=adasum,
+        random_seed=random_seed,
+        callbacks=callbacks,
+    )
+
+    steps_to_go = steps - loop.step
+    if steps_to_go <= 0:
+        logging.info(
+            "Stop training, already reached the total training steps %d", steps
+        )
+        return loop
+
+    loop.run(steps_to_go)
+    return loop
+
+
 def main(_):
     logging.set_verbosity(FLAGS.log_level)
 
@@ -193,9 +344,9 @@ def main(_):
     if FLAGS.use_tpu and fastmath.is_backend(Backend.TFNP):
         _train_using_tf(output_dir)
     else:
-        trainer_lib.train(output_dir=output_dir)
+        train(output_dir=output_dir)
 
-    trainer_lib.log("Finished training.")
+    logging.info("Finished training.")
 
 
 if __name__ == "__main__":
