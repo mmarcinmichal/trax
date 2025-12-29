@@ -359,11 +359,10 @@ class Loop:
 
     def _init_trainer(self, task):
         """Initializes the per-task trainers."""
-        optimizer = ensure_optimizer_instance(task.optimizer)
-        task._optimizer = optimizer
-
         # Build the per-task model, sharing weights with other tasks.
         if not self._use_memory_efficient_trainer:
+            optimizer = ensure_optimizer_instance(task.optimizer)
+            task._optimizer = optimizer
             model_in_training = _model_with_ends(
                 self._model, [task.loss_layer], shapes.signature(task.sample_batch)
             )
@@ -376,6 +375,10 @@ class Loop:
                 optimizer.tree_init(model_in_training.weights)
             return trainer.Trainer(model_in_training, optimizer, adasum=self._adasum)
         # In the memory-efficient path, we initialize the model here.
+        optimizer_fn = task.optimizer
+        if isinstance(optimizer_fn, optim_base.Optimizer):
+            optimizer_fn = lambda opt=optimizer_fn: opt
+        task._optimizer = optimizer_fn
         blocks, loss_layer = trainer.extract_reversible_blocks(
             [self._model, task.loss_layer], loss_chunk_size=self._loss_chunk_size
         )
@@ -386,7 +389,7 @@ class Loop:
         return trainer.ReversibleSerialTrainer(
             blocks,
             loss_layer,
-            optimizer,
+            optimizer_fn,
             free_accelerators_on_step=(self._use_memory_efficient_trainer == 2),
             adasum=self._adasum,
         )

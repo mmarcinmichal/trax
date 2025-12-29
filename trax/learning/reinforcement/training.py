@@ -906,6 +906,7 @@ class ValueAgent(Agent):
             models.Quality, body=value_body, n_actions=self.task.action_space.n
         )
 
+        value_train_model = value_model(mode="train")
         self._value_eval_model = value_model(mode="eval")
         self._value_eval_model.init(self._value_model_signature)
         self._value_eval_jit = tl.jit_forward(
@@ -933,7 +934,7 @@ class ValueAgent(Agent):
         value_eval_period = max(1, value_train_steps_per_epoch // max(1, value_evals_per_epoch))
         value_eval_at = lambda step: step % value_eval_period == 0
         self._value_loop = training.Loop(
-            model=value_model,
+            model=value_train_model,
             tasks=value_train_task,
             eval_model=self._value_eval_model,
             eval_tasks=value_eval_task,
