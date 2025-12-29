@@ -38,6 +38,7 @@ import contextlib
 import functools
 import gzip as gzip_lib
 import os
+import inspect
 import pickle
 import random
 import sys
@@ -58,6 +59,7 @@ from trax.fastmath import numpy as jnp
 from trax.fastmath import random as jax_random
 from trax.layers import base
 from trax.learning.supervised import history as trax_history
+from trax.optimizers import base as optim_base
 from trax.trainers import base as trainer
 from trax.utils import jaxboard, shapes
 
@@ -67,7 +69,11 @@ _Evaluator = collections.namedtuple("_Evaluator", ["weights", "state", "metrics_
 def ensure_optimizer_instance(optimizer):
     """Ensures an optimizer factory is materialized before use."""
 
+    if isinstance(optimizer, optim_base.Optimizer):
+        return optimizer
     if isinstance(optimizer, functools.partial):
+        return optimizer()
+    if inspect.isclass(optimizer) and issubclass(optimizer, optim_base.Optimizer):
         return optimizer()
     return optimizer
 
@@ -542,6 +548,12 @@ class Loop:
         # tl.Accelerate(model) will carry the replicated weights/state.
         # TODO(afrozm): Try to use tl.Accelerate(model) everywhere in the Loop.
         self._eval_model.weights = self._model.weights
+
+    def close(self):
+        """Closes resources associated with the loop."""
+
+        # Present for backward compatibility with trainer_lib-style APIs.
+        return None
 
     def _at_lowest(self):
         low_items = self.history.get("eval", f"metrics/{self._checkpoint_low_metric}")

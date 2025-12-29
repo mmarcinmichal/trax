@@ -194,7 +194,7 @@ class ActorCriticAgent(rl_training.PolicyAgent):
         value_eval_period = max(1, value_train_steps_per_epoch // max(1, value_evals_per_epoch))
         value_eval_at = lambda step: step % value_eval_period == 0
         self._value_loop = training.Loop(
-            model=value_model,
+            model=value_model(mode="train"),
             tasks=value_train_task,
             eval_model=self._value_eval_model,
             eval_tasks=value_eval_task,
@@ -202,6 +202,8 @@ class ActorCriticAgent(rl_training.PolicyAgent):
             eval_at=value_eval_at,
             checkpoint_at=value_checkpoint_at,
         )
+        # Backward compatibility for tests expecting the legacy trainers.
+        self._value_trainer = self._value_loop
 
     @property
     def value_mean(self):

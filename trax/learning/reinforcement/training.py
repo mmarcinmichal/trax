@@ -399,6 +399,8 @@ class PolicyAgent(Agent):
             eval_at=eval_at,
             checkpoint_at=checkpoint_at,
         )
+        # Backward compatibility for tests expecting the legacy trainers attribute.
+        self._policy_trainer = self._policy_loop
         self._policy_collect_model = tl.Accelerate(
             policy_model(mode="collect"), n_devices=1
         )
