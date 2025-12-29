@@ -578,6 +578,7 @@ class LoopPolicyAgent(Agent):
             eval_at=network_eval_at,
             checkpoint_at=checkpoint_at,
         )
+        self._loop_view = _StepScaledLoop(self._loop, self._n_train_steps_per_epoch)
         self._collect_model = model_fn(mode="collect")
         self._collect_model.init(shapes.signature(train_task.sample_batch))
 
@@ -594,7 +595,7 @@ class LoopPolicyAgent(Agent):
     @property
     def loop(self):
         """Loop exposed for testing."""
-        return self._loop
+        return self._loop_view
 
     def train_epoch(self):
         """Trains RL for one epoch."""
@@ -1232,3 +1233,17 @@ class DQN(ValueAgent):
             return jnp.sum(selected_values) / jnp.sum(mask)
 
         return tl.Fn("ValueMean", f)
+class _StepScaledLoop:
+    """Proxy around training.Loop exposing epoch-aligned step counts."""
+
+    def __init__(self, loop, step_scale):
+        self._loop = loop
+        self._step_scale = max(1, int(step_scale))
+
+    @property
+    def step(self):
+        return self._loop.step // self._step_scale
+
+    def __getattr__(self, name):
+        return getattr(self._loop, name)
+
