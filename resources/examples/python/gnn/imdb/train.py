@@ -19,6 +19,7 @@ from trax.trainers import jax as trainers
 
 MAX_LEN = 2_000
 VOCAB_SIZE = 100_000
+WINDOW_SIZE = 10
 
 
 def build_vocab(texts):
@@ -38,11 +39,17 @@ def encode(text, vocab):
     return np.array(tokens)
 
 
-def chain_adjacency(length=MAX_LEN):
+def window_adjacency(length=MAX_LEN, window_size=10, add_self_loops=False):
     adj = np.zeros((length, length), dtype=np.float32)
-    for i in range(length - 1):
-        adj[i, i + 1] = 1
-        adj[i + 1, i] = 1
+    for i in range(length):
+        start = max(0, i - window_size)
+        end = min(length, i + window_size + 1)
+        if add_self_loops:
+            adj[i, i] = 1
+        if start < i:
+            adj[i, start:i] = 1
+        if i + 1 < end:
+            adj[i, i + 1 : end] = 1
     return adj
 
 
@@ -58,7 +65,7 @@ def load_data():
     x_test = np.stack([encode(t, vocab) for t in test_ds["text"]])
     y_test = np.array(test_ds["label"], dtype=np.int64)
 
-    adj = chain_adjacency()
+    adj = window_adjacency(window_size=WINDOW_SIZE, add_self_loops=False)
     a_train = np.broadcast_to(adj, (x_train.shape[0], MAX_LEN, MAX_LEN))
     a_test = np.broadcast_to(adj, (x_test.shape[0], MAX_LEN, MAX_LEN))
 
@@ -77,7 +84,7 @@ def build_model(vocab_size):
 
 
 def main():
-    DEFAULT_BATCH_SIZE = 8
+    DEFAULT_BATCH_SIZE = 2
     STEPS_NUMBER = 20_000
 
     (x_train, a_train, y_train), (x_test, a_test, y_test), vocab_size = load_data()
