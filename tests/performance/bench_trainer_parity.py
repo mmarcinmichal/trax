@@ -11,7 +11,7 @@ import argparse
 import csv
 import json
 import time
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import jax
 import numpy as np
@@ -27,32 +27,74 @@ from trax import layers as tl
 from trax.trainers import jax as trainers_jax
 
 
-def _prepare_batch(batch_size: int):
-    """Builds a deterministic toy regression batch."""
-    inputs = np.linspace(0.0, 1.0, batch_size * 2, dtype=np.float32).reshape(batch_size, 2)
-    targets = np.linspace(1.0, 2.0, batch_size, dtype=np.float32).reshape(batch_size, 1)
+def _prepare_batch(
+    batch_size: int,
+    input_dim: int,
+    hidden_dim: int,
+    output_dim: int,
+    seed: int,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Builds a deterministic synthetic regression batch."""
+    rng = np.random.default_rng(seed)
+    inputs = rng.normal(0.0, 1.0, size=(batch_size, input_dim)).astype(np.float32)
+    true_w1 = rng.normal(0.0, 0.5, size=(input_dim, hidden_dim)).astype(np.float32)
+    true_b1 = rng.normal(0.0, 0.1, size=(hidden_dim,)).astype(np.float32)
+    true_w2 = rng.normal(0.0, 0.5, size=(hidden_dim, output_dim)).astype(np.float32)
+    true_b2 = rng.normal(0.0, 0.1, size=(output_dim,)).astype(np.float32)
+    hidden = np.tanh(inputs @ true_w1 + true_b1)
+    targets = (hidden @ true_w2 + true_b2).astype(np.float32)
     weights = np.ones_like(targets, dtype=np.float32)
     return inputs, targets, weights
 
 
-def _prepare_models(batch, learning_rate: float, n_devices: int, adasum: bool):
+def _prepare_models(
+    batch,
+    input_dim: int,
+    hidden_dim: int,
+    output_dim: int,
+    num_hidden_layers: int,
+    learning_rate: float,
+    n_devices: int,
+    adasum: bool,
+    torch_device: torch.device,
+):
     """Initializes aligned PyTorch and Trax models/optimizers."""
     torch.manual_seed(0)
-    input_dim = batch[0].shape[-1]
-
-    torch_model = torch.nn.Linear(input_dim, 1, bias=True)
+    torch_layers = []
+    in_dim = input_dim
+    for _ in range(num_hidden_layers):
+        torch_layers.append(torch.nn.Linear(in_dim, hidden_dim, bias=True))
+        torch_layers.append(torch.nn.ReLU())
+        in_dim = hidden_dim
+    torch_layers.append(torch.nn.Linear(in_dim, output_dim, bias=True))
+    torch_model = torch.nn.Sequential(*torch_layers).to(torch_device)
     torch_optimizer = torch.optim.SGD(torch_model.parameters(), lr=learning_rate)
     torch_loss = torch.nn.MSELoss()
 
-    trax_model = tl.Serial(tl.Dense(1), tl.L2Loss())
+    trax_layers = []
+    in_dim = input_dim
+    for _ in range(num_hidden_layers):
+        trax_layers.append(tl.Dense(hidden_dim))
+        trax_layers.append(tl.Relu())
+        in_dim = hidden_dim
+    trax_layers.append(tl.Dense(output_dim))
+    trax_layers.append(tl.L2Loss())
+    trax_model = tl.Serial(*trax_layers)
     trax_model.init(batch, rng=fastmath.random.get_prng(0))
 
     # Copy PyTorch initialized weights into Trax for parity.
-    torch_weight = torch_model.weight.detach().cpu().numpy().astype(np.float32)
-    torch_bias = torch_model.bias.detach().cpu().numpy().astype(np.float32)
-    dense_layer = trax_model.sublayers[0]
-    dense_layer.weights = (torch_weight.T, torch_bias)
-    trax_model.weights = (dense_layer.weights, ())
+    torch_linears = [m for m in torch_model.modules() if isinstance(m, torch.nn.Linear)]
+    trax_denses = [m for m in trax_model.sublayers if isinstance(m, tl.Dense)]
+    if len(torch_linears) != len(trax_denses):
+        raise ValueError(
+            "Mismatched layer counts between torch and trax: "
+            f"{len(torch_linears)} vs {len(trax_denses)}"
+        )
+    for torch_layer, trax_layer in zip(torch_linears, trax_denses):
+        torch_weight = torch_layer.weight.detach().cpu().numpy().astype(np.float32)
+        torch_bias = torch_layer.bias.detach().cpu().numpy().astype(np.float32)
+        trax_layer.weights = (torch_weight.T, torch_bias)
+    trax_model.weights = tuple(layer.weights for layer in trax_model.sublayers)
 
     trax_optimizer = optimizers.SGD(learning_rate)
     trax_optimizer.tree_init(trax_model.weights)
@@ -61,27 +103,49 @@ def _prepare_models(batch, learning_rate: float, n_devices: int, adasum: bool):
     return torch_model, torch_optimizer, torch_loss, trax_trainer
 
 
-def _benchmark_trax(trainer, batch, rngs, warmup_steps: int, measured_steps: int):
+def _benchmark_trax(
+    trainer,
+    batch,
+    rngs,
+    warmup_steps: int,
+    measured_steps: int,
+    device=None,
+):
+    if device is not None:
+        with jax.default_device(device):
+            batch = jax.device_put(batch)
+    else:
+        batch = jax.device_put(batch)
     warmup_rngs = rngs[:warmup_steps]
     measure_rngs = rngs[warmup_steps:]
 
     warmup_start = time.perf_counter()
     for step, rng in enumerate(warmup_rngs):
-        trainer.one_step(batch, rng, step=step)
+        loss = trainer.one_step(batch, rng, step=step)
+        loss.block_until_ready()
     warmup_time = time.perf_counter() - warmup_start
 
     step_times: List[float] = []
     for idx, rng in enumerate(measure_rngs):
         start = time.perf_counter()
-        trainer.one_step(batch, rng, step=warmup_steps + idx)
+        loss = trainer.one_step(batch, rng, step=warmup_steps + idx)
+        loss.block_until_ready()
         step_times.append(time.perf_counter() - start)
 
     return warmup_time, step_times
 
 
-def _benchmark_torch(torch_model, torch_optimizer, torch_loss, batch, warmup_steps: int, measured_steps: int):
-    inputs = torch.from_numpy(batch[0])
-    targets = torch.from_numpy(batch[1])
+def _benchmark_torch(
+    torch_model,
+    torch_optimizer,
+    torch_loss,
+    batch,
+    warmup_steps: int,
+    measured_steps: int,
+    device: torch.device,
+):
+    inputs = torch.from_numpy(batch[0]).to(device)
+    targets = torch.from_numpy(batch[1]).to(device)
 
     for step in range(warmup_steps):
         torch_optimizer.zero_grad()
@@ -168,15 +232,54 @@ def _write_csv(path: str, results: List[Dict]):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--warmup-steps", type=int, default=2, help="Steps to run before timing")
-    parser.add_argument("--measured-steps", type=int, default=5, help="Timed training steps to run")
-    parser.add_argument("--batch-size", type=int, default=8, help="Batch size for the toy dataset")
+    parser.add_argument("--warmup-steps", type=int, default=10, help="Steps to run before timing")
+    parser.add_argument("--measured-steps", type=int, default=100, help="Timed training steps to run")
+    parser.add_argument("--batch-size", type=int, default=256, help="Batch size for the toy dataset")
+    parser.add_argument("--input-dim", type=int, default=128, help="Input feature dimension")
+    parser.add_argument("--hidden-dim", type=int, default=256, help="Hidden layer width")
+    parser.add_argument("--output-dim", type=int, default=16, help="Output feature dimension")
+    parser.add_argument(
+        "--num-hidden-layers",
+        type=int,
+        default=2,
+        help="Number of hidden Dense+ReLU layers",
+    )
+    parser.add_argument("--data-seed", type=int, default=0, help="Seed for synthetic data")
     parser.add_argument("--learning-rate", type=float, default=0.05, help="Learning rate for both trainers")
     parser.add_argument("--n-devices", type=int, default=jax.local_device_count(), help="Number of JAX devices to use")
     parser.add_argument("--adasum", action="store_true", help="Use Adasum reduction instead of pmean")
+    parser.add_argument(
+        "--jax-device",
+        type=str,
+        default="default",
+        choices=("default", "cpu", "gpu", "tpu"),
+        help="JAX device platform to run on",
+    )
+    parser.add_argument(
+        "--torch-device",
+        type=str,
+        default="cpu",
+        help="PyTorch device to run on (e.g., cpu, cuda)",
+    )
+    parser.add_argument(
+        "--profile",
+        type=str,
+        default="default",
+        choices=("default", "large"),
+        help="Preset benchmark configuration (overrides size/steps flags).",
+    )
     parser.add_argument("--json-output", type=str, help="Optional path to write JSON results")
     parser.add_argument("--csv-output", type=str, help="Optional path to write CSV results")
     args = parser.parse_args()
+
+    if args.profile == "large":
+        args.warmup_steps = 20
+        args.measured_steps = 200
+        args.batch_size = 512
+        args.input_dim = 256
+        args.hidden_dim = 512
+        args.output_dim = 32
+        args.num_hidden_layers = 3
 
     available_devices = jax.local_device_count()
     if args.n_devices < 1:
@@ -184,22 +287,59 @@ def main():
     if args.n_devices > available_devices:
         raise ValueError(f"Requested {args.n_devices} devices, but only {available_devices} are available")
 
-    batch = _prepare_batch(args.batch_size)
+    if args.jax_device != "default":
+        platform_devices = jax.devices(args.jax_device)
+        if not platform_devices:
+            raise ValueError(f"No JAX devices available for platform '{args.jax_device}'.")
+        if args.n_devices > len(platform_devices):
+            raise ValueError(
+                f"Requested {args.n_devices} devices for '{args.jax_device}', "
+                f"but only {len(platform_devices)} are available"
+            )
+        jax_device = platform_devices[0]
+    else:
+        jax_device = None
+
+    torch_device = torch.device(args.torch_device)
+    if torch_device.type == "cuda" and not torch.cuda.is_available():
+        raise ValueError("Requested torch cuda device but CUDA is not available.")
+
+    batch = _prepare_batch(
+        args.batch_size,
+        args.input_dim,
+        args.hidden_dim,
+        args.output_dim,
+        args.data_seed,
+    )
     torch_model, torch_optimizer, torch_loss, trax_trainer = _prepare_models(
-        batch, args.learning_rate, args.n_devices, args.adasum
+        batch,
+        args.input_dim,
+        args.hidden_dim,
+        args.output_dim,
+        args.num_hidden_layers,
+        args.learning_rate,
+        args.n_devices,
+        args.adasum,
+        torch_device,
     )
 
     rng = fastmath.random.get_prng(123)
     rngs = fastmath.random.split(rng, args.warmup_steps + args.measured_steps)
 
     warmup_time, trax_step_times = _benchmark_trax(
-        trax_trainer, batch, rngs, args.warmup_steps, args.measured_steps
+        trax_trainer, batch, rngs, args.warmup_steps, args.measured_steps, device=jax_device
     )
     torch_step_times = _benchmark_torch(
-        torch_model, torch_optimizer, torch_loss, batch, args.warmup_steps, args.measured_steps
+        torch_model,
+        torch_optimizer,
+        torch_loss,
+        batch,
+        args.warmup_steps,
+        args.measured_steps,
+        device=torch_device,
     )
 
-    tokens_per_step = args.batch_size * batch[0].shape[-1]
+    tokens_per_step = args.batch_size * args.input_dim
 
     trax_metrics = _compute_metrics(trax_step_times, tokens_per_step, warmup_time=warmup_time)
     torch_metrics = _compute_metrics(torch_step_times, tokens_per_step)

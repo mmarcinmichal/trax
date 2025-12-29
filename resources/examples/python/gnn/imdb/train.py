@@ -1,4 +1,4 @@
-from collections import Counter
+import os
 
 import datasets
 import numpy as np
@@ -14,29 +14,25 @@ from resources.examples.python.base import (
 )
 from trax import layers as tl
 from trax import optimizers
+from trax.data.encoder import encoder as text_encoder
 from trax.models import gnn
 from trax.trainers import jax as trainers
 
 MAX_LEN = 2_000
-VOCAB_SIZE = 100_000
 WINDOW_SIZE = 10
+SPM_FILE = "en_32k.sentencepiece"
+VOCAB_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "data", "vocabs")
+)
 
 
-def build_vocab(texts):
-    counter = Counter()
-    for t in texts:
-        counter.update(t.lower().split()[:MAX_LEN])
-    vocab = {"<PAD>": 0, "<UNK>": 1}
-    for i, (w, _) in enumerate(counter.most_common(VOCAB_SIZE - 2), start=2):
-        vocab[w] = i
-    return vocab
-
-
-def encode(text, vocab):
-    tokens = [vocab.get(w, 1) for w in text.lower().split()[:MAX_LEN]]
-    if len(tokens) < MAX_LEN:
-        tokens += [0] * (MAX_LEN - len(tokens))
-    return np.array(tokens)
+def _pad_or_trim(tokens, max_len=MAX_LEN, pad_id=0):
+    tokens = np.asarray(tokens, dtype=np.int64)
+    if tokens.shape[0] >= max_len:
+        return tokens[:max_len]
+    padded = np.full((max_len,), pad_id, dtype=np.int64)
+    padded[: tokens.shape[0]] = tokens
+    return padded
 
 
 def window_adjacency(length=MAX_LEN, window_size=10, add_self_loops=False):
@@ -59,17 +55,30 @@ def load_data():
     # train_ds = datasets.load_dataset("imdb", split="train[:2000]")
     # test_ds = datasets.load_dataset("imdb", split="test[:1000]")
 
-    vocab = build_vocab(train_ds["text"])
-    x_train = np.stack([encode(t, vocab) for t in train_ds["text"]])
+    tokenizer_fn = text_encoder.Tokenize(
+        vocab_type="sentencepiece",
+        vocab_file=SPM_FILE,
+        vocab_dir=VOCAB_DIR,
+        n_reserved_ids=0,
+    )
+    vocab_size = text_encoder.vocab_size(
+        vocab_type="sentencepiece", vocab_file=SPM_FILE, vocab_dir=VOCAB_DIR
+    )
+
+    x_train = np.stack(
+        [_pad_or_trim(tokens) for tokens in tokenizer_fn(iter(train_ds["text"]))]
+    )
     y_train = np.array(train_ds["label"], dtype=np.int64)
-    x_test = np.stack([encode(t, vocab) for t in test_ds["text"]])
+    x_test = np.stack(
+        [_pad_or_trim(tokens) for tokens in tokenizer_fn(iter(test_ds["text"]))]
+    )
     y_test = np.array(test_ds["label"], dtype=np.int64)
 
     adj = window_adjacency(window_size=WINDOW_SIZE, add_self_loops=False)
     a_train = np.broadcast_to(adj, (x_train.shape[0], MAX_LEN, MAX_LEN))
     a_test = np.broadcast_to(adj, (x_test.shape[0], MAX_LEN, MAX_LEN))
 
-    return (x_train, a_train, y_train), (x_test, a_test, y_test), len(vocab)
+    return (x_train, a_train, y_train), (x_test, a_test, y_test), vocab_size
 
 
 def build_model(vocab_size):
