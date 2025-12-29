@@ -29,7 +29,7 @@ from . import training as rl_training
 from trax import data, fastmath
 from trax import layers as tl
 from trax.fastmath import numpy as jnp
-from trax.learning.supervised import trainer_lib
+from trax.learning.supervised import training
 from trax.learning.supervised import lr_schedules as lr
 from trax.optimizers import adam
 from trax.utils import shapes
@@ -173,18 +173,37 @@ class ActorCriticAgent(rl_training.PolicyAgent):
             # If needed, create value_output_dir and missing parent directories.
             if not tf.io.gfile.isdir(value_output_dir):
                 tf.io.gfile.makedirs(value_output_dir)
-        self._value_inputs = data.inputs.Inputs(
-            train_stream=lambda _: self.value_batches_stream()
-        )
-        self._value_trainer = trainer_lib.Trainer(
-            model=value_model,
+        value_train_stream = self.value_batches_stream()
+        value_sample_batch = next(self.value_batches_stream())
+        value_train_task = training.TrainTask(
+            labeled_data=value_train_stream,
+            loss_layer=tl.L2Loss(),
             optimizer=value_optimizer,
             lr_schedule=value_lr_schedule(),
-            loss_fn=tl.L2Loss(),
-            inputs=self._value_inputs,
-            output_dir=value_output_dir,
-            metrics={"value_loss": tl.L2Loss(), "value_mean": self.value_mean},
+            sample_batch=value_sample_batch,
+            loss_name="value_loss",
         )
+        value_eval_task = training.EvalTask(
+            labeled_data=self.value_batches_stream(),
+            metrics=[tl.L2Loss(), self.value_mean],
+            metric_names=["value_loss", "value_mean"],
+            n_eval_batches=value_eval_steps,
+            sample_batch=value_sample_batch,
+        )
+        value_checkpoint_at = lambda step: step % value_train_steps_per_epoch == 0
+        value_eval_period = max(1, value_train_steps_per_epoch // max(1, value_evals_per_epoch))
+        value_eval_at = lambda step: step % value_eval_period == 0
+        self._value_loop = training.Loop(
+            model=value_model(mode="train"),
+            tasks=value_train_task,
+            eval_model=self._value_eval_model,
+            eval_tasks=value_eval_task,
+            output_dir=value_output_dir,
+            eval_at=value_eval_at,
+            checkpoint_at=value_checkpoint_at,
+        )
+        # Backward compatibility for tests expecting the legacy trainers.
+        self._value_trainer = self._value_loop
 
     @property
     def value_mean(self):
@@ -395,67 +414,28 @@ class ActorCriticAgent(rl_training.PolicyAgent):
 
     def train_epoch(self):
         """Trains RL for one epoch."""
-        # Copy policy state accumulated during data collection to the trainers.
-        self._policy_trainer.model_state = self._policy_collect_model.state
+        self._policy_loop.update_weights_and_state(state=self._policy_collect_model.state)
 
-        # Copy policy weights and state to value trainers.
         if self._n_shared_layers > 0:
             _copy_model_weights_and_state(
-                0, self._n_shared_layers, self._policy_trainer, self._value_trainer
+                0, self._n_shared_layers, self._policy_loop, self._value_loop
             )
 
-        # Update the target value network.
-        self._value_eval_model.weights = self._value_trainer.model_weights
-        self._value_eval_model.state = self._value_trainer.model_state
+        self._value_eval_model.weights = self._value_loop.eval_model.weights
+        self._value_eval_model.state = self._value_loop.eval_model.state
+        self._value_loop.run(n_steps=self._value_train_steps_per_epoch)
 
-        n_value_evals = rl_training.remaining_evals(
-            self._value_trainer.step,
-            self._epoch,
-            self._value_train_steps_per_epoch,
-            self._value_evals_per_epoch,
-        )
-        for _ in range(n_value_evals):
-            self._value_trainer.train_epoch(
-                self._value_train_steps_per_epoch // self._value_evals_per_epoch,
-                self._value_eval_steps,
-            )
-            # Update the target value network.
-            self._value_eval_model.weights = self._value_trainer.model_weights
-            self._value_eval_model.state = self._value_trainer.model_state
-
-        # Copy value weights and state to policy trainers.
         if self._n_shared_layers > 0:
             _copy_model_weights_and_state(
-                0, self._n_shared_layers, self._value_trainer, self._policy_trainer
-            )
-        n_policy_evals = rl_training.remaining_evals(
-            self._policy_trainer.step,
-            self._epoch,
-            self._policy_train_steps_per_epoch,
-            self._policy_evals_per_epoch,
-        )
-        # Check if there was a restart after value training finishes and policy not.
-        stopped_after_value = (
-            n_value_evals == 0 and n_policy_evals < self._policy_evals_per_epoch
-        )
-        should_copy_weights = self._n_shared_layers > 0 and not stopped_after_value
-        if should_copy_weights:
-            _copy_model_weights_and_state(
-                0, self._n_shared_layers, self._value_trainer, self._policy_trainer
+                0, self._n_shared_layers, self._value_loop, self._policy_loop
             )
 
-        # Update the target value network.
-        self._value_eval_model.weights = self._value_trainer.model_weights
-        self._value_eval_model.state = self._value_trainer.model_state
-
-        for _ in range(n_policy_evals):
-            self._policy_trainer.train_epoch(
-                self._policy_train_steps_per_epoch // self._policy_evals_per_epoch,
-                self._policy_eval_steps,
-            )
+        self._value_eval_model.weights = self._value_loop.eval_model.weights
+        self._value_eval_model.state = self._value_loop.eval_model.state
+        self._policy_loop.run(n_steps=self._policy_train_steps_per_epoch)
 
     def close(self):
-        self._value_trainer.close()
+        self._value_loop.close()
         super().close()
 
 
@@ -463,29 +443,20 @@ def _copy_model_weights_and_state(  # pylint: disable=invalid-name
     start, end, from_trainer, to_trainer, copy_optimizer_slots=False
 ):
     """Copy model weights[start:end] from from_trainer to to_trainer."""
-    from_weights = from_trainer.model_weights
-    to_weights = list(to_trainer.model_weights)
+    from_weights = from_trainer.model.weights
+    to_weights = list(to_trainer.model.weights)
     shared_weights = from_weights[start:end]
     to_weights[start:end] = shared_weights
-    to_trainer.model_weights = to_weights
+    to_trainer.model.weights = to_weights
 
-    from_state = from_trainer.model_state
-    to_state = list(to_trainer.model_state)
+    from_state = from_trainer.model.state
+    to_state = list(to_trainer.model.state)
     shared_state = from_state[start:end]
     to_state[start:end] = shared_state
-    to_trainer.model_state = to_state
+    to_trainer.model.state = to_state
 
     if copy_optimizer_slots:
-        # TODO(lukaszkaiser): make a nicer API in Trainer to support this.
-        # Currently we use the hack below. Note [0] since that's the model w/o loss.
-        # pylint: disable=protected-access
-        from_slots = from_trainer._opt_state.slots[0][start:end]
-        to_slots = to_trainer._opt_state.slots[0]
-        # The lines below do to_slots[start:end] = from_slots, but on tuples.
-        new_slots = to_slots[:start] + from_slots[start:end] + to_slots[end:]
-        new_slots = tuple([new_slots] + list(to_trainer._opt_state.slots[1:]))
-        to_trainer._opt_state = to_trainer._opt_state._replace(slots=new_slots)
-        # pylint: enable=protected-access
+        raise NotImplementedError("Copying optimizer slots is not supported for Loop.")
 
 
 class AdvantageBasedActorCriticAgent(ActorCriticAgent):
@@ -843,7 +814,7 @@ class LoopActorCriticAgent(rl_training.Agent):
             else:
                 return 0
 
-        self._loop = trainer_lib.training.Loop(
+        self._loop = training.Loop(
             model=train_model,
             tasks=(policy_train_task, value_train_task),
             eval_model=eval_model,
