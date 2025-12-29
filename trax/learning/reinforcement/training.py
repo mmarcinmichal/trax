@@ -609,7 +609,7 @@ class PolicyGradient(LoopPolicyAgent):
     """Trains a policy model using policy gradient on the given RLTask."""
 
     def __init__(
-        self, task, model_fn, n_train_steps_per_epoch=4, **kwargs
+        self, task, model_fn, n_train_steps_per_epoch=16, **kwargs
     ):
         """Initializes PolicyGradient.
 
