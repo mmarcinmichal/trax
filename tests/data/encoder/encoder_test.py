@@ -592,6 +592,28 @@ class TokenizerTest(tf.test.TestCase):
         self.assertSequenceEqual([27, 43, 3, 9, 1712, 5], toks)
 
 
+class BLTEncoderTest(tf.test.TestCase):
+    def test_space_patching_roundtrip(self):
+        encoder = text_encoder.BLTEncoder(patching="space")
+        text = "Hi there"
+        encoding = encoder.encode(text)
+        self.assertEqual(text, encoder.decode(encoding))
+        self.assertEqual([0, 3], encoding.patch_starts)
+
+    def test_blt_tokenize_adapter(self):
+        def dataset():
+            yield {"text": "Hi there"}
+
+        tokenized = next(
+            text_encoder.blt_tokenize(dataset(), keys=["text"], patching="space")
+        )
+        byte_ids, patch_starts = tokenized["text"]
+        self.assertIsInstance(byte_ids, np.ndarray)
+        self.assertIsInstance(patch_starts, np.ndarray)
+        decoded = text_encoder.blt_detokenize(byte_ids, patch_starts)
+        self.assertEqual("Hi there", decoded)
+
+
 class TestTokenCounts(tf.test.TestCase):
     def setUp(self):
         super(TestTokenCounts, self).setUp()

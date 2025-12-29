@@ -30,6 +30,7 @@ import sys
 import tempfile
 import time
 import unicodedata
+from dataclasses import dataclass
 
 import gin
 import numpy as np
@@ -498,6 +499,189 @@ class ByteTextEncoder(TextEncoder):
     @property
     def vocab_size(self):
         return 2**8 + self._num_reserved_ids
+
+
+def _is_utf8_continuation_byte(byte_val):
+    return 0x80 <= byte_val <= 0xBF
+
+
+def _is_ascii_letter_or_digit(byte_val):
+    return (0x30 <= byte_val <= 0x39) or (0x41 <= byte_val <= 0x5A) or (
+        0x61 <= byte_val <= 0x7A
+    )
+
+
+def _is_space_like_byte(byte_val):
+    # Space-like bytes are those that are not ASCII letters/digits or UTF-8
+    # continuation bytes (BLT Appendix: Space Patching Details).
+    return not (
+        _is_ascii_letter_or_digit(byte_val) or _is_utf8_continuation_byte(byte_val)
+    )
+
+
+@dataclass(frozen=True)
+class BLTEncoding:
+    """Container for BLT byte ids and patch starts."""
+
+    byte_ids: list
+    patch_starts: list
+
+    def patches(self):
+        """Returns list of byte-id lists, one per patch."""
+        if not self.byte_ids:
+            return []
+        starts = list(self.patch_starts)
+        if not starts or starts[0] != 0:
+            raise ValueError("patch_starts must start with 0.")
+        starts = starts + [len(self.byte_ids)]
+        return [
+            list(self.byte_ids[starts[i] : starts[i + 1]])
+            for i in range(len(starts) - 1)
+        ]
+
+
+class BLTEncoder:
+    """Byte-level encoder with BLT patching strategies.
+
+    This encoder returns bytes plus patch boundaries for BLT-style patching.
+    """
+
+    def __init__(
+        self,
+        patching="entropy_global",
+        patch_size=None,
+        entropy_threshold=None,
+        relative_entropy_threshold=None,
+        max_patch_size=None,
+        text_encoding="utf-8",
+    ):
+        self._patching = patching
+        self._patch_size = patch_size
+        self._entropy_threshold = entropy_threshold
+        self._relative_entropy_threshold = relative_entropy_threshold
+        self._max_patch_size = max_patch_size
+        self._text_encoding = text_encoding
+
+        if patching == "strided" and not patch_size:
+            raise ValueError("patch_size is required for strided patching.")
+        if patching == "entropy_global" and entropy_threshold is None:
+            raise ValueError("entropy_threshold is required for entropy_global.")
+        if patching == "entropy_monotonic" and relative_entropy_threshold is None:
+            raise ValueError(
+                "relative_entropy_threshold is required for entropy_monotonic."
+            )
+
+    def encode(self, text, entropies=None):
+        """Encodes text to bytes with BLT patch boundaries.
+
+        Args:
+          text: Input string or bytes.
+          entropies: Optional list of next-byte entropies (len == bytes).
+
+        Returns:
+          BLTEncoding with byte ids and patch start indices.
+        """
+        if isinstance(text, bytes):
+            byte_ids = list(text)
+        else:
+            byte_ids = list(text.encode(self._text_encoding))
+        patch_starts = self._patch_starts(byte_ids, entropies=entropies)
+        return BLTEncoding(byte_ids=byte_ids, patch_starts=patch_starts)
+
+    def decode(self, encoding):
+        """Decodes bytes or BLTEncoding back to text."""
+        if isinstance(encoding, BLTEncoding):
+            byte_ids = encoding.byte_ids
+        elif isinstance(encoding, (list, tuple)):
+            if encoding and isinstance(encoding[0], (list, tuple)):
+                byte_ids = list(itertools.chain.from_iterable(encoding))
+            else:
+                byte_ids = list(encoding)
+        else:
+            raise ValueError("encoding must be BLTEncoding or list of byte ids.")
+        return bytes(byte_ids).decode(self._text_encoding, errors="replace")
+
+    def _patch_starts(self, byte_ids, entropies=None):
+        n = len(byte_ids)
+        if n == 0:
+            return [0]
+        if self._patching == "strided":
+            starts = list(range(0, n, self._patch_size))
+        elif self._patching == "space":
+            starts = self._space_patch_starts(byte_ids)
+        elif self._patching == "entropy_global":
+            starts = self._entropy_patch_starts(
+                byte_ids, entropies, mode="global", threshold=self._entropy_threshold
+            )
+        elif self._patching == "entropy_monotonic":
+            starts = self._entropy_patch_starts(
+                byte_ids,
+                entropies,
+                mode="monotonic",
+                threshold=self._relative_entropy_threshold,
+            )
+        else:
+            raise ValueError(f"Unknown patching mode: {self._patching}")
+
+        if self._max_patch_size:
+            starts = self._apply_max_patch_size(starts, n, self._max_patch_size)
+
+        if not starts or starts[0] != 0:
+            starts = [0] + [s for s in starts if s > 0]
+        return starts
+
+    def _space_patch_starts(self, byte_ids):
+        n = len(byte_ids)
+        suffix_has_non_space = [False] * (n + 1)
+        for i in range(n - 1, -1, -1):
+            suffix_has_non_space[i] = suffix_has_non_space[i + 1] or (
+                not _is_space_like_byte(byte_ids[i])
+            )
+
+        starts = [0]
+        has_non_space = False
+        for i in range(n - 1):
+            if not _is_space_like_byte(byte_ids[i]):
+                has_non_space = True
+            if (
+                _is_space_like_byte(byte_ids[i])
+                and has_non_space
+                and suffix_has_non_space[i + 1]
+            ):
+                starts.append(i + 1)
+                has_non_space = False
+        return starts
+
+    def _entropy_patch_starts(self, byte_ids, entropies, mode, threshold):
+        if entropies is None:
+            raise ValueError("entropies must be provided for entropy patching.")
+        if len(entropies) != len(byte_ids):
+            raise ValueError("entropies must match byte length.")
+        starts = [0]
+        for i in range(1, len(byte_ids)):
+            if mode == "global":
+                if entropies[i] > threshold:
+                    starts.append(i)
+            else:
+                if entropies[i] - entropies[i - 1] > threshold:
+                    starts.append(i)
+        return starts
+
+    def _apply_max_patch_size(self, starts, n, max_patch_size):
+        start_set = set(starts)
+        out_starts = [0]
+        cur_len = 1
+        for i in range(1, n):
+            if i in start_set:
+                out_starts.append(i)
+                cur_len = 1
+                continue
+            if cur_len >= max_patch_size:
+                out_starts.append(i)
+                cur_len = 1
+                continue
+            cur_len += 1
+        return out_starts
 
 
 class ClassLabelEncoder(TextEncoder):
@@ -1624,6 +1808,71 @@ def tokenize(
             yield output
 
 
+def blt_tokenize(
+    stream,
+    keys=None,
+    patching="entropy_global",
+    patch_size=None,
+    entropy_threshold=None,
+    relative_entropy_threshold=None,
+    max_patch_size=None,
+    text_encoding="utf-8",
+    entropies_key=None,
+    entropies_index=None,
+):
+    """Tokenize examples into bytes and BLT patch boundaries.
+
+    Returns tuples of (byte_ids, patch_starts), where both are numpy int arrays.
+    For entropy patching, provide entropies via entropies_key (dict) or
+    entropies_index (tuple/list).
+    """
+    encoder = BLTEncoder(
+        patching=patching,
+        patch_size=patch_size,
+        entropy_threshold=entropy_threshold,
+        relative_entropy_threshold=relative_entropy_threshold,
+        max_patch_size=max_patch_size,
+        text_encoding=text_encoding,
+    )
+    for example in stream:
+        if isinstance(example, (list, tuple)):
+            new_example = []
+            for i, x in enumerate(example):
+                if keys is None or i in keys:
+                    entropies = (
+                        example[entropies_index]
+                        if entropies_index is not None
+                        else None
+                    )
+                    enc = encoder.encode(x, entropies=entropies)
+                    new_example.append(
+                        (np.array(enc.byte_ids), np.array(enc.patch_starts))
+                    )
+                else:
+                    new_example.append(x)
+            output = tuple(new_example)
+            yield output
+        elif isinstance(example, dict):
+            new_example = {}
+            entropies = (
+                example.get(entropies_key) if entropies_key is not None else None
+            )
+            for k in example:
+                if keys is None or k in keys:
+                    enc = encoder.encode(example[k], entropies=entropies)
+                    new_example[k] = (
+                        np.array(enc.byte_ids),
+                        np.array(enc.patch_starts),
+                    )
+                else:
+                    new_example[k] = example[k]
+            yield new_example
+        else:
+            enc = encoder.encode(example)
+            output = (np.array(enc.byte_ids), np.array(enc.patch_starts))
+            yield output
+
+
 @gin.configurable(module="trax.data")
 def Tokenize(  # pylint: disable=invalid-name
     keys=None,
@@ -1640,6 +1889,33 @@ def Tokenize(  # pylint: disable=invalid-name
         vocab_file=vocab_file,
         vocab_dir=vocab_dir,
         n_reserved_ids=n_reserved_ids,
+    )
+
+
+@gin.configurable(module="trax.data")
+def BLTTokenize(  # pylint: disable=invalid-name
+    keys=None,
+    patching="entropy_global",
+    patch_size=None,
+    entropy_threshold=None,
+    relative_entropy_threshold=None,
+    max_patch_size=None,
+    text_encoding="utf-8",
+    entropies_key=None,
+    entropies_index=None,
+):
+    """Returns a function that maps text to bytes + BLT patch boundaries."""
+    return lambda g: blt_tokenize(  # pylint: disable=g-long-lambda
+        g,
+        keys=keys,
+        patching=patching,
+        patch_size=patch_size,
+        entropy_threshold=entropy_threshold,
+        relative_entropy_threshold=relative_entropy_threshold,
+        max_patch_size=max_patch_size,
+        text_encoding=text_encoding,
+        entropies_key=entropies_key,
+        entropies_index=entropies_index,
     )
 
 
@@ -1669,6 +1945,16 @@ def detokenize(
     vocab = _get_vocab(vocab_type, vocab_file, vocab_dir)
     x_unreserved = np.array(x) - n_reserved_ids
     return str(vocab.decode(x_unreserved.tolist()))
+
+
+def blt_detokenize(byte_ids, patch_starts=None, text_encoding="utf-8"):
+    """Decodes BLT byte ids (and optional patch starts) back to text."""
+    encoder = BLTEncoder(patching="strided", patch_size=1, text_encoding=text_encoding)
+    if patch_starts is None:
+        return encoder.decode(byte_ids)
+    return encoder.decode(
+        BLTEncoding(byte_ids=list(byte_ids), patch_starts=list(patch_starts))
+    )
 
 
 @gin.configurable(module="trax.data")
