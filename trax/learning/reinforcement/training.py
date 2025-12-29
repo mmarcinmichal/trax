@@ -607,7 +607,9 @@ class LoopPolicyAgent(Agent):
 class PolicyGradient(LoopPolicyAgent):
     """Trains a policy model using policy gradient on the given RLTask."""
 
-    def __init__(self, task, model_fn, **kwargs):
+    def __init__(
+        self, task, model_fn, n_train_steps_per_epoch=4, **kwargs
+    ):
         """Initializes PolicyGradient.
 
         Args:
@@ -620,9 +622,9 @@ class PolicyGradient(LoopPolicyAgent):
             model_fn,
             # We're on-policy, so we can only use data from the last epoch.
             n_replay_epochs=1,
-            # Each gradient computation needs a new data sample, so we do 1 step
-            # per epoch.
-            n_train_steps_per_epoch=1,
+            # Allow multiple policy updates per epoch to speed up convergence
+            # while still training on freshly collected trajectories.
+            n_train_steps_per_epoch=n_train_steps_per_epoch,
             # Very simple baseline: mean return across trajectories.
             value_fn=self._value_fn,
             # Weights are just advantages.
