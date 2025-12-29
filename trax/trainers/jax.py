@@ -187,8 +187,12 @@ class Trainer:
             """
 
             def loss_fn(curr_w, curr_s):
+                # Avoid caching intermediates during the backward pass, since cache
+                # storage can capture tracers under JIT and trigger tracer leak
+                # errors. Training recomputes values as needed, so we keep
+                # use_cache disabled here.
                 loss_val, new_st = model_with_loss.pure_fn(
-                    batch, curr_w, curr_s, rng, use_cache=True
+                    batch, curr_w, curr_s, rng, use_cache=False
                 )
                 return loss_val, new_st
 
