@@ -28,7 +28,7 @@ import tensorflow as tf
 from trax import data, fastmath, models
 from trax import layers as tl
 from trax.fastmath import numpy as jnp
-from trax.learning.supervised import trainer_lib
+from trax.learning.supervised import training
 from trax.learning.reinforcement import (
     advantages,
     distributions,
@@ -229,16 +229,16 @@ class Agent:
                 avg_return = self._collect_trajectories()
                 self._avg_returns.append(avg_return)
                 if self._n_trajectories_per_epoch:
-                    trainer_lib.log(
+                    tf.get_logger().info(
                         "Collecting %d episodes took %.2f seconds."
                         % (self._n_trajectories_per_epoch, time.time() - cur_time)
                     )
                 else:
-                    trainer_lib.log(
+                    tf.get_logger().info(
                         "Collecting %d interactions took %.2f seconds."
                         % (self._n_interactions_per_epoch, time.time() - cur_time)
                     )
-                trainer_lib.log(
+                tf.get_logger().info(
                     "Average return in epoch %d was %.2f." % (self._epoch, avg_return)
                 )
                 if self._n_eval_episodes > 0:
@@ -250,7 +250,7 @@ class Agent:
                                 max_steps=steps,
                                 only_eval=True,
                             )
-                            trainer_lib.log(
+                            tf.get_logger().info(
                                 "Eval return in epoch %d with temperature %.2f was %.2f."
                                 % (self._epoch, eval_t, avg_return_temperature)
                             )
@@ -293,7 +293,7 @@ class Agent:
 
                 cur_time = time.time()
                 self.train_epoch()
-                trainer_lib.log(
+                tf.get_logger().info(
                     "RL training took %.2f seconds." % (time.time() - cur_time)
                 )
 
@@ -366,27 +366,41 @@ class PolicyAgent(Agent):
         self._policy_dist = distributions.create_distribution(task.action_space)
 
         # Inputs to the policy model are produced by self._policy_batches_stream.
-        self._policy_inputs = data.inputs.Inputs(
-            train_stream=lambda _: self.policy_batches_stream()
-        )
-
         policy_model = functools.partial(
             policy_model,
             policy_distribution=self._policy_dist,
         )
-
-        # This is the policy Trainer that will be used to train the policy model.
-        # * inputs to the trainers come from self.policy_batches_stream
-        # * outputs, targets and weights are passed to self.policy_loss
-        self._policy_trainer = trainer_lib.Trainer(
-            model=policy_model,
+        policy_train_stream = self.policy_batches_stream()
+        policy_sample_batch = next(self.policy_batches_stream())
+        policy_train_task = training.TrainTask(
+            labeled_data=policy_train_stream,
+            loss_layer=self.policy_loss,
             optimizer=policy_optimizer,
             lr_schedule=policy_lr_schedule(),
-            loss_fn=self.policy_loss,
-            inputs=self._policy_inputs,
-            output_dir=output_dir,
-            metrics=self.policy_metrics,
+            sample_batch=policy_sample_batch,
+            loss_name="policy_loss",
         )
+        policy_eval_task = training.EvalTask(
+            labeled_data=self.policy_batches_stream(),
+            metrics=list(self.policy_metrics.values()),
+            metric_names=list(self.policy_metrics.keys()),
+            n_eval_batches=self._policy_eval_steps,
+            sample_batch=policy_sample_batch,
+        )
+        eval_period = max(1, policy_train_steps_per_epoch // max(1, policy_evals_per_epoch))
+        eval_at = lambda step: step % eval_period == 0
+        checkpoint_at = lambda step: step % policy_train_steps_per_epoch == 0
+        self._policy_loop = training.Loop(
+            model=policy_model(mode="train"),
+            tasks=policy_train_task,
+            eval_model=policy_model(mode="eval"),
+            eval_tasks=policy_eval_task,
+            output_dir=output_dir,
+            eval_at=eval_at,
+            checkpoint_at=checkpoint_at,
+        )
+        # Backward compatibility for tests expecting the legacy trainers attribute.
+        self._policy_trainer = self._policy_loop
         self._policy_collect_model = tl.Accelerate(
             policy_model(mode="collect"), n_devices=1
         )
@@ -416,7 +430,7 @@ class PolicyAgent(Agent):
         if temperature != 1.0:  # When evaluating (t != 1.0), don't collect stats
             model = self._policy_eval_model
             model.state = self._policy_collect_model.state
-        model.replicate_weights(self._policy_trainer.model_weights)
+        model.replicate_weights(self._policy_loop.model.weights)
         tr_slice = trajectory.suffix(self._max_slice_length)
         trajectory_np = tr_slice.to_np(timestep_to_np=self.task.timestep_to_np)
         # Add batch dimension to trajectory_np and run the model.
@@ -431,21 +445,11 @@ class PolicyAgent(Agent):
 
     def train_epoch(self):
         """Trains RL for one epoch."""
-        # When restoring, calculate how many evals are remaining.
-        n_evals = remaining_evals(
-            self._policy_trainer.step,
-            self._epoch,
-            self._policy_train_steps_per_epoch,
-            self._policy_evals_per_epoch,
-        )
-        for _ in range(n_evals):
-            self._policy_trainer.train_epoch(
-                self._policy_train_steps_per_epoch // self._policy_evals_per_epoch,
-                self._policy_eval_steps,
-            )
+        self._policy_loop.update_weights_and_state(state=self._policy_collect_model.state)
+        self._policy_loop.run(n_steps=self._policy_train_steps_per_epoch)
 
     def close(self):
-        self._policy_trainer.close()
+        self._policy_loop.close()
         super().close()
 
 
@@ -565,7 +569,7 @@ class LoopPolicyAgent(Agent):
             policy_output_dir = None
         # Checkpoint every epoch.
         checkpoint_at = lambda step: step % n_train_steps_per_epoch == 0
-        self._loop = trainer_lib.training.Loop(
+        self._loop = training.Loop(
             model=model_fn(mode="train"),
             tasks=[train_task],
             eval_model=model_fn(mode="eval"),
@@ -603,7 +607,9 @@ class LoopPolicyAgent(Agent):
 class PolicyGradient(LoopPolicyAgent):
     """Trains a policy model using policy gradient on the given RLTask."""
 
-    def __init__(self, task, model_fn, **kwargs):
+    def __init__(
+        self, task, model_fn, n_train_steps_per_epoch=4, **kwargs
+    ):
         """Initializes PolicyGradient.
 
         Args:
@@ -616,9 +622,9 @@ class PolicyGradient(LoopPolicyAgent):
             model_fn,
             # We're on-policy, so we can only use data from the last epoch.
             n_replay_epochs=1,
-            # Each gradient computation needs a new data sample, so we do 1 step
-            # per epoch.
-            n_train_steps_per_epoch=1,
+            # Allow multiple policy updates per epoch to speed up convergence
+            # while still training on freshly collected trajectories.
+            n_train_steps_per_epoch=n_train_steps_per_epoch,
             # Very simple baseline: mean return across trajectories.
             value_fn=self._value_fn,
             # Weights are just advantages.
@@ -902,32 +908,41 @@ class ValueAgent(Agent):
             models.Quality, body=value_body, n_actions=self.task.action_space.n
         )
 
+        value_train_model = value_model(mode="train")
         self._value_eval_model = value_model(mode="eval")
         self._value_eval_model.init(self._value_model_signature)
         self._value_eval_jit = tl.jit_forward(
             self._value_eval_model.pure_fn, fastmath.local_device_count(), do_mean=False
         )
 
-        # Inputs to the value model are produced by self._values_batches_stream.
-        self._inputs = data.inputs.Inputs(
-            train_stream=lambda _: self.value_batches_stream()
-        )
-
-        # This is the value Trainer that will be used to train the value model.
-        # * inputs to the trainers come from self.value_batches_stream
-        # * outputs, targets and weights are passed to self.value_loss
-        self._value_trainer = trainer_lib.Trainer(
-            model=value_model,
+        value_train_stream = self.value_batches_stream()
+        value_sample_batch = next(self.value_batches_stream())
+        value_train_task = training.TrainTask(
+            labeled_data=value_train_stream,
+            loss_layer=self.value_loss,
             optimizer=value_optimizer,
             lr_schedule=value_lr_schedule(),
-            loss_fn=self.value_loss,
-            inputs=self._inputs,
+            sample_batch=value_sample_batch,
+            loss_name="value_loss",
+        )
+        value_eval_task = training.EvalTask(
+            labeled_data=self.value_batches_stream(),
+            metrics=[self.value_loss, self.value_mean, self.returns_mean],
+            metric_names=["value_loss", "value_mean", "returns_mean"],
+            n_eval_batches=value_eval_steps,
+            sample_batch=value_sample_batch,
+        )
+        value_checkpoint_at = lambda step: step % value_train_steps_per_epoch == 0
+        value_eval_period = max(1, value_train_steps_per_epoch // max(1, value_evals_per_epoch))
+        value_eval_at = lambda step: step % value_eval_period == 0
+        self._value_loop = training.Loop(
+            model=value_train_model,
+            tasks=value_train_task,
+            eval_model=self._value_eval_model,
+            eval_tasks=value_eval_task,
             output_dir=output_dir,
-            metrics={
-                "value_loss": self.value_loss,
-                "value_mean": self.value_mean,
-                "returns_mean": self.returns_mean,
-            },
+            eval_at=value_eval_at,
+            checkpoint_at=value_checkpoint_at,
         )
         value_batch = next(self.value_batches_stream())
         self._eval_model = tl.Accelerate(value_model(mode="collect"), n_devices=1)
@@ -953,35 +968,38 @@ class ValueAgent(Agent):
     def train_epoch(self):
         """Trains RL for one epoch."""
         # Update the target value network.
-        self._value_eval_model.weights = self._value_trainer.model_weights
-        self._value_eval_model.state = self._value_trainer.model_state
+        self._value_eval_model.weights = self._value_loop.eval_model.weights
+        self._value_eval_model.state = self._value_loop.eval_model.state
 
         # When restoring, calculate how many evals are remaining.
         n_evals = remaining_evals(
-            self._value_trainer.step,
+            self._value_loop.step,
             self._epoch,
             self._value_train_steps_per_epoch,
             self._value_evals_per_epoch,
         )
         for _ in range(n_evals):
-            self._value_trainer.train_epoch(
-                self._value_train_steps_per_epoch // self._value_evals_per_epoch,
-                self._value_eval_steps,
+            self._value_loop.run(
+                n_steps=self._value_train_steps_per_epoch // self._value_evals_per_epoch
             )
             value_metrics = dict(
                 {"exploration_rate": self._exploration_rate(self._epoch)}
             )
-            self._value_trainer.log_metrics(
-                value_metrics, self._value_trainer._train_sw, "dqn"
-            )  # pylint: disable=protected-access
+            self._value_loop.log_summary(
+                value_metrics,
+                None,
+                "dqn/",
+                "train",
+                stdout=True,
+            )
         # Update the target value network.
         # TODO(henrykm) a bit tricky if sync_at does not coincide with epochs
-        if self._sync_at(self._value_trainer.step):
-            self._value_eval_model.weights = self._value_trainer.model_weights
-            self._value_eval_model.state = self._value_trainer.model_state
+        if self._sync_at(self._value_loop.step):
+            self._value_eval_model.weights = self._value_loop.eval_model.weights
+            self._value_eval_model.state = self._value_loop.eval_model.state
 
     def close(self):
-        self._value_trainer.close()
+        self._value_loop.close()
         super().close()
 
     @property
@@ -1180,9 +1198,9 @@ class DQN(ValueAgent):
             # value_batches_stream calls _run_value_model _once_ before
             # the trainers is initialized.
             try:
-                weights = tl.for_n_devices(self._value_trainer.model_weights, n_devices)
-                state = tl.for_n_devices(self._value_trainer.model_state, n_devices)
-                rng = self._value_trainer._rng  # pylint: disable=protected-access
+                weights = tl.for_n_devices(self._value_loop.model.weights, n_devices)
+                state = tl.for_n_devices(self._value_loop.model.state, n_devices)
+                rng = self._value_loop._rng  # pylint: disable=protected-access
             except AttributeError:
                 weights = tl.for_n_devices(self._value_eval_model.weights, n_devices)
                 state = tl.for_n_devices(self._value_eval_model.state, n_devices)

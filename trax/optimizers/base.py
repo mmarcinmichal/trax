@@ -15,6 +15,9 @@
 
 """Trax base optimizer class."""
 
+import inspect
+from typing import Any
+
 from trax import fastmath
 from trax.fastmath import numpy as jnp
 
@@ -107,18 +110,26 @@ class Optimizer:
     def opt_params(self, opt_params):
         self._init_opt_params = opt_params
 
-    def tree_init(self, weight_tree):
-        """Assembles node-local initializations into full-tree initialization.
+    def tree_init(self, weight_tree: Any = None):
+        """Assembles node-local initializations into full-tree initialization."""
 
-        Args:
-          weight_tree: Weights for an entire model, in a tree that matches the
-              model's layer structure.
+        if weight_tree is None:
+            # Allow callers that rely on previously stored weights or slots.
+            weight_tree = getattr(self, "weights", None)
+            if weight_tree is None and self._slots is not None:
+                return (self._slots, self._init_opt_params)
+        else:
+            # Cache weights for potential compatibility callers that don't pass
+            # them explicitly.
+            self.weights = weight_tree
 
-        Returns:
-          Tuple `(slots, opt_params)`, where `slots` are the initialized optimizer
-          slot values and `opt_params` are optimizer hyperparameters (e.g.,
-          learning rate, momentum).
-        """
+        if weight_tree is None:
+            init_signature = inspect.signature(self.init)
+            if len(init_signature.parameters) == 0:
+                self._slots = (self.init(),)
+                return (self._slots, self._init_opt_params)
+            raise TypeError("weight_tree must be provided for tree_init.")
+
         self._slots = tuple(
             self.init(weight) for weight in fastmath.tree_flatten(weight_tree)
         )

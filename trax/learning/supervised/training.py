@@ -38,6 +38,7 @@ import contextlib
 import functools
 import gzip as gzip_lib
 import os
+import inspect
 import pickle
 import random
 import sys
@@ -58,10 +59,23 @@ from trax.fastmath import numpy as jnp
 from trax.fastmath import random as jax_random
 from trax.layers import base
 from trax.learning.supervised import history as trax_history
+from trax.optimizers import base as optim_base
 from trax.trainers import base as trainer
 from trax.utils import jaxboard, shapes
 
 _Evaluator = collections.namedtuple("_Evaluator", ["weights", "state", "metrics_fn"])
+
+
+def ensure_optimizer_instance(optimizer):
+    """Ensures an optimizer factory is materialized before use."""
+
+    if isinstance(optimizer, optim_base.Optimizer):
+        return optimizer
+    if isinstance(optimizer, functools.partial):
+        return optimizer()
+    if inspect.isclass(optimizer) and issubclass(optimizer, optim_base.Optimizer):
+        return optimizer()
+    return optimizer
 
 
 class Loop:
@@ -347,6 +361,8 @@ class Loop:
         """Initializes the per-task trainers."""
         # Build the per-task model, sharing weights with other tasks.
         if not self._use_memory_efficient_trainer:
+            optimizer = ensure_optimizer_instance(task.optimizer)
+            task._optimizer = optimizer
             model_in_training = _model_with_ends(
                 self._model, [task.loss_layer], shapes.signature(task.sample_batch)
             )
@@ -354,13 +370,15 @@ class Loop:
                 sharded_weights = fastmath.nested_map(
                     lambda x: x[0], tl.shard(model_in_training.weights)
                 )
-                task.optimizer.tree_init(sharded_weights)
+                optimizer.tree_init(sharded_weights)
             else:
-                task.optimizer.tree_init(model_in_training.weights)
-            return trainer.Trainer(
-                model_in_training, task.optimizer, adasum=self._adasum
-            )
+                optimizer.tree_init(model_in_training.weights)
+            return trainer.Trainer(model_in_training, optimizer, adasum=self._adasum)
         # In the memory-efficient path, we initialize the model here.
+        optimizer_fn = task.optimizer
+        if isinstance(optimizer_fn, optim_base.Optimizer):
+            optimizer_fn = lambda opt=optimizer_fn: opt
+        task._optimizer = optimizer_fn
         blocks, loss_layer = trainer.extract_reversible_blocks(
             [self._model, task.loss_layer], loss_chunk_size=self._loss_chunk_size
         )
@@ -371,7 +389,7 @@ class Loop:
         return trainer.ReversibleSerialTrainer(
             blocks,
             loss_layer,
-            task.optimizer,
+            optimizer_fn,
             free_accelerators_on_step=(self._use_memory_efficient_trainer == 2),
             adasum=self._adasum,
         )
@@ -533,6 +551,12 @@ class Loop:
         # tl.Accelerate(model) will carry the replicated weights/state.
         # TODO(afrozm): Try to use tl.Accelerate(model) everywhere in the Loop.
         self._eval_model.weights = self._model.weights
+
+    def close(self):
+        """Closes resources associated with the loop."""
+
+        # Present for backward compatibility with trainer_lib-style APIs.
+        return None
 
     def _at_lowest(self):
         low_items = self.history.get("eval", f"metrics/{self._checkpoint_low_metric}")
