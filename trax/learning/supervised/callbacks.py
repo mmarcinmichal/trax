@@ -29,6 +29,10 @@ Examples include:
 import collections
 import os
 
+import dataclasses
+import inspect
+from typing import Any, Callable, Dict, Type
+
 import gin
 import numpy as np
 
@@ -56,6 +60,45 @@ class TrainingStepCallback:
     def on_step_end(self, step):
         """Called by Loop after training steps, when call_at returned True."""
         raise NotImplementedError
+
+
+class CallbackRegistry:
+    def __init__(self):
+        self._builders: Dict[Type, Callable[[Any, "TrainingStepCallback"], "TrainingStepCallback"]] = {}
+
+    def register(self, config_cls: Type):
+        def decorator(builder: Callable[[Any, "TrainingStepCallback"], "TrainingStepCallback"]):
+            self._builders[config_cls] = builder
+            return builder
+
+        return decorator
+
+    def create(self, config, loop):
+        builder = self._builders.get(type(config))
+        if builder is not None:
+            return builder(config, loop)
+        if inspect.isclass(config) and issubclass(config, TrainingStepCallback):
+            return config(loop)
+        if isinstance(config, TrainingStepCallback):
+            return config
+        raise ValueError(f"Unregistered callback config: {config}")
+
+    def create_all(self, configs, loop):
+        return [self.create(config, loop) for config in configs]
+
+
+callback_registry = CallbackRegistry()
+
+
+@dataclasses.dataclass
+class SerializedModelEvaluationConfig:
+    model: Any = None
+    eval_at: Any = 1000
+    eval_task: Any = None
+    context_lengths: Any = (1,)
+    horizon_lengths: Any = (1,)
+    n_steps: int = 1
+    accelerate_model: bool = True
 
 
 @gin.configurable
@@ -235,6 +278,12 @@ class SerializedModelEvaluation(TrainingStepCallback):
 
     def _calculate_error(self, prediction, ground_truth):
         return (prediction - ground_truth) ** 2
+
+
+@callback_registry.register(SerializedModelEvaluationConfig)
+def _build_serialized_model_evaluation(config, loop):
+    config_dict = dataclasses.asdict(config)
+    return SerializedModelEvaluation(loop=loop, **config_dict)
 
 
 def consume_sequence(model, start_id, sequence):

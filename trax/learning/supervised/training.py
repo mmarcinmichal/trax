@@ -35,6 +35,7 @@ Key classes:
 """
 import collections
 import contextlib
+import dataclasses
 import functools
 import gzip as gzip_lib
 import os
@@ -43,6 +44,7 @@ import pickle
 import random
 import sys
 import time
+from typing import Callable, Optional, Sequence, Union
 
 import gin
 import jax
@@ -58,12 +60,83 @@ from trax.data.preprocessing import inputs
 from trax.fastmath import numpy as jnp
 from trax.fastmath import random as jax_random
 from trax.layers import base
+from trax.learning.supervised import callbacks as callbacks_lib
 from trax.learning.supervised import history as trax_history
 from trax.optimizers import base as optim_base
 from trax.trainers import base as trainer
 from trax.utils import jaxboard, shapes
 
 _Evaluator = collections.namedtuple("_Evaluator", ["weights", "state", "metrics_fn"])
+
+
+@dataclasses.dataclass
+class TrainingConfig:
+    """Declarative configuration object for :class:`Loop`."""
+
+    output_dir: Optional[str] = None
+    checkpoint_at: Optional[Callable[[int], bool]] = None
+    checkpoint_low_metric: Optional[str] = None
+    checkpoint_high_metric: Optional[str] = None
+    permanent_checkpoint_at: Optional[Callable[[int], bool]] = None
+    eval_at: Optional[Callable[[int], bool]] = None
+    which_task: Optional[Callable[[int], int]] = None
+    n_devices: Optional[int] = None
+    random_seed: Optional[int] = None
+    loss_chunk_size: int = 0
+    use_memory_efficient_trainer: Union[bool, int] = False
+    adasum: bool = False
+    callbacks: Optional[Sequence] = None
+
+    def as_dict(self):
+        return dataclasses.asdict(self)
+
+
+class EvaluationScheduler:
+    """Schedules and executes evals based on step events."""
+
+    def __init__(self, eval_at, log_progress_fn, eval_runner):
+        self._eval_at = eval_at
+        self._log_progress_fn = log_progress_fn
+        self._eval_runner = eval_runner
+        self._last_eval_time = time.time()
+
+    def reset_clock(self, start_time):
+        self._last_eval_time = start_time
+
+    def maybe_run(
+        self,
+        step,
+        task,
+        loss_acc,
+        step_acc,
+        optimizer_metrics_acc,
+        process,
+        summary_writer,
+    ):
+        if not self._eval_at(step):
+            return loss_acc, step_acc, self._last_eval_time, optimizer_metrics_acc
+
+        logging.info(
+            "cpu memory use (MB): %.2f",
+            process.memory_info().rss / float(1024 * 1024),
+        )
+        elapsed_time = time.time() - self._last_eval_time
+        self._log_progress_fn(
+            task=task,
+            total_loss=loss_acc,
+            n_steps=step_acc,
+            elapsed_time=elapsed_time,
+            optimizer_metrics=optimizer_metrics_acc,
+            summary_writer=summary_writer,
+        )
+        self._eval_runner()
+        self._last_eval_time = time.time()
+        return (
+            0.0,
+            0,
+            self._last_eval_time,
+            collections.defaultdict(float),
+        )
 
 
 def ensure_optimizer_instance(optimizer):
@@ -128,6 +201,7 @@ class Loop:
         use_memory_efficient_trainer=False,
         adasum=False,
         callbacks=None,
+        training_config: Optional[TrainingConfig] = None,
     ):
         """Configures a training ``Loop``, including a random initialization.
 
@@ -190,8 +264,11 @@ class Loop:
           use_memory_efficient_trainer: whether to use a special memory-efficient
             trainers; if set to 2, the memory efficiency if very aggressive
           adasum: if True, use adaptive summation for multi-device gradients
-          callbacks: List of subclasses of StepCallback to call on training
-            steps.
+          callbacks: Sequence of callback configuration objects registered via
+            :mod:`trax.learning.supervised.callbacks`.
+          training_config: Optional :class:`TrainingConfig` instance. If not
+            provided, a default config is constructed from the provided
+            arguments.
         """
         (
             self._is_chief,
@@ -354,8 +431,25 @@ class Loop:
             task_output_dir(i, tasks) for i in range(len(tasks))
         ]
 
-        callbacks = callbacks or []
-        self._callbacks = [callback_class(self) for callback_class in callbacks]
+        self._callbacks = callbacks_lib.callback_registry.create_all(
+            callbacks or [], self
+        )
+        self._training_config = training_config or TrainingConfig(
+            output_dir=self._output_dir,
+            checkpoint_at=self._checkpoint_at,
+            checkpoint_low_metric=self._checkpoint_low_metric,
+            checkpoint_high_metric=self._checkpoint_high_metric,
+            permanent_checkpoint_at=self._permanent_checkpoint_at,
+            eval_at=self._eval_at,
+            which_task=self._which_task,
+            n_devices=self._n_devices,
+            random_seed=random_seed,
+            loss_chunk_size=self._loss_chunk_size,
+            use_memory_efficient_trainer=self._use_memory_efficient_trainer,
+            adasum=self._adasum,
+            callbacks=callbacks,
+        )
+        self._training_config_logged = False
 
     def _init_trainer(self, task):
         """Initializes the per-task trainers."""
@@ -469,6 +563,12 @@ class Loop:
             process = psutil.Process(os.getpid())
             loss_acc, step_acc = 0.0, 0
             start_time = time.time()
+            evaluation_scheduler = EvaluationScheduler(
+                self._eval_at,
+                self._log_training_progress,
+                lambda: self.run_evals(eval_summary_writers),
+            )
+            evaluation_scheduler.reset_clock(start_time)
             optimizer_metrics_acc = collections.defaultdict(float)
             for i in range(n_steps):
                 prev_task_index = self._which_task(self._step)
@@ -516,24 +616,20 @@ class Loop:
                     self.save_checkpoint("model")
                 if self._permanent_checkpoint_at(self.step):
                     self.save_checkpoint(f"model_{self.step}")
-                if self._eval_at(self.step):
-                    logging.info(
-                        "cpu memory use (MB): %.2f",
-                        process.memory_info().rss / float(1024 * 1024),
-                    )
-                    elapsed_time = time.time() - start_time
-                    self._log_training_progress(
-                        task=self._tasks[task_index],
-                        total_loss=loss_acc,
-                        n_steps=step_acc,
-                        elapsed_time=elapsed_time,
-                        optimizer_metrics=optimizer_metrics_acc,
-                        summary_writer=train_summary_writers[task_index],
-                    )
-                    self.run_evals(eval_summary_writers)
-                    loss_acc, step_acc = 0.0, 0
-                    start_time = time.time()
-                    optimizer_metrics_acc = collections.defaultdict(float)
+                (
+                    loss_acc,
+                    step_acc,
+                    start_time,
+                    optimizer_metrics_acc,
+                ) = evaluation_scheduler.maybe_run(
+                    step=self.step,
+                    task=self._tasks[task_index],
+                    loss_acc=loss_acc,
+                    step_acc=step_acc,
+                    optimizer_metrics_acc=optimizer_metrics_acc,
+                    process=process,
+                    summary_writer=train_summary_writers[task_index],
+                )
 
                 # For the current step, after all evals are run and recorded in the
                 # event history, check if we need to save special checkpoints because
@@ -607,6 +703,11 @@ class Loop:
     def eval_tasks(self):
         """Returns the evaluation tasks."""
         return self._eval_tasks
+
+    @property
+    def training_config(self):
+        """Returns the declarative configuration for this loop."""
+        return self._training_config
 
     @property
     def output_dir(self):
@@ -718,6 +819,7 @@ class Loop:
         _log("")  # Separator for visibility on terminals.
         if self.step == 1:
             self._log_n_weights()
+            self._log_training_config(summary_writer)
         self._log_step("Ran %d train steps in %0.2f secs" % (n_steps, elapsed_time))
         self.log_summary(
             {task.loss_name: total_loss / float(n_steps)},
@@ -750,6 +852,19 @@ class Loop:
             summary_writer.text(
                 "gin_config", jaxboard.markdownify_operative_config_str(config_str)
             )
+
+    def _log_training_config(self, summary_writer):
+        if (
+            not self.is_chief
+            or summary_writer is None
+            or self._training_config_logged
+        ):
+            return
+        summary_writer.text(
+            "training_config",
+            jaxboard.markdownify_operative_config_str(repr(self._training_config)),
+        )
+        self._training_config_logged = True
 
     def _log_n_weights(self):
         """ "Logs the number of weights in the training model."""
