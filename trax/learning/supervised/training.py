@@ -62,8 +62,10 @@ from trax.fastmath import random as jax_random
 from trax.layers import base
 from trax.learning.supervised import callbacks as callbacks_lib
 from trax.learning.supervised import history as trax_history
+from trax.learning.supervised import orchestration
 from trax.optimizers import base as optim_base
 from trax.trainers import base as trainer
+from trax.utils import artifacts
 from trax.utils import jaxboard, shapes
 
 _Evaluator = collections.namedtuple("_Evaluator", ["weights", "state", "metrics_fn"])
@@ -201,7 +203,9 @@ class Loop:
         use_memory_efficient_trainer=False,
         adasum=False,
         callbacks=None,
-        training_config: Optional[TrainingConfig] = None,
+        checkpoint_store=None,
+        metrics_sink=None,
+        registry=None,
     ):
         """Configures a training ``Loop``, including a random initialization.
 
@@ -264,20 +268,29 @@ class Loop:
           use_memory_efficient_trainer: whether to use a special memory-efficient
             trainers; if set to 2, the memory efficiency if very aggressive
           adasum: if True, use adaptive summation for multi-device gradients
-          callbacks: Sequence of callback configuration objects registered via
-            :mod:`trax.learning.supervised.callbacks`.
-          training_config: Optional :class:`TrainingConfig` instance. If not
-            provided, a default config is constructed from the provided
-            arguments.
+          callbacks: List of subclasses of StepCallback to call on training
+            steps.
+          checkpoint_store: Optional :py:class:`CheckpointStore` or registered
+            name to control checkpoint persistence.
+          metrics_sink: Optional :py:class:`MetricsSink` or registered name for
+            metric emission.
+          registry: Optional registry module exposing registries for checkpoint
+            stores and metric sinks.
         """
         (
             self._is_chief,
             self._n_hosts,
             self._n_devices,
-            self._rng,
+            initial_rng,
         ) = init_host_and_devices(n_devices, random_seed)
         if use_memory_efficient_trainer:
-            self._rng = tl.on_cpu(self._rng)
+            initial_rng = tl.on_cpu(initial_rng)
+        self._device_manager = orchestration.DeviceManager(
+            is_chief=self._is_chief, n_hosts=self._n_hosts, n_devices=self._n_devices
+        )
+        self._seed_manager = orchestration.SeedManager(
+            initial_rng, use_memory_efficient_trainer
+        )
 
         # Handle single task case without lists too.
         if not isinstance(tasks, (list, tuple)):
@@ -292,9 +305,22 @@ class Loop:
             if not isinstance(eval_tasks, (list, tuple)):
                 eval_tasks = [eval_tasks]
 
+        expanded_output_dir = os.path.expanduser(output_dir) if output_dir else None
+        self._registry = registry or artifacts
+        self._checkpoint_store = self._init_checkpoint_store(
+            checkpoint_store, expanded_output_dir
+        )
+        self._metrics_sink = self._init_metrics_sink(metrics_sink, expanded_output_dir)
+
         self._tasks = tasks
         self._model = model
         self._eval_model = eval_model or model
+
+        initializer = orchestration.ModelInitializer(
+            shapes.signature(tasks[0].sample_batch),
+            use_memory_efficient_trainer,
+            is_uninitialized=_is_uninitialized,
+        )
 
         self._use_memory_efficient_trainer = use_memory_efficient_trainer
         self._loss_chunk_size = loss_chunk_size
@@ -308,12 +334,40 @@ class Loop:
         permanent_default_at = _at_step_1_and_every_nth_step(
             tasks[0].n_steps_per_permanent_checkpoint
         )
-        if output_dir is not None:
-            self._output_dir = os.path.expanduser(output_dir)
-            tf.io.gfile.makedirs(self._output_dir)
+        if expanded_output_dir is not None:
+            self._output_dir = expanded_output_dir
+            self._checkpoint_store.makedirs(self._output_dir)
             inputs.load_data_counters(self._output_dir)
         else:
             self._output_dir = None
+
+    def _init_checkpoint_store(self, checkpoint_store, base_dir):
+        if isinstance(checkpoint_store, artifacts.CheckpointStore):
+            return checkpoint_store
+        if isinstance(checkpoint_store, str):
+            return self._registry.CHECKPOINT_STORE_REGISTRY.get(
+                checkpoint_store, base_dir=base_dir
+            )
+        if checkpoint_store is None:
+            return self._registry.CHECKPOINT_STORE_REGISTRY.get(
+                "local", base_dir=base_dir
+            )
+        return checkpoint_store
+
+    def _init_metrics_sink(self, metrics_sink, base_dir):
+        if isinstance(metrics_sink, artifacts.MetricsSink):
+            return metrics_sink
+        if isinstance(metrics_sink, str):
+            return self._registry.METRICS_SINK_REGISTRY.get(
+                metrics_sink, base_dir=base_dir
+            )
+        if metrics_sink is None:
+            if base_dir is None:
+                return artifacts.NullMetricsSink(base_dir=base_dir)
+            return self._registry.METRICS_SINK_REGISTRY.get(
+                "jaxboard", base_dir=base_dir
+            )
+        return metrics_sink
 
         # Prepare training components.
         self._step = 0
@@ -322,6 +376,10 @@ class Loop:
         self._checkpoint_low_metric = checkpoint_low_metric
         self._checkpoint_high_metric = checkpoint_high_metric
         self._permanent_checkpoint_at = permanent_checkpoint_at or permanent_default_at
+        self._checkpoint_manager = orchestration.CheckpointManager(self._checkpoint_at)
+        self._permanent_checkpoint_manager = orchestration.CheckpointManager(
+            self._permanent_checkpoint_at
+        )
         if which_task is None:
             # If which task is not passed, then we permute tasks one by one.
             # If len(tasks) = 1, then which_task is a constant function equal to 0.
@@ -329,17 +387,17 @@ class Loop:
         self._which_task = which_task
 
         # Initialize using the given random seed.
-        # NOTE: If random_seed is None then self._rng will be different on
+        # NOTE: If random_seed is None then the rng will be different on
         # different hosts, leading to different weights on the different hosts.
         self._batch_signature = shapes.signature(tasks[0].sample_batch)
         self._model.rng = self.new_rng()
-        # In the memory-efficient case, we initialize in init_trainer.
         if not use_memory_efficient_trainer:
-            if _is_uninitialized(self._model):
-                self._model.init(self._batch_signature)
             self._eval_model.rng = self.new_rng()
-            if _is_uninitialized(self._eval_model):
-                self._eval_model.init(self._batch_signature)
+        initializer.initialize(
+            self._model,
+            self._eval_model,
+            sync_fn=None if use_memory_efficient_trainer else None,
+        )
 
         # To handle the above case (i.e. random_seed = None), we psum the weights
         # and state and average them.
@@ -403,9 +461,8 @@ class Loop:
             for name in eval_task.metric_names
         ]
         self._rjust_len = max(map(len, loss_names + metric_names))
-        self._evaluator_per_task = tuple(
-            self._init_evaluator(eval_task) for eval_task in self._eval_tasks
-        )
+        evaluator_factory = orchestration.EvaluatorFactory(self._init_evaluator)
+        self._evaluator_per_task = evaluator_factory.create(self._eval_tasks)
 
         if self._output_dir is None:
             _log("Will not write evaluation metrics, because output_dir is None.")
@@ -419,7 +476,7 @@ class Loop:
                         self._output_dir,
                         task_list[task_index].export_prefix or str(task_index),
                     )
-                tf.io.gfile.makedirs(output_dir)
+                self._checkpoint_store.makedirs(output_dir)
                 return output_dir
             else:
                 return None
@@ -431,25 +488,15 @@ class Loop:
             task_output_dir(i, tasks) for i in range(len(tasks))
         ]
 
-        self._callbacks = callbacks_lib.callback_registry.create_all(
-            callbacks or [], self
+        callbacks = callbacks or []
+        self._callback_pipeline = orchestration.CallbackPipeline(
+            [callback_class(self) for callback_class in callbacks]
         )
-        self._training_config = training_config or TrainingConfig(
-            output_dir=self._output_dir,
-            checkpoint_at=self._checkpoint_at,
-            checkpoint_low_metric=self._checkpoint_low_metric,
-            checkpoint_high_metric=self._checkpoint_high_metric,
-            permanent_checkpoint_at=self._permanent_checkpoint_at,
-            eval_at=self._eval_at,
-            which_task=self._which_task,
-            n_devices=self._n_devices,
-            random_seed=random_seed,
-            loss_chunk_size=self._loss_chunk_size,
-            use_memory_efficient_trainer=self._use_memory_efficient_trainer,
-            adasum=self._adasum,
-            callbacks=callbacks,
+        self._orchestrator = orchestration.TrainingOrchestrator(
+            device_manager=self._device_manager,
+            seed_manager=self._seed_manager,
+            callback_pipeline=self._callback_pipeline,
         )
-        self._training_config_logged = False
 
     def _init_trainer(self, task):
         """Initializes the per-task trainers."""
@@ -612,9 +659,9 @@ class Loop:
                 # checkpoint in this case. Stays with the old way for now, and fixes it
                 # when the checkpoint format is changed to storing weights separately
                 # from a small file with history and other data.
-                if self._checkpoint_at(self.step):
+                if self._checkpoint_manager.should_save(self.step):
                     self.save_checkpoint("model")
-                if self._permanent_checkpoint_at(self.step):
+                if self._permanent_checkpoint_manager.should_save(self.step):
                     self.save_checkpoint(f"model_{self.step}")
                 (
                     loss_acc,
@@ -634,7 +681,7 @@ class Loop:
                 # For the current step, after all evals are run and recorded in the
                 # event history, check if we need to save special checkpoints because
                 # of a new low metric value or a new high metric value.
-                if self._checkpoint_at(self.step):
+                if self._checkpoint_manager.should_save(self.step):
                     if self._checkpoint_low_metric is not None and self._at_lowest():
                         self.save_checkpoint(f"lowest_{self._checkpoint_low_metric}")
                     if self._checkpoint_high_metric is not None and self._at_highest():
@@ -716,27 +763,17 @@ class Loop:
 
     def new_rng(self):
         """Returns a new single-use random number generator (JAX PRNG key)."""
-        self._rng, rng = fastmath.random.split(self._rng)
-        if self._use_memory_efficient_trainer:
-            self._rng = tl.on_cpu(self._rng)
-            rng = tl.on_cpu(rng)
-        return rng
+        return self._seed_manager.new_rng()
 
     def _for_n_devices(self, x):
         """Replicates/broadcasts ``x`` for n devices if ``self.n_devicess > 1``."""
-        return tl.for_n_devices(x, self.n_devices)
+        return self._device_manager.for_n_devices(x)
 
     def _unreplicate(self, x):
-        if self.n_devices == 1:
-            return x
-
-        unreplicate_fn = lambda x: x[0]
-        return fastmath.nested_map(unreplicate_fn, x)
+        return self._device_manager.unreplicate(x)
 
     def _reshape_by_device(self, x):
-        if self.n_devices == 1:
-            return x
-        return tl.reshape_by_device(x, self.n_devices)
+        return self._device_manager.reshape_by_device(x)
 
     def update_weights_and_state(self, weights=None, state=None):
         """Updates the weights and state of the trained model.
@@ -772,25 +809,16 @@ class Loop:
           of training and stats, the current optimizer statistics.
         """
         step = self.step
-        for callback in self._callbacks:
-            if callback.call_at(step):
-                callback.on_step_begin(step)
-
-        learning_rate = self._tasks[task_index].learning_rate(step)
-        batch = self._tasks[task_index].next_batch()
-        rng = self.new_rng()
         trainer = self._trainer_per_task[task_index]
-        if task_changed:
-            # Re-replicate weights and state to synchronize them between tasks.
-            self.update_weights_and_state(self._model.weights, self._model.state)
-
-        (loss, stats) = trainer.one_step(
-            batch, rng, step=step, learning_rate=learning_rate
+        loss, stats = self._orchestrator.run_step(
+            trainer,
+            self._tasks[task_index],
+            step,
+            task_changed,
+            sync_fn=lambda: self.update_weights_and_state(
+                self._model.weights, self._model.state
+            ),
         )
-
-        for callback in self._callbacks:
-            if callback.call_at(step):
-                callback.on_step_end(step)
 
         return (loss, stats)
 
@@ -846,11 +874,13 @@ class Loop:
             return
         config_path = os.path.join(self._output_dir, "config.gin")
         config_str = gin.operative_config_str()
-        with tf.io.gfile.GFile(config_path, "w") as f:
+        with self._checkpoint_store.open(config_path, "w") as f:
             f.write(config_str)
         if summary_writer is not None:
-            summary_writer.text(
-                "gin_config", jaxboard.markdownify_operative_config_str(config_str)
+            summary_writer.log_text(
+                "gin_config",
+                jaxboard.markdownify_operative_config_str(config_str),
+                self.step,
             )
 
     def _log_training_config(self, summary_writer):
@@ -886,7 +916,7 @@ class Loop:
         """Runs and records evals for this training session.
 
         Args:
-          summary_writers: List of per-task Jaxboard summary writers to log metrics.
+          summary_writers: List of per-task metrics sinks to log metrics.
         """
         if summary_writers is None:
             summary_writers = (None,) * len(self._eval_tasks)
@@ -953,7 +983,7 @@ class Loop:
 
         Args:
           values: Dict from metric name to metric value.
-          summary_writer: Jaxboard summary writer.
+          summary_writer: Metrics sink implementation.
           value_prefix: String appended in front of summary_writer entries.
           log_prefix: String appended in front of logs.
           stdout: Boolean saying if logs should be logged to stdout as well.
@@ -970,10 +1000,10 @@ class Loop:
                     stdout=stdout,
                 )
                 if should_write_summaries:
-                    summary_writer.scalar(full_name, value, self.step)
+                    summary_writer.log_scalar(full_name, value, self.step)
             else:
                 if should_write_summaries:
-                    summary_writer.image(full_name, value, self.step)
+                    summary_writer.log_image(full_name, value, self.step)
             if history:
                 history.append(log_prefix, full_name, self.step, value)
         if should_write_summaries:
@@ -1004,7 +1034,9 @@ class Loop:
             _log("Did not save checkpoint as we are not chief.")
             return
 
-        dir_and_basename = os.path.join(self._output_dir, basename)
+        dir_and_basename = self._checkpoint_store.resolve(
+            os.path.join(self._output_dir, basename)
+        )
         pkl_file = dir_and_basename + ".pkl.gz"
 
         _log("Saving checkpoint to %s" % pkl_file, stdout=False)
@@ -1044,7 +1076,7 @@ class Loop:
             "input_signature": input_signature,
             "version_timestamp": "Mar-10-2021",  # To update in the future if needed.
         }
-        pickle_to_file(d, pkl_file, gzip=True)
+        pickle_to_store(self._checkpoint_store, d, pkl_file, gzip=True)
         _log("Checkpoint saved in %s" % pkl_file, stdout=False)
 
     def _to_bits(self, weights):
@@ -1089,16 +1121,16 @@ class Loop:
             _log("Not loading as both directory and output_dir are None.", stdout=False)
             return
         filename = filename or "model"
-        path = os.path.join(directory, filename)
+        path = self._checkpoint_store.resolve(os.path.join(directory, filename))
         pkl_path = path + ".pkl.gz"
-        if not tf.io.gfile.exists(pkl_path):
+        if not self._checkpoint_store.exists(pkl_path):
             _log(
                 f"Not loading as checkpoint file does not exist: {pkl_path}",
                 stdout=False,
             )
             return
         _log("Loading checkpoint from %s" % pkl_path, stdout=False)
-        d = unpickle_from_file(pkl_path, gzip=True)
+        d = unpickle_from_store(self._checkpoint_store, pkl_path, gzip=True)
         # Weights are stored in a separate non-pickled file in the new checkpoint
         # format. We support loading old checkpoints with this hack.
         # TODO(lukaszkaiser): remove the hack when not needed any more.
@@ -1188,23 +1220,31 @@ class Loop:
 
     @contextlib.contextmanager
     def _open_summary_writers(self):
-        """Opens the Jaxboard summary writers wrapped by context manager.
+        """Opens the metrics sinks wrapped by context manager.
 
         Yields:
           A pair (train_summary_writers, eval_summary_writers) of lists of
-          Jaxboard summary writers wrapped in a GeneratorContextManager object.
-          Elements of the lists correspond to the training and evaluation task
-          directories created during initialization. If there was no output_dir
-          provided, yields lists of Nones with the appropriate length.
+          metrics sinks wrapped in a GeneratorContextManager object. Elements of
+          the lists correspond to the training and evaluation task directories
+          created during initialization. If there was no output_dir provided,
+          yields lists of Nones with the appropriate length.
         """
         if self._output_dir is not None:
             _log(f"Metrics will be written in {self._output_dir}.", stdout=False)
             train_writers = [
-                jaxboard.SummaryWriter(os.path.join(output_dir, "train"))
+                self._metrics_sink.with_subpath(
+                    os.path.relpath(os.path.join(output_dir, "train"), self._metrics_sink.base_dir)
+                    if self._metrics_sink.base_dir
+                    else os.path.join(output_dir, "train")
+                )
                 for output_dir in self._output_dir_per_train_task
             ]
             eval_writers = [
-                jaxboard.SummaryWriter(os.path.join(output_dir, "eval"))
+                self._metrics_sink.with_subpath(
+                    os.path.relpath(os.path.join(output_dir, "eval"), self._metrics_sink.base_dir)
+                    if self._metrics_sink.base_dir
+                    else os.path.join(output_dir, "eval")
+                )
                 for output_dir in self._output_dir_per_eval_task
             ]
             try:
@@ -1460,23 +1500,21 @@ def _log(s, stdout=True):
         sys.stdout.flush()
 
 
-def pickle_to_file(obj, file_path, gzip=False):
-    """Pickle obj to file_path with gzipping and failure protection."""
-    # Pickle to tmp file and overwrite to prevent writing partial files.
+def pickle_to_store(store, obj, file_path, gzip=False):
+    """Pickle obj using the provided checkpoint store."""
     tmp_file_path = file_path + "._tmp_"
-    with tf.io.gfile.GFile(tmp_file_path, "wb") as f:
+    with store.open(tmp_file_path, "wb") as f:
         if not gzip:
             pickle.dump(obj, f, protocol=pickle.HIGHEST_PROTOCOL)
         else:
             with gzip_lib.GzipFile(fileobj=f, compresslevel=2) as gzipf:
                 pickle.dump(obj, gzipf, protocol=pickle.HIGHEST_PROTOCOL)
-    # Moving a file is much less error-prone than pickling large files.
-    tf.io.gfile.rename(tmp_file_path, file_path, overwrite=True)
+    store.rename(tmp_file_path, file_path)
 
 
-def unpickle_from_file(file_path, gzip=False):
-    """Unpickle obj from file_path with gzipping."""
-    with tf.io.gfile.GFile(file_path, "rb") as f:
+def unpickle_from_store(store, file_path, gzip=False):
+    """Unpickle obj using the provided checkpoint store."""
+    with store.open(file_path, "rb") as f:
         if not gzip:
             obj = pickle.load(f)
         else:
