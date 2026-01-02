@@ -62,6 +62,7 @@ from trax.learning.supervised import history as trax_history
 from trax.learning.supervised import orchestration
 from trax.optimizers import base as optim_base
 from trax.trainers import base as trainer
+from trax.utils import artifacts
 from trax.utils import jaxboard, shapes
 
 _Evaluator = collections.namedtuple("_Evaluator", ["weights", "state", "metrics_fn"])
@@ -129,6 +130,9 @@ class Loop:
         use_memory_efficient_trainer=False,
         adasum=False,
         callbacks=None,
+        checkpoint_store=None,
+        metrics_sink=None,
+        registry=None,
     ):
         """Configures a training ``Loop``, including a random initialization.
 
@@ -193,6 +197,12 @@ class Loop:
           adasum: if True, use adaptive summation for multi-device gradients
           callbacks: List of subclasses of StepCallback to call on training
             steps.
+          checkpoint_store: Optional :py:class:`CheckpointStore` or registered
+            name to control checkpoint persistence.
+          metrics_sink: Optional :py:class:`MetricsSink` or registered name for
+            metric emission.
+          registry: Optional registry module exposing registries for checkpoint
+            stores and metric sinks.
         """
         (
             self._is_chief,
@@ -222,6 +232,13 @@ class Loop:
             if not isinstance(eval_tasks, (list, tuple)):
                 eval_tasks = [eval_tasks]
 
+        expanded_output_dir = os.path.expanduser(output_dir) if output_dir else None
+        self._registry = registry or artifacts
+        self._checkpoint_store = self._init_checkpoint_store(
+            checkpoint_store, expanded_output_dir
+        )
+        self._metrics_sink = self._init_metrics_sink(metrics_sink, expanded_output_dir)
+
         self._tasks = tasks
         self._model = model
         self._eval_model = eval_model or model
@@ -244,12 +261,40 @@ class Loop:
         permanent_default_at = _at_step_1_and_every_nth_step(
             tasks[0].n_steps_per_permanent_checkpoint
         )
-        if output_dir is not None:
-            self._output_dir = os.path.expanduser(output_dir)
-            tf.io.gfile.makedirs(self._output_dir)
+        if expanded_output_dir is not None:
+            self._output_dir = expanded_output_dir
+            self._checkpoint_store.makedirs(self._output_dir)
             inputs.load_data_counters(self._output_dir)
         else:
             self._output_dir = None
+
+    def _init_checkpoint_store(self, checkpoint_store, base_dir):
+        if isinstance(checkpoint_store, artifacts.CheckpointStore):
+            return checkpoint_store
+        if isinstance(checkpoint_store, str):
+            return self._registry.CHECKPOINT_STORE_REGISTRY.get(
+                checkpoint_store, base_dir=base_dir
+            )
+        if checkpoint_store is None:
+            return self._registry.CHECKPOINT_STORE_REGISTRY.get(
+                "local", base_dir=base_dir
+            )
+        return checkpoint_store
+
+    def _init_metrics_sink(self, metrics_sink, base_dir):
+        if isinstance(metrics_sink, artifacts.MetricsSink):
+            return metrics_sink
+        if isinstance(metrics_sink, str):
+            return self._registry.METRICS_SINK_REGISTRY.get(
+                metrics_sink, base_dir=base_dir
+            )
+        if metrics_sink is None:
+            if base_dir is None:
+                return artifacts.NullMetricsSink(base_dir=base_dir)
+            return self._registry.METRICS_SINK_REGISTRY.get(
+                "jaxboard", base_dir=base_dir
+            )
+        return metrics_sink
 
         # Prepare training components.
         self._step = 0
@@ -358,7 +403,7 @@ class Loop:
                         self._output_dir,
                         task_list[task_index].export_prefix or str(task_index),
                     )
-                tf.io.gfile.makedirs(output_dir)
+                self._checkpoint_store.makedirs(output_dir)
                 return output_dir
             else:
                 return None
@@ -748,11 +793,13 @@ class Loop:
             return
         config_path = os.path.join(self._output_dir, "config.gin")
         config_str = gin.operative_config_str()
-        with tf.io.gfile.GFile(config_path, "w") as f:
+        with self._checkpoint_store.open(config_path, "w") as f:
             f.write(config_str)
         if summary_writer is not None:
-            summary_writer.text(
-                "gin_config", jaxboard.markdownify_operative_config_str(config_str)
+            summary_writer.log_text(
+                "gin_config",
+                jaxboard.markdownify_operative_config_str(config_str),
+                self.step,
             )
 
     def _log_n_weights(self):
@@ -775,7 +822,7 @@ class Loop:
         """Runs and records evals for this training session.
 
         Args:
-          summary_writers: List of per-task Jaxboard summary writers to log metrics.
+          summary_writers: List of per-task metrics sinks to log metrics.
         """
         if summary_writers is None:
             summary_writers = (None,) * len(self._eval_tasks)
@@ -842,7 +889,7 @@ class Loop:
 
         Args:
           values: Dict from metric name to metric value.
-          summary_writer: Jaxboard summary writer.
+          summary_writer: Metrics sink implementation.
           value_prefix: String appended in front of summary_writer entries.
           log_prefix: String appended in front of logs.
           stdout: Boolean saying if logs should be logged to stdout as well.
@@ -859,10 +906,10 @@ class Loop:
                     stdout=stdout,
                 )
                 if should_write_summaries:
-                    summary_writer.scalar(full_name, value, self.step)
+                    summary_writer.log_scalar(full_name, value, self.step)
             else:
                 if should_write_summaries:
-                    summary_writer.image(full_name, value, self.step)
+                    summary_writer.log_image(full_name, value, self.step)
             if history:
                 history.append(log_prefix, full_name, self.step, value)
         if should_write_summaries:
@@ -893,7 +940,9 @@ class Loop:
             _log("Did not save checkpoint as we are not chief.")
             return
 
-        dir_and_basename = os.path.join(self._output_dir, basename)
+        dir_and_basename = self._checkpoint_store.resolve(
+            os.path.join(self._output_dir, basename)
+        )
         pkl_file = dir_and_basename + ".pkl.gz"
 
         _log("Saving checkpoint to %s" % pkl_file, stdout=False)
@@ -933,7 +982,7 @@ class Loop:
             "input_signature": input_signature,
             "version_timestamp": "Mar-10-2021",  # To update in the future if needed.
         }
-        pickle_to_file(d, pkl_file, gzip=True)
+        pickle_to_store(self._checkpoint_store, d, pkl_file, gzip=True)
         _log("Checkpoint saved in %s" % pkl_file, stdout=False)
 
     def _to_bits(self, weights):
@@ -978,16 +1027,16 @@ class Loop:
             _log("Not loading as both directory and output_dir are None.", stdout=False)
             return
         filename = filename or "model"
-        path = os.path.join(directory, filename)
+        path = self._checkpoint_store.resolve(os.path.join(directory, filename))
         pkl_path = path + ".pkl.gz"
-        if not tf.io.gfile.exists(pkl_path):
+        if not self._checkpoint_store.exists(pkl_path):
             _log(
                 f"Not loading as checkpoint file does not exist: {pkl_path}",
                 stdout=False,
             )
             return
         _log("Loading checkpoint from %s" % pkl_path, stdout=False)
-        d = unpickle_from_file(pkl_path, gzip=True)
+        d = unpickle_from_store(self._checkpoint_store, pkl_path, gzip=True)
         # Weights are stored in a separate non-pickled file in the new checkpoint
         # format. We support loading old checkpoints with this hack.
         # TODO(lukaszkaiser): remove the hack when not needed any more.
@@ -1077,23 +1126,31 @@ class Loop:
 
     @contextlib.contextmanager
     def _open_summary_writers(self):
-        """Opens the Jaxboard summary writers wrapped by context manager.
+        """Opens the metrics sinks wrapped by context manager.
 
         Yields:
           A pair (train_summary_writers, eval_summary_writers) of lists of
-          Jaxboard summary writers wrapped in a GeneratorContextManager object.
-          Elements of the lists correspond to the training and evaluation task
-          directories created during initialization. If there was no output_dir
-          provided, yields lists of Nones with the appropriate length.
+          metrics sinks wrapped in a GeneratorContextManager object. Elements of
+          the lists correspond to the training and evaluation task directories
+          created during initialization. If there was no output_dir provided,
+          yields lists of Nones with the appropriate length.
         """
         if self._output_dir is not None:
             _log(f"Metrics will be written in {self._output_dir}.", stdout=False)
             train_writers = [
-                jaxboard.SummaryWriter(os.path.join(output_dir, "train"))
+                self._metrics_sink.with_subpath(
+                    os.path.relpath(os.path.join(output_dir, "train"), self._metrics_sink.base_dir)
+                    if self._metrics_sink.base_dir
+                    else os.path.join(output_dir, "train")
+                )
                 for output_dir in self._output_dir_per_train_task
             ]
             eval_writers = [
-                jaxboard.SummaryWriter(os.path.join(output_dir, "eval"))
+                self._metrics_sink.with_subpath(
+                    os.path.relpath(os.path.join(output_dir, "eval"), self._metrics_sink.base_dir)
+                    if self._metrics_sink.base_dir
+                    else os.path.join(output_dir, "eval")
+                )
                 for output_dir in self._output_dir_per_eval_task
             ]
             try:
@@ -1349,23 +1406,21 @@ def _log(s, stdout=True):
         sys.stdout.flush()
 
 
-def pickle_to_file(obj, file_path, gzip=False):
-    """Pickle obj to file_path with gzipping and failure protection."""
-    # Pickle to tmp file and overwrite to prevent writing partial files.
+def pickle_to_store(store, obj, file_path, gzip=False):
+    """Pickle obj using the provided checkpoint store."""
     tmp_file_path = file_path + "._tmp_"
-    with tf.io.gfile.GFile(tmp_file_path, "wb") as f:
+    with store.open(tmp_file_path, "wb") as f:
         if not gzip:
             pickle.dump(obj, f, protocol=pickle.HIGHEST_PROTOCOL)
         else:
             with gzip_lib.GzipFile(fileobj=f, compresslevel=2) as gzipf:
                 pickle.dump(obj, gzipf, protocol=pickle.HIGHEST_PROTOCOL)
-    # Moving a file is much less error-prone than pickling large files.
-    tf.io.gfile.rename(tmp_file_path, file_path, overwrite=True)
+    store.rename(tmp_file_path, file_path)
 
 
-def unpickle_from_file(file_path, gzip=False):
-    """Unpickle obj from file_path with gzipping."""
-    with tf.io.gfile.GFile(file_path, "rb") as f:
+def unpickle_from_store(store, file_path, gzip=False):
+    """Unpickle obj using the provided checkpoint store."""
+    with store.open(file_path, "rb") as f:
         if not gzip:
             obj = pickle.load(f)
         else:
