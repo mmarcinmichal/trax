@@ -59,6 +59,7 @@ from trax.fastmath import numpy as jnp
 from trax.fastmath import random as jax_random
 from trax.layers import base
 from trax.learning.supervised import history as trax_history
+from trax.learning.supervised import orchestration
 from trax.optimizers import base as optim_base
 from trax.trainers import base as trainer
 from trax.utils import jaxboard, shapes
@@ -197,10 +198,16 @@ class Loop:
             self._is_chief,
             self._n_hosts,
             self._n_devices,
-            self._rng,
+            initial_rng,
         ) = init_host_and_devices(n_devices, random_seed)
         if use_memory_efficient_trainer:
-            self._rng = tl.on_cpu(self._rng)
+            initial_rng = tl.on_cpu(initial_rng)
+        self._device_manager = orchestration.DeviceManager(
+            is_chief=self._is_chief, n_hosts=self._n_hosts, n_devices=self._n_devices
+        )
+        self._seed_manager = orchestration.SeedManager(
+            initial_rng, use_memory_efficient_trainer
+        )
 
         # Handle single task case without lists too.
         if not isinstance(tasks, (list, tuple)):
@@ -218,6 +225,12 @@ class Loop:
         self._tasks = tasks
         self._model = model
         self._eval_model = eval_model or model
+
+        initializer = orchestration.ModelInitializer(
+            shapes.signature(tasks[0].sample_batch),
+            use_memory_efficient_trainer,
+            is_uninitialized=_is_uninitialized,
+        )
 
         self._use_memory_efficient_trainer = use_memory_efficient_trainer
         self._loss_chunk_size = loss_chunk_size
@@ -245,6 +258,10 @@ class Loop:
         self._checkpoint_low_metric = checkpoint_low_metric
         self._checkpoint_high_metric = checkpoint_high_metric
         self._permanent_checkpoint_at = permanent_checkpoint_at or permanent_default_at
+        self._checkpoint_manager = orchestration.CheckpointManager(self._checkpoint_at)
+        self._permanent_checkpoint_manager = orchestration.CheckpointManager(
+            self._permanent_checkpoint_at
+        )
         if which_task is None:
             # If which task is not passed, then we permute tasks one by one.
             # If len(tasks) = 1, then which_task is a constant function equal to 0.
@@ -252,17 +269,17 @@ class Loop:
         self._which_task = which_task
 
         # Initialize using the given random seed.
-        # NOTE: If random_seed is None then self._rng will be different on
+        # NOTE: If random_seed is None then the rng will be different on
         # different hosts, leading to different weights on the different hosts.
         self._batch_signature = shapes.signature(tasks[0].sample_batch)
         self._model.rng = self.new_rng()
-        # In the memory-efficient case, we initialize in init_trainer.
         if not use_memory_efficient_trainer:
-            if _is_uninitialized(self._model):
-                self._model.init(self._batch_signature)
             self._eval_model.rng = self.new_rng()
-            if _is_uninitialized(self._eval_model):
-                self._eval_model.init(self._batch_signature)
+        initializer.initialize(
+            self._model,
+            self._eval_model,
+            sync_fn=None if use_memory_efficient_trainer else None,
+        )
 
         # To handle the above case (i.e. random_seed = None), we psum the weights
         # and state and average them.
@@ -326,9 +343,8 @@ class Loop:
             for name in eval_task.metric_names
         ]
         self._rjust_len = max(map(len, loss_names + metric_names))
-        self._evaluator_per_task = tuple(
-            self._init_evaluator(eval_task) for eval_task in self._eval_tasks
-        )
+        evaluator_factory = orchestration.EvaluatorFactory(self._init_evaluator)
+        self._evaluator_per_task = evaluator_factory.create(self._eval_tasks)
 
         if self._output_dir is None:
             _log("Will not write evaluation metrics, because output_dir is None.")
@@ -355,7 +371,14 @@ class Loop:
         ]
 
         callbacks = callbacks or []
-        self._callbacks = [callback_class(self) for callback_class in callbacks]
+        self._callback_pipeline = orchestration.CallbackPipeline(
+            [callback_class(self) for callback_class in callbacks]
+        )
+        self._orchestrator = orchestration.TrainingOrchestrator(
+            device_manager=self._device_manager,
+            seed_manager=self._seed_manager,
+            callback_pipeline=self._callback_pipeline,
+        )
 
     def _init_trainer(self, task):
         """Initializes the per-task trainers."""
@@ -512,9 +535,9 @@ class Loop:
                 # checkpoint in this case. Stays with the old way for now, and fixes it
                 # when the checkpoint format is changed to storing weights separately
                 # from a small file with history and other data.
-                if self._checkpoint_at(self.step):
+                if self._checkpoint_manager.should_save(self.step):
                     self.save_checkpoint("model")
-                if self._permanent_checkpoint_at(self.step):
+                if self._permanent_checkpoint_manager.should_save(self.step):
                     self.save_checkpoint(f"model_{self.step}")
                 if self._eval_at(self.step):
                     logging.info(
@@ -538,7 +561,7 @@ class Loop:
                 # For the current step, after all evals are run and recorded in the
                 # event history, check if we need to save special checkpoints because
                 # of a new low metric value or a new high metric value.
-                if self._checkpoint_at(self.step):
+                if self._checkpoint_manager.should_save(self.step):
                     if self._checkpoint_low_metric is not None and self._at_lowest():
                         self.save_checkpoint(f"lowest_{self._checkpoint_low_metric}")
                     if self._checkpoint_high_metric is not None and self._at_highest():
@@ -615,27 +638,17 @@ class Loop:
 
     def new_rng(self):
         """Returns a new single-use random number generator (JAX PRNG key)."""
-        self._rng, rng = fastmath.random.split(self._rng)
-        if self._use_memory_efficient_trainer:
-            self._rng = tl.on_cpu(self._rng)
-            rng = tl.on_cpu(rng)
-        return rng
+        return self._seed_manager.new_rng()
 
     def _for_n_devices(self, x):
         """Replicates/broadcasts ``x`` for n devices if ``self.n_devicess > 1``."""
-        return tl.for_n_devices(x, self.n_devices)
+        return self._device_manager.for_n_devices(x)
 
     def _unreplicate(self, x):
-        if self.n_devices == 1:
-            return x
-
-        unreplicate_fn = lambda x: x[0]
-        return fastmath.nested_map(unreplicate_fn, x)
+        return self._device_manager.unreplicate(x)
 
     def _reshape_by_device(self, x):
-        if self.n_devices == 1:
-            return x
-        return tl.reshape_by_device(x, self.n_devices)
+        return self._device_manager.reshape_by_device(x)
 
     def update_weights_and_state(self, weights=None, state=None):
         """Updates the weights and state of the trained model.
@@ -671,25 +684,16 @@ class Loop:
           of training and stats, the current optimizer statistics.
         """
         step = self.step
-        for callback in self._callbacks:
-            if callback.call_at(step):
-                callback.on_step_begin(step)
-
-        learning_rate = self._tasks[task_index].learning_rate(step)
-        batch = self._tasks[task_index].next_batch()
-        rng = self.new_rng()
         trainer = self._trainer_per_task[task_index]
-        if task_changed:
-            # Re-replicate weights and state to synchronize them between tasks.
-            self.update_weights_and_state(self._model.weights, self._model.state)
-
-        (loss, stats) = trainer.one_step(
-            batch, rng, step=step, learning_rate=learning_rate
+        loss, stats = self._orchestrator.run_step(
+            trainer,
+            self._tasks[task_index],
+            step,
+            task_changed,
+            sync_fn=lambda: self.update_weights_and_state(
+                self._model.weights, self._model.state
+            ),
         )
-
-        for callback in self._callbacks:
-            if callback.call_at(step):
-                callback.on_step_end(step)
 
         return (loss, stats)
 
