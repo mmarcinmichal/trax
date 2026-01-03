@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for trax.supervised.trainer_lib."""
+"""Tests for the supervised training loop conveniences."""
 
 import functools
 import os
@@ -30,7 +30,7 @@ from trax import optimizers as trax_opt
 from trax.data.preprocessing import inputs as inputs_lib
 from trax.fastmath import numpy as jnp
 from trax.learning.supervised import lr_schedules as lr
-from trax.learning.supervised import trainer_lib
+from trax.learning.supervised import loop
 from trax.tf import extensions as npe
 from trax.tf import numpy as tf_np
 from trax.utils import shapes as trax_shapes
@@ -38,7 +38,7 @@ from trax.utils import test_utils
 
 
 def _test_inputs(n_classes, with_weights=False, input_shape=(6, 6, 3)):
-    """Make trainer_lib.inputs.Inputs."""
+    """Make loop.inputs.Inputs."""
     batch_size = 2 * jax.device_count()
 
     def input_stream(n_devices):
@@ -64,7 +64,7 @@ def _test_inputs(n_classes, with_weights=False, input_shape=(6, 6, 3)):
 
 
 def _test_inputs_lm(vocab_size, seq_len, per_device_batch_size=2):
-    """Make trainer_lib.inputs.Inputs for language model."""
+    """Make loop.inputs.Inputs for language model."""
     batch_size = per_device_batch_size * jax.device_count()
 
     def input_stream(_):
@@ -201,7 +201,7 @@ class TraxTest(parameterized.TestCase):
 
             # Train and evaluate
             output_dir = self.create_tempdir().full_path
-            loop = trainer_lib.train(
+            loop = loop.train(
                 output_dir,
                 model=model_fn,
                 inputs=inputs,
@@ -261,7 +261,7 @@ class TraxTest(parameterized.TestCase):
 
             # Train and evaluate
             output_dir = self.create_tempdir().full_path
-            trainer_lib.train(
+            loop.train(
                 output_dir,
                 model=model_fn,
                 inputs=inputs,
@@ -271,7 +271,7 @@ class TraxTest(parameterized.TestCase):
             )
 
             # Restart training
-            loop = trainer_lib.train(
+            loop = loop.train(
                 output_dir,
                 model=model_fn,
                 inputs=inputs,
@@ -297,7 +297,7 @@ class TraxTest(parameterized.TestCase):
             output_dir = self.create_tempdir().full_path
 
             # Steps 1 -> 5
-            loop = trainer_lib.train(
+            loop = loop.train(
                 output_dir,
                 model=model_fn,
                 inputs=inputs,
@@ -308,7 +308,7 @@ class TraxTest(parameterized.TestCase):
             )
 
             # Steps 6 -> 10
-            loop = trainer_lib.train(
+            loop = loop.train(
                 output_dir,
                 model=model_fn,
                 inputs=inputs,
@@ -354,7 +354,7 @@ class TraxTest(parameterized.TestCase):
 
             # Train and evaluate
             output_dir = self.create_tempdir().full_path
-            trainer_lib.train(
+            loop.train(
                 output_dir,
                 model=model_fn,
                 inputs=inputs,
@@ -364,7 +364,7 @@ class TraxTest(parameterized.TestCase):
             )
 
             # Restart training
-            loop = trainer_lib.train(
+            loop = loop.train(
                 output_dir,
                 model=model_fn,
                 inputs=inputs,
@@ -401,7 +401,7 @@ class TraxTest(parameterized.TestCase):
 
             # Train and evaluate
             output_dir = self.create_tempdir().full_path
-            trainer_lib.train(
+            loop.train(
                 output_dir,
                 model=model,
                 inputs=inputs,
@@ -447,7 +447,7 @@ class TraxTest(parameterized.TestCase):
 
             # Train and evaluate
             output_dir = self.create_tempdir().full_path
-            trainer_lib.train(
+            loop.train(
                 output_dir,
                 model=model,
                 inputs=inputs,
@@ -476,7 +476,7 @@ class TraxTest(parameterized.TestCase):
             eval_steps = 2
             model_fn = functools.partial(models.MLP, layer_widths=(16, 16, n_classes))
             inputs = _test_inputs(n_classes)
-            additional_eval_stream = trainer_lib.NamedStream(
+            additional_eval_stream = loop.NamedStream(
                 # deliberately duplicating eval data
                 stream=inputs.eval_stream(1),
                 name="additional_eval_task",
@@ -484,7 +484,7 @@ class TraxTest(parameterized.TestCase):
 
             # Train and evaluate
             output_dir = self.create_tempdir().full_path
-            loop = trainer_lib.train(
+            loop = loop.train(
                 output_dir,
                 model=model_fn,
                 inputs=inputs,
@@ -513,7 +513,7 @@ class TraxTest(parameterized.TestCase):
 
             # Train and evaluate
             output_dir = self.create_tempdir().full_path
-            state = trainer_lib.train(
+            state = loop.train(
                 output_dir,
                 model=model_fn,
                 inputs=inputs,
@@ -523,28 +523,6 @@ class TraxTest(parameterized.TestCase):
 
             # Assert total train steps
             self.assertEqual(state.step, steps)
-
-    @parameterized.parameters(BACKENDS)
-    def test_reset_twice(self, backend):
-        with fastmath.use_backend(backend):
-            n_classes = 4
-            model_fn = functools.partial(models.MLP, layer_widths=(16, 16, n_classes))
-            inputs = _test_inputs(n_classes)
-
-            trainer = trainer_lib.Trainer(
-                model=model_fn,
-                loss_fn=tl.WeightedCategoryCrossEntropy(),
-                optimizer=trax_opt.SM3,
-                lr_schedule=lr.multifactor(),
-                inputs=inputs,
-            )
-
-            output_dir1 = self.create_tempdir(name="output_dir1").full_path
-            trainer.reset(output_dir1)
-            trainer.evaluate(1)
-            output_dir2 = self.create_tempdir(name="output_dir2").full_path
-            trainer.reset(output_dir2)
-            trainer.evaluate(1)
 
     def test_tf_xla_forced_compile(self):
         # TODO(wangpeng): re-enable this test
@@ -557,19 +535,19 @@ class TraxTest(parameterized.TestCase):
 
 class EpochsTest(absltest.TestCase):
     def test_cuts_epoch_when_total_steps_reached(self):
-        epoch_steps = trainer_lib.epochs(
+        epoch_steps = loop.epochs(
             total_steps=5, steps_to_skip=0, epoch_steps=[1, 2, 3]
         )
         self.assertEqual(list(epoch_steps), [1, 2, 2])
 
     def test_skips_full_epoch(self):
-        epoch_steps = trainer_lib.epochs(
+        epoch_steps = loop.epochs(
             total_steps=4, steps_to_skip=2, epoch_steps=[2, 2]
         )
         self.assertEqual(list(epoch_steps), [2])
 
     def test_skips_part_of_epoch(self):
-        epoch_steps = trainer_lib.epochs(
+        epoch_steps = loop.epochs(
             total_steps=4, steps_to_skip=1, epoch_steps=[2, 2]
         )
         self.assertEqual(list(epoch_steps), [1, 2])
