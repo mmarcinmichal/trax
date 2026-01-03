@@ -8,7 +8,9 @@ light-weight graph attention layer.
 
 from jax import nn
 
+from layers import LayerNorm
 from trax import layers as tl
+from trax.layers import initializers as init
 from trax.fastmath import numpy as jnp
 
 
@@ -107,15 +109,98 @@ def GraphAttentionConv(out_dim, num_heads=1, activation=tl.Relu):
     )
 
 
+def GraphAttentionConvGAT(
+    out_dim,
+    num_heads=1,
+    activation=tl.Relu,
+    leaky_relu_slope=0.2,
+    add_self_loops=True,
+):
+    """Graph attention layer closer to the original GAT formulation."""
+
+    def _prep(h, adj):
+        if add_self_loops:
+            eye = jnp.eye(adj.shape[-1])
+            eye = jnp.broadcast_to(eye, adj.shape)
+            adj = adj + eye
+        h = h.reshape((h.shape[0], h.shape[1], num_heads, out_dim))
+        return h, adj
+
+    def _attention(h, adj, a_src, a_dst):
+        attn_src = jnp.einsum("bnhd,hd->bnh", h, a_src)
+        attn_dst = jnp.einsum("bnhd,hd->bnh", h, a_dst)
+        logits = attn_src[:, :, :, None] + attn_dst[:, :, None, :]
+        logits = nn.leaky_relu(logits, negative_slope=leaky_relu_slope)
+        mask = (adj > 0).astype(jnp.float32)
+        logits = logits - 1e9 * (1.0 - mask[:, None, :, :])
+        attn = nn.softmax(logits, axis=-1)
+        out = jnp.einsum("bhnm,bmhd->bnhd", attn, h)
+        out = out.reshape((out.shape[0], out.shape[1], num_heads * out_dim))
+        return out
+
+    return tl.Serial(
+        tl.Branch(
+            tl.Serial(
+                tl.Parallel(
+                    tl.Dense(out_dim * num_heads),
+                    None,
+                ),
+                tl.Fn("ReshapeHeads", _prep, n_out=2),
+                tl.Weights(
+                    init.GlorotUniformInitializer(), shape=(num_heads, out_dim)
+                ),
+                tl.Weights(
+                    init.GlorotUniformInitializer(), shape=(num_heads, out_dim)
+                ),
+                tl.Fn("GATv1", _attention, n_out=1),
+                tl.Dense(out_dim),
+                activation(),
+            ),
+            tl.Select([1]),
+        )
+    )
+
+
 def GraphAttentionNet(hidden_sizes=(16, 2), activation=tl.Relu, num_heads=1):
     """Stack of :func:`GraphAttentionConv` layers for small graphs."""
     layers = []
     for size in hidden_sizes[:-1]:
+        layers.extend(
+            [GraphAttentionConv(size, num_heads=num_heads, activation=activation), LayerNorm(), tl.Dropout(0.2),]
+        )
+    layers.extend(
+        [GraphAttentionConv(hidden_sizes[-1], num_heads=num_heads, activation=tl.Serial), LayerNorm(), tl.Dropout(0.2),]
+    )
+    return tl.Serial(*layers)
+
+
+def GraphAttentionNetGAT(
+    hidden_sizes=(16, 2),
+    activation=tl.Relu,
+    num_heads=1,
+    leaky_relu_slope=0.2,
+    add_self_loops=True,
+):
+    """Stack of :func:`GraphAttentionConvGAT` layers for small graphs."""
+    layers = []
+    for size in hidden_sizes[:-1]:
         layers.append(
-            GraphAttentionConv(size, num_heads=num_heads, activation=activation)
+            GraphAttentionConvGAT(
+                size,
+                num_heads=num_heads,
+                activation=activation,
+                leaky_relu_slope=leaky_relu_slope,
+                add_self_loops=add_self_loops,
+            )
         )
     layers.append(
-        GraphAttentionConv(hidden_sizes[-1], num_heads=num_heads, activation=tl.Serial)
+        GraphAttentionConvGAT(
+            hidden_sizes[-1],
+            num_heads=num_heads,
+            activation=tl.Serial,
+            leaky_relu_slope=leaky_relu_slope,
+            add_self_loops=add_self_loops,
+        )
     )
     return tl.Serial(*layers)
 
