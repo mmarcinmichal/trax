@@ -65,6 +65,32 @@ class SeedManager:
         return rng
 
 
+@dataclasses.dataclass
+class HostAndDeviceInitializer:
+    """Initializes host/device info and constructs the device manager."""
+
+    init_fn: Callable
+
+    def initialize(self, n_devices=None, random_seed=None):
+        is_chief, n_hosts, n_devices, initial_rng = self.init_fn(
+            n_devices, random_seed
+        )
+        device_manager = DeviceManager(
+            is_chief=is_chief, n_hosts=n_hosts, n_devices=n_devices
+        )
+        return is_chief, n_hosts, device_manager, initial_rng
+
+
+@dataclasses.dataclass
+class SeedManagerFactory:
+    """Creates :class:`SeedManager` instances."""
+
+    use_memory_efficient_trainer: bool = False
+
+    def create(self, initial_rng):
+        return SeedManager(initial_rng, self.use_memory_efficient_trainer)
+
+
 class ModelInitializer:
     """Initializes models and optionally syncs their weights/state."""
 
@@ -123,6 +149,13 @@ class CallbackPipeline:
         for callback in self._callbacks:
             if callback.call_at(step):
                 callback.on_step_end(step)
+
+
+class CallbackAssembler:
+    """Builds :class:`CallbackPipeline` instances."""
+
+    def assemble(self, callbacks: Optional[List[Callback]] = None):
+        return CallbackPipeline(callbacks or [])
 
 
 @dataclasses.dataclass
