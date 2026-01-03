@@ -15,8 +15,9 @@
 
 """Original API for supervised learning/training in Trax.
 
-Trax authors expect that the `supervised.training` module (under development)
-will replace `trainer_lib`.
+This module is deprecated in favor of :class:`trax.learning.supervised.training.Loop`.
+Keep using ``trainer_lib`` only for legacy integrations; new code should rely on
+the simplified Loop API.
 """
 
 import collections
@@ -25,6 +26,7 @@ import itertools
 import os
 import sys
 import time
+import warnings
 
 import gin
 import jax
@@ -39,6 +41,7 @@ from trax.data.preprocessing import inputs as trax_inputs
 from trax.fastmath import numpy as np
 from trax.fastmath import random as jax_random
 from trax.layers import base
+from trax.learning.supervised import common
 from trax.learning.supervised import history as trax_history
 from trax.learning.supervised import lr_schedules as lr
 from trax.learning.supervised import training
@@ -67,21 +70,15 @@ OptState = collections.namedtuple(
 )
 
 
-_DEFAULT_METRICS = {
-    "loss": tl.WeightedCategoryCrossEntropy(),
-    "accuracy": tl.WeightedCategoryAccuracy(),
-    "sequence_accuracy": tl.MaskedSequenceAccuracy(),
-    "neg_log_perplexity": tl.Serial(tl.WeightedCategoryCrossEntropy(), tl.Negate()),
-    "weights_per_batch_per_core": tl.Serial(tl.Drop(), tl.Drop(), tl.Sum()),
-}
+_DEFAULT_METRICS = common.default_metrics()
 
 
-NamedStream = collections.namedtuple("NamedStream", ["name", "stream"])
+NamedStream = common.NamedStream
 
 
 @gin.configurable
 def named_stream(name=gin.REQUIRED, stream=gin.REQUIRED):
-    return NamedStream(name=name, stream=stream)
+    return common.named_stream(name=name, stream=stream)
 
 
 class Trainer:
@@ -109,6 +106,12 @@ class Trainer:
         checkpoint_lowest=None,
         init_checkpoint=None,
     ):
+        warnings.warn(
+            "trainer_lib.Trainer is deprecated and will be removed in a future release; "
+            "please migrate to training.Loop.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self._is_chief, _, self._n_devices, rng = training.init_host_and_devices(
             n_devices, random_seed
         )
@@ -594,7 +597,7 @@ def train(
       optimizer: The optimizer (see optimizers/base.py for signature).
       lr_schedule_fn: A learning rate schedule function, that when called returns
         a function from step to learning rate (a float).
-      trainer_class: The trainers class to use.
+      trainer_class: Deprecated. ``trainer_lib`` always runs :class:`training.Loop`.
       steps: int, total number of training steps.
       checkpoints_at: list of integers. Save a checkpoint for each training step
         in the list.
@@ -606,11 +609,12 @@ def train(
       permanent_checkpoint_frequency: int, how often to save permanent checkpoints
         (every permanent_checkpoint_frequency steps).
       random_seed: the random seed to use; time/os dependent if None (default).
-      save_graphs: bool, if True, save computation graph to file.
+      save_graphs: Deprecated and ignored; computation graphs are not exported when
+        using :class:`training.Loop`.
       metrics: optionally override the default metrics dictionary.
       checkpoint_highest: save the checkpoint highest at this metric.
       checkpoint_lowest: save the checkpoint lowest at this metric.
-      use_loop: whether to use training.Loop instead of Trainer.
+      use_loop: Deprecated and ignored; training always runs via :class:`training.Loop`.
       loss_chunk_size: int, if > 0 chunk loss into these sizes to save memory.
       use_memory_efficient_trainer: whether to use memory-efficient trainers.
       adasum: if True, use adaptive summation for multi-device gradients.
@@ -626,8 +630,31 @@ def train(
         additional_eval_tasks.
 
     Returns:
-      trax.TrainerState or training.Loop if use_loop is True
+      training.Loop configured according to the provided tasks.
     """
+    warnings.warn(
+        "trainer_lib.train is deprecated; please use training.Loop directly.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    if not use_loop:
+        warnings.warn(
+            "use_loop is ignored; trainer_lib now always runs training.Loop.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    if trainer_class is not Trainer:
+        warnings.warn(
+            "trainer_class is deprecated and ignored; training.Loop is always used.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    if save_graphs:
+        warnings.warn(
+            "save_graphs is ignored; training.Loop does not export computation graphs.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
     base.N_WEIGHTS_SHARDS = n_weights_shards
     if (
         permanent_checkpoint_frequency is not None
@@ -637,140 +664,93 @@ def train(
             'Only one of ["permanent_checkpoint_frequency", '
             '"permanent_checkpoints_at"] should be set.'
         )
-    if use_loop:
-        n_devices = num_devices() or fastmath.local_device_count()
+    n_devices = num_devices() or fastmath.local_device_count()
 
-        # Prepare the training task.
-        # Inputs is either an Inputs instance or a function that returns it.
-        if callable(inputs):  # If we pass a function, e.g., through gin, call it.
-            inputs = inputs()
-        opt = optimizer if use_memory_efficient_trainer else optimizer()
-        train_task = training.TrainTask(
-            inputs.train_stream(n_devices),
-            loss_layer=loss_fn,
-            optimizer=opt,
-            lr_schedule=lr_schedule_fn(),
-            n_steps_per_checkpoint=eval_frequency,
-            n_steps_per_permanent_checkpoint=permanent_checkpoint_frequency,
-        )
-
-        if additional_train_tasks is None:
-            additional_train_tasks = []
-
-        # Prepare the evaluation.
-        metrics_dict = metrics if metrics is not None else _DEFAULT_METRICS
-        names, metrics = zip(*metrics_dict.items())
-        eval_task = training.EvalTask(
-            inputs.eval_stream(n_devices),
-            metrics,
-            metric_names=names,
-            n_eval_batches=eval_steps,
-        )
-
-        if additional_eval_tasks is None:
-            additional_eval_tasks = []
-
-        additional_eval_tasks_from_streams = []
-        if additional_eval_streams is not None:
-            for stream in additional_eval_streams:
-                additional_eval_tasks_from_streams.append(
-                    training.EvalTask(
-                        stream.stream,
-                        metrics,
-                        metric_names=names,
-                        n_eval_batches=eval_steps,
-                        export_prefix=stream.name,
-                    )
-                )
-
-        # Prepare the training loop.
-        checkpoint_at = None
-        if checkpoints_at is not None:
-            checkpoint_at = lambda step: step in checkpoints_at
-        permanent_checkpoint_at = None
-        if permanent_checkpoints_at is not None:
-            permanent_checkpoint_at = lambda step: step in permanent_checkpoints_at
-
-        # Setup the model.
-        model_train = model(mode="train")
-        model_predict_eval = model(mode="eval")
-        if init_checkpoint:
-            model_train.init_from_file(init_checkpoint, weights_only=True)
-            model_predict_eval.init_from_file(init_checkpoint, weights_only=True)
-        loop = training.Loop(
-            model_train,
-            [train_task] + additional_train_tasks,
-            eval_model=model_predict_eval,
-            eval_tasks=[eval_task]
-            + additional_eval_tasks
-            + additional_eval_tasks_from_streams,
-            output_dir=output_dir,
-            checkpoint_at=checkpoint_at,
-            checkpoint_low_metric=checkpoint_lowest,
-            checkpoint_high_metric=checkpoint_highest,
-            permanent_checkpoint_at=permanent_checkpoint_at,
-            n_devices=n_devices,
-            loss_chunk_size=loss_chunk_size,
-            use_memory_efficient_trainer=use_memory_efficient_trainer,
-            adasum=adasum,
-            random_seed=random_seed,
-            callbacks=callbacks,
-        )
-
-        steps_to_go = steps - loop.step
-        if steps_to_go <= 0:
-            log("Stop training, already reached the total training steps %d" % steps)
-            return loop
-
-        # Train and return the loop.
-        loop.run(steps_to_go)
-        return loop
-
-    n_devices = num_devices()
-    trainer = trainer_class(
-        model,
-        loss_fn,
-        optimizer,
-        lr_schedule_fn(),
+    # Prepare the training task.
+    # Inputs is either an Inputs instance or a function that returns it.
+    if callable(inputs):  # If we pass a function, e.g., through gin, call it.
+        inputs = inputs()
+    train_task = common.create_train_task(
         inputs,
-        output_dir,
-        random_seed=random_seed,
+        loss_layer=loss_fn,
+        optimizer=optimizer,
+        lr_schedule_fn=lr_schedule_fn,
         n_devices=n_devices,
-        checkpoints_at=checkpoints_at,
-        metrics=metrics,
-        checkpoint_lowest=checkpoint_lowest,
-        checkpoint_highest=checkpoint_highest,
-        init_checkpoint=init_checkpoint,
+        eval_frequency=eval_frequency,
+        permanent_checkpoint_frequency=permanent_checkpoint_frequency,
+        use_memory_efficient_trainer=use_memory_efficient_trainer,
     )
 
-    epoch_steps = [steps]  # Only training if eval_frequency is 0 or None
-    if eval_frequency and eval_steps > 0:
-        epoch_steps = itertools.chain(
-            [1, eval_frequency - 1],  # first epoch only 1 step
-            itertools.repeat(eval_frequency),
-        )
-    trainer.log_step("Starting training using %d devices" % trainer.n_devices)
-    trainer.print_n_weights()
+    if additional_train_tasks is None:
+        additional_train_tasks = []
 
-    try:
-        for epoch_steps in epochs(steps, trainer.step, epoch_steps):
-            trainer.train_epoch(epoch_steps, eval_steps)
+    # Prepare the evaluation.
+    metrics_dict = metrics if metrics is not None else _DEFAULT_METRICS
+    eval_task = common.create_eval_task(
+        inputs,
+        metrics_dict,
+        eval_steps,
+        n_devices,
+    )
 
-            # Bookkeeping we do at the first step
-            if trainer.step == 1:
-                # Save computation graph (single-device only for now)
-                if save_graphs and fastmath.is_backend(fastmath.Backend.JAX):
-                    trainer.save_computation_graphs()
+    if additional_eval_tasks is None:
+        additional_eval_tasks = []
 
-                # Save Gin config
-                trainer.save_gin()
+    additional_eval_tasks_from_streams = []
+    if additional_eval_streams is not None:
+        for stream in additional_eval_streams:
+            additional_eval_tasks_from_streams.append(
+                common.create_eval_task(
+                    stream,
+                    metrics_dict,
+                    eval_steps,
+                    n_devices,
+                    export_prefix=stream.name,
+                )
+            )
 
-        trainer.log_step("Training done")
-    except Exception as e:
-        raise e
-    finally:
-        trainer.close()
-    return trainer.state
+    # Prepare the training loop.
+    checkpoint_at = None
+    if checkpoints_at is not None:
+        checkpoint_at = lambda step: step in checkpoints_at
+    permanent_checkpoint_at = None
+    if permanent_checkpoints_at is not None:
+        permanent_checkpoint_at = lambda step: step in permanent_checkpoints_at
+
+    # Setup the model.
+    model_train = model(mode="train")
+    model_predict_eval = model(mode="eval")
+    if init_checkpoint:
+        model_train.init_from_file(init_checkpoint, weights_only=True)
+        model_predict_eval.init_from_file(init_checkpoint, weights_only=True)
+    loop = training.Loop(
+        model_train,
+        [train_task] + additional_train_tasks,
+        eval_model=model_predict_eval,
+        eval_tasks=[eval_task]
+        + additional_eval_tasks
+        + additional_eval_tasks_from_streams,
+        output_dir=output_dir,
+        checkpoint_at=checkpoint_at,
+        checkpoint_low_metric=checkpoint_lowest,
+        checkpoint_high_metric=checkpoint_highest,
+        permanent_checkpoint_at=permanent_checkpoint_at,
+        n_devices=n_devices,
+        loss_chunk_size=loss_chunk_size,
+        use_memory_efficient_trainer=use_memory_efficient_trainer,
+        adasum=adasum,
+        random_seed=random_seed,
+        callbacks=callbacks,
+    )
+
+    steps_to_go = steps - loop.step
+    if steps_to_go <= 0:
+        log("Stop training, already reached the total training steps %d" % steps)
+        return loop
+
+    # Train and return the loop.
+    loop.run(steps_to_go)
+    return loop
 
 
 @gin.configurable

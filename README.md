@@ -299,7 +299,7 @@ print(f'shapes = {[x.shape for x in example_batch]}')  # Check the shapes.
 
 ### Supervised training
 
-When you have the model and the data, use `trax.supervised.training` to define training and eval tasks and create a training loop. The Trax training loop optimizes training and will create TensorBoard logs and model checkpoints for you.
+When you have the model and the data, use `trax.supervised.training` to define training and eval tasks and create a training loop. The Trax training loop optimizes training and will create TensorBoard logs and model checkpoints for you. The legacy `trainer_lib` interface is kept only for backward compatibility and now delegates to this training loop.
 
 
 ```python
