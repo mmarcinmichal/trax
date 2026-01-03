@@ -22,7 +22,7 @@ import gin
 from absl.testing import absltest
 
 from trax.data.encoder import encoder as encoder
-from trax.learning.supervised import trainer_lib
+from trax.learning.supervised import loop
 from trax.utils import test_utils
 
 pkg_dir, _ = os.path.split(__file__)
@@ -67,7 +67,7 @@ class TerraformerE2ETest(absltest.TestCase):
         gin.bind_parameter("ConfigurableTerraformer.d_ff", d_ff)
 
         output_dir = self.create_tempdir().full_path
-        _ = trainer_lib.train(output_dir=output_dir)
+        _ = loop.train(output_dir=output_dir)
 
     def test_terraformer_copy(self):
         batch_size_per_device = 2
@@ -85,7 +85,7 @@ class TerraformerE2ETest(absltest.TestCase):
         gin.bind_parameter("ConfigurableTerraformer.d_ff", d_ff)
 
         output_dir = self.create_tempdir().full_path
-        _ = trainer_lib.train(output_dir=output_dir)
+        _ = loop.train(output_dir=output_dir)
 
     def test_terraformer_purelsh_copy(self):
         batch_size_per_device = 2
@@ -103,7 +103,7 @@ class TerraformerE2ETest(absltest.TestCase):
         gin.bind_parameter("ConfigurableTerraformer.d_ff", d_ff)
 
         output_dir = self.create_tempdir().full_path
-        _ = trainer_lib.train(output_dir=output_dir)
+        _ = loop.train(output_dir=output_dir)
 
 
 if __name__ == "__main__":
