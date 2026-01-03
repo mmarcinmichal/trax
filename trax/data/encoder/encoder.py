@@ -1712,7 +1712,6 @@ class SentencePieceEncoder:
         # Tokenize the text into base SentencePiece IDs
         tokens = self.tokenizer.tokenize([text])
         # Back to numpy from tf
-        print(text)
         return tokens.flat_values
 
     def decode(self, ids):
@@ -1721,7 +1720,6 @@ class SentencePieceEncoder:
         ids_tensor = tf.constant([ids], dtype=tf.int32)
         text = self.tokenizer.detokenize(ids_tensor)
         # Back to numpy from tf
-        print(text)
         return text.numpy()[0].decode("utf-8")
 
 

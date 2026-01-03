@@ -1,7 +1,9 @@
-from collections import Counter
+import os
 
 import datasets
 import numpy as np
+
+from layers import LayerNorm
 
 import trax.fastmath as fastmath
 
@@ -14,29 +16,25 @@ from resources.examples.python.base import (
 )
 from trax import layers as tl
 from trax import optimizers
+from trax.data.encoder import encoder as text_encoder
 from trax.models import gnn
 from trax.trainers import jax as trainers
 
 MAX_LEN = 2_000
-VOCAB_SIZE = 100_000
 WINDOW_SIZE = 10
+SPM_FILE = "en_32k.sentencepiece"
+VOCAB_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "data", "vocabs")
+)
 
 
-def build_vocab(texts):
-    counter = Counter()
-    for t in texts:
-        counter.update(t.lower().split()[:MAX_LEN])
-    vocab = {"<PAD>": 0, "<UNK>": 1}
-    for i, (w, _) in enumerate(counter.most_common(VOCAB_SIZE - 2), start=2):
-        vocab[w] = i
-    return vocab
-
-
-def encode(text, vocab):
-    tokens = [vocab.get(w, 1) for w in text.lower().split()[:MAX_LEN]]
-    if len(tokens) < MAX_LEN:
-        tokens += [0] * (MAX_LEN - len(tokens))
-    return np.array(tokens)
+def _pad_or_trim(tokens, max_len=MAX_LEN, pad_id=0):
+    tokens = np.asarray(tokens, dtype=np.int64)
+    if tokens.shape[0] >= max_len:
+        return tokens[:max_len]
+    padded = np.full((max_len,), pad_id, dtype=np.int64)
+    padded[: tokens.shape[0]] = tokens
+    return padded
 
 
 def window_adjacency(length=MAX_LEN, window_size=10, add_self_loops=False):
@@ -55,47 +53,86 @@ def window_adjacency(length=MAX_LEN, window_size=10, add_self_loops=False):
 
 def load_data():
     train_ds = datasets.load_dataset("imdb", split="train")
-    test_ds = datasets.load_dataset("imdb", split="test")
-    # train_ds = datasets.load_dataset("imdb", split="train[:2000]")
-    # test_ds = datasets.load_dataset("imdb", split="test[:1000]")
+    test_ds  = datasets.load_dataset("imdb", split="test")
 
-    vocab = build_vocab(train_ds["text"])
-    x_train = np.stack([encode(t, vocab) for t in train_ds["text"]])
+    tokenizer_fn = text_encoder.Tokenize(
+        vocab_type="sentencepiece",
+        vocab_file=SPM_FILE,
+        vocab_dir=VOCAB_DIR,
+        n_reserved_ids=1,   # reserve 0 for PAD
+    )
+    vocab_size = text_encoder.vocab_size(
+        vocab_type="sentencepiece",
+        vocab_file=SPM_FILE,
+        vocab_dir=VOCAB_DIR,
+        n_reserved_ids=1,
+    )
+
+    x_train = np.stack([_pad_or_trim(t, pad_id=0) for t in tokenizer_fn(iter(train_ds["text"]))])
     y_train = np.array(train_ds["label"], dtype=np.int64)
-    x_test = np.stack([encode(t, vocab) for t in test_ds["text"]])
-    y_test = np.array(test_ds["label"], dtype=np.int64)
 
-    adj = window_adjacency(window_size=WINDOW_SIZE, add_self_loops=False)
-    a_train = np.broadcast_to(adj, (x_train.shape[0], MAX_LEN, MAX_LEN))
-    a_test = np.broadcast_to(adj, (x_test.shape[0], MAX_LEN, MAX_LEN))
+    x_test  = np.stack([_pad_or_trim(t, pad_id=0) for t in tokenizer_fn(iter(test_ds["text"]))])
+    y_test  = np.array(test_ds["label"], dtype=np.int64)
 
-    return (x_train, a_train, y_train), (x_test, a_test, y_test), len(vocab)
+    # Base window graph (shared for all docs), add self-loops ONCE here:
+    base_adj = window_adjacency(length=MAX_LEN, window_size=WINDOW_SIZE, add_self_loops=True).astype(np.float32)
+
+    return (x_train, y_train), (x_test, y_test), vocab_size, base_adj
+
 
 
 def build_model(vocab_size):
+    eps = 1e-9
+
+    def _masked_mean(h, m):
+        # h: (B,N,D), m: (B,N)
+        denom = fastmath.numpy.sum(m, axis=1, keepdims=True) + eps   # (B,1)
+        num = fastmath.numpy.sum(h * m[..., None], axis=1)            # (B,D)
+        return num / denom                                  # (B,D)
+
     return tl.Serial(
-        tl.Parallel(tl.Embedding(vocab_size, 512), None),
-        gnn.GraphAttentionNet(hidden_sizes=(512, 64, 32), num_heads=2),
-        tl.Select([0]),
-        tl.Mean(axis=1),
+        # (tok, adj, mask) -> (emb, adj, mask)
+        tl.Parallel(tl.Serial(tl.Embedding(vocab_size, 512), tl.LayerNorm(), tl.Dropout(0.2),), None, None),
+
+        # run GNN on (emb, adj), carry mask along
+        tl.Branch(
+            tl.Serial(
+                tl.Select([0, 1], n_in=3),  # take (emb, adj) from (emb, adj, mask)
+                gnn.GraphAttentionNet(hidden_sizes=(512, 512, 256), num_heads=2),
+                tl.Select([0], n_in=2),     # drop adjacency returned by GNN
+            ),
+            tl.Select([2], n_in=3),         # mask
+        ),
+
+        tl.Fn("MaskedMean", _masked_mean, n_out=1),
+        tl.Dropout(0.2),
         tl.Dense(2),
-        tl.Select([0, 2, 3]),
     )
+
 
 
 def main():
-    DEFAULT_BATCH_SIZE = 2
-    STEPS_NUMBER = 20_000
+    DEFAULT_BATCH_SIZE = 8
+    STEPS_NUMBER = 40_000
 
-    (x_train, a_train, y_train), (x_test, a_test, y_test), vocab_size = load_data()
+    (x_train, y_train), (x_test, y_test), vocab_size, base_adj = load_data()
     batch_gen = graph_batch_generator(
-        x_train, a_train, y_train, batch_size=DEFAULT_BATCH_SIZE
+        x_train, y_train, base_adj, batch_size=DEFAULT_BATCH_SIZE
     )
     example_batch = next(batch_gen)
 
-    model_with_loss = tl.Serial(
-        build_model(vocab_size), tl.CrossEntropyLossWithLogSoftmax()
+    model_with_loss =  tl.Serial(
+        tl.Branch(
+            tl.Serial(
+                tl.Select([0, 1, 2], n_in=5),   # (x, adj, mask) out of 5 inputs
+                build_model(vocab_size),
+            ),
+            tl.Select([3], n_in=5),             # y
+            tl.Select([4], n_in=5),             # w
+        ),
+        tl.CrossEntropyLossWithLogSoftmax(),
     )
+
     initialize_model(model_with_loss, example_batch)
 
     optimizer = optimizers.Adam(0.0001)
@@ -111,7 +148,7 @@ def main():
     )
 
     test_batch_gen = graph_batch_generator(
-        x_test, a_test, y_test, batch_size=DEFAULT_BATCH_SIZE
+        x_test, y_test, base_adj, batch_size=DEFAULT_BATCH_SIZE
     )
 
     # Evaluate model on a test set
@@ -119,7 +156,7 @@ def main():
         trainer=trainer,
         batch_gen=test_batch_gen,
         device_type=DeviceType.CPU.value,
-        num_batches=500,
+        num_batches=25_000//DEFAULT_BATCH_SIZE,
     )
 
     print(f"Final test accuracy: {test_results['accuracy']:.4f}")
