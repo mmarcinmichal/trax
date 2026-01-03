@@ -21,7 +21,7 @@ from trax import data
 from trax import layers as tl
 from trax.fastmath import numpy as jnp
 from trax.fastmath import stop_gradient
-from trax.learning.supervised import trainer_lib as supervised
+from trax.learning.supervised import loop as supervised
 from trax.learning.reinforcement import actor_critic, distributions, rl_layers
 from trax.learning.reinforcement import training as rl_training
 from trax.learning.supervised import lr_schedules as lr
@@ -97,7 +97,7 @@ class ActorCriticJointAgent(rl_training.Agent):
         # This is the joint Trainer that will be used to train the policy model.
         # * inputs to the trainers come from self.batches_stream
         # * outputs are passed to self._joint_loss
-        self._trainer = supervised.Trainer(
+        self._trainer = supervised.LoopTrainer(
             model=self._joint_model,
             optimizer=self._optimizer,
             lr_schedule=self._lr_schedule,
@@ -239,7 +239,7 @@ class PPOJoint(ActorCriticJointAgent):
         self._value_loss_coeff = value_loss_coeff
         self._entropy_coeff = entropy_coeff
         super().__init__(task, **kwargs)
-        self._trainer = supervised.Trainer(
+        self._trainer = supervised.LoopTrainer(
             model=self._joint_model,
             optimizer=self._optimizer,
             lr_schedule=self._lr_schedule,
@@ -542,7 +542,7 @@ class A2CJoint(ActorCriticJointAgent):
         self._value_loss_coeff = value_loss_coeff
         self._entropy_coeff = entropy_coeff
         super().__init__(task, **kwargs)
-        self._trainer = supervised.Trainer(
+        self._trainer = supervised.LoopTrainer(
             model=self._joint_model,
             optimizer=self._optimizer,
             lr_schedule=self._lr_schedule,

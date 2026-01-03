@@ -29,7 +29,7 @@ from tests.layers import test_utils as tl_test_utils
 from trax import models
 from trax.data.preprocessing import inputs
 from trax.learning.reinforcement import serialization_utils, space_serializer
-from trax.learning.supervised import callbacks, lr_schedules, trainer_lib, training
+from trax.learning.supervised import callbacks, lr_schedules, loop, training
 from trax.utils import test_utils
 
 
@@ -139,7 +139,7 @@ class CallbacksTest(parameterized.TestCase):
         )
 
         output_dir = self.create_tempdir().full_path
-        trainer_lib.train(
+        loop.train(
             output_dir=output_dir,
             model=serialized_model_fn,
             inputs=functools.partial(random_inputs, seq_len=4, batch_size=64),
