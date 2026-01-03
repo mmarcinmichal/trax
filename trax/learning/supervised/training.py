@@ -68,6 +68,32 @@ from trax.utils import jaxboard, shapes
 _Evaluator = collections.namedtuple("_Evaluator", ["weights", "state", "metrics_fn"])
 
 
+class ScheduleBuilder:
+    """Builds checkpoint and eval schedules for the training loop."""
+
+    def build_checkpoint_managers(
+        self, task, checkpoint_at=None, permanent_checkpoint_at=None
+    ):
+        default_at = _at_step_1_and_every_nth_step(task.n_steps_per_checkpoint)
+        permanent_default_at = _at_step_1_and_every_nth_step(
+            task.n_steps_per_permanent_checkpoint
+        )
+        checkpoint_at = checkpoint_at or default_at
+        permanent_checkpoint_at = permanent_checkpoint_at or permanent_default_at
+        return (
+            checkpoint_at,
+            permanent_checkpoint_at,
+            orchestration.CheckpointManager(checkpoint_at),
+            orchestration.CheckpointManager(permanent_checkpoint_at),
+        )
+
+    def build_eval_schedule(self, task, eval_at=None, fallback=None):
+        default_at = fallback or _at_step_1_and_every_nth_step(
+            task.n_steps_per_checkpoint
+        )
+        return eval_at or default_at
+
+
 def ensure_optimizer_instance(optimizer):
     """Ensures an optimizer factory is materialized before use."""
 
@@ -133,6 +159,12 @@ class Loop:
         checkpoint_store=None,
         metrics_sink=None,
         registry=None,
+        host_device_initializer=None,
+        seed_manager_factory=None,
+        model_initializer=None,
+        schedule_builder=None,
+        callback_assembler=None,
+        training_orchestrator_ctor=orchestration.TrainingOrchestrator,
     ):
         """Configures a training ``Loop``, including a random initialization.
 
@@ -204,20 +236,25 @@ class Loop:
           registry: Optional registry module exposing registries for checkpoint
             stores and metric sinks.
         """
+        host_device_initializer = host_device_initializer or orchestration.HostAndDeviceInitializer(
+            init_host_and_devices
+        )
+        seed_manager_factory = seed_manager_factory or orchestration.SeedManagerFactory(
+            use_memory_efficient_trainer
+        )
+        callback_assembler = callback_assembler or orchestration.CallbackAssembler()
+        schedule_builder = schedule_builder or ScheduleBuilder()
+
         (
             self._is_chief,
             self._n_hosts,
-            self._n_devices,
+            self._device_manager,
             initial_rng,
-        ) = init_host_and_devices(n_devices, random_seed)
+        ) = host_device_initializer.initialize(n_devices, random_seed)
+        self._n_devices = self._device_manager.n_devices
         if use_memory_efficient_trainer:
             initial_rng = tl.on_cpu(initial_rng)
-        self._device_manager = orchestration.DeviceManager(
-            is_chief=self._is_chief, n_hosts=self._n_hosts, n_devices=self._n_devices
-        )
-        self._seed_manager = orchestration.SeedManager(
-            initial_rng, use_memory_efficient_trainer
-        )
+        self._seed_manager = seed_manager_factory.create(initial_rng)
 
         # Handle single task case without lists too.
         if not isinstance(tasks, (list, tuple)):
@@ -243,7 +280,7 @@ class Loop:
         self._model = model
         self._eval_model = eval_model or model
 
-        initializer = orchestration.ModelInitializer(
+        model_initializer = model_initializer or orchestration.ModelInitializer(
             shapes.signature(tasks[0].sample_batch),
             use_memory_efficient_trainer,
             is_uninitialized=_is_uninitialized,
@@ -257,10 +294,6 @@ class Loop:
             assert len(tasks) == 1, "only single task supported for now"
             self._eval_model = model
 
-        default_at = _at_step_1_and_every_nth_step(tasks[0].n_steps_per_checkpoint)
-        permanent_default_at = _at_step_1_and_every_nth_step(
-            tasks[0].n_steps_per_permanent_checkpoint
-        )
         if expanded_output_dir is not None:
             self._output_dir = expanded_output_dir
             self._checkpoint_store.makedirs(self._output_dir)
@@ -268,45 +301,20 @@ class Loop:
         else:
             self._output_dir = None
 
-    def _init_checkpoint_store(self, checkpoint_store, base_dir):
-        if isinstance(checkpoint_store, artifacts.CheckpointStore):
-            return checkpoint_store
-        if isinstance(checkpoint_store, str):
-            return self._registry.CHECKPOINT_STORE_REGISTRY.get(
-                checkpoint_store, base_dir=base_dir
-            )
-        if checkpoint_store is None:
-            return self._registry.CHECKPOINT_STORE_REGISTRY.get(
-                "local", base_dir=base_dir
-            )
-        return checkpoint_store
-
-    def _init_metrics_sink(self, metrics_sink, base_dir):
-        if isinstance(metrics_sink, artifacts.MetricsSink):
-            return metrics_sink
-        if isinstance(metrics_sink, str):
-            return self._registry.METRICS_SINK_REGISTRY.get(
-                metrics_sink, base_dir=base_dir
-            )
-        if metrics_sink is None:
-            if base_dir is None:
-                return artifacts.NullMetricsSink(base_dir=base_dir)
-            return self._registry.METRICS_SINK_REGISTRY.get(
-                "jaxboard", base_dir=base_dir
-            )
-        return metrics_sink
+        (
+            self._checkpoint_at,
+            self._permanent_checkpoint_at,
+            self._checkpoint_manager,
+            self._permanent_checkpoint_manager,
+        ) = schedule_builder.build_checkpoint_managers(
+            tasks[0], checkpoint_at, permanent_checkpoint_at
+        )
+        self._checkpoint_low_metric = checkpoint_low_metric
+        self._checkpoint_high_metric = checkpoint_high_metric
 
         # Prepare training components.
         self._step = 0
         self._history = trax_history.History()
-        self._checkpoint_at = checkpoint_at or default_at
-        self._checkpoint_low_metric = checkpoint_low_metric
-        self._checkpoint_high_metric = checkpoint_high_metric
-        self._permanent_checkpoint_at = permanent_checkpoint_at or permanent_default_at
-        self._checkpoint_manager = orchestration.CheckpointManager(self._checkpoint_at)
-        self._permanent_checkpoint_manager = orchestration.CheckpointManager(
-            self._permanent_checkpoint_at
-        )
         if which_task is None:
             # If which task is not passed, then we permute tasks one by one.
             # If len(tasks) = 1, then which_task is a constant function equal to 0.
@@ -320,7 +328,7 @@ class Loop:
         self._model.rng = self.new_rng()
         if not use_memory_efficient_trainer:
             self._eval_model.rng = self.new_rng()
-        initializer.initialize(
+        model_initializer.initialize(
             self._model,
             self._eval_model,
             sync_fn=None if use_memory_efficient_trainer else None,
@@ -379,7 +387,9 @@ class Loop:
         self.load_checkpoint()
 
         # Prepare eval components.
-        self._eval_at = eval_at or default_at
+        self._eval_at = schedule_builder.build_eval_schedule(
+            tasks[0], eval_at, fallback=self._checkpoint_at
+        )
         self._eval_tasks = eval_tasks
         loss_names = [task.loss_name for task in self._tasks]
         metric_names = [
@@ -416,14 +426,41 @@ class Loop:
         ]
 
         callbacks = callbacks or []
-        self._callback_pipeline = orchestration.CallbackPipeline(
-            [callback_class(self) for callback_class in callbacks]
-        )
-        self._orchestrator = orchestration.TrainingOrchestrator(
+        callback_instances = [callback_class(self) for callback_class in callbacks]
+        self._callback_pipeline = callback_assembler.assemble(callback_instances)
+        self._orchestrator = training_orchestrator_ctor(
             device_manager=self._device_manager,
             seed_manager=self._seed_manager,
             callback_pipeline=self._callback_pipeline,
         )
+
+    def _init_checkpoint_store(self, checkpoint_store, base_dir):
+        if isinstance(checkpoint_store, artifacts.CheckpointStore):
+            return checkpoint_store
+        if isinstance(checkpoint_store, str):
+            return self._registry.CHECKPOINT_STORE_REGISTRY.get(
+                checkpoint_store, base_dir=base_dir
+            )
+        if checkpoint_store is None:
+            return self._registry.CHECKPOINT_STORE_REGISTRY.get(
+                "local", base_dir=base_dir
+            )
+        return checkpoint_store
+
+    def _init_metrics_sink(self, metrics_sink, base_dir):
+        if isinstance(metrics_sink, artifacts.MetricsSink):
+            return metrics_sink
+        if isinstance(metrics_sink, str):
+            return self._registry.METRICS_SINK_REGISTRY.get(
+                metrics_sink, base_dir=base_dir
+            )
+        if metrics_sink is None:
+            if base_dir is None:
+                return artifacts.NullMetricsSink(base_dir=base_dir)
+            return self._registry.METRICS_SINK_REGISTRY.get(
+                "jaxboard", base_dir=base_dir
+            )
+        return metrics_sink
 
     def _init_trainer(self, task):
         """Initializes the per-task trainers."""
