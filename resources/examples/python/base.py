@@ -186,12 +186,24 @@ def create_batch_generator(
             rng.shuffle(indices)
 
 
-def graph_batch_generator(nodes, adjacency, labels, batch_size=32, seed=0):
+def graph_batch_generator(tokens, labels, base_adj, batch_size=32, seed=0, pad_id=0):
     rng = np.random.default_rng(seed)
-    n = nodes.shape[0]
+    n = tokens.shape[0]
+
     while True:
         idx = rng.choice(n, batch_size, replace=False)
-        yield nodes[idx], adjacency[idx], labels[idx], np.ones(batch_size)
+        x = tokens[idx]                         # (B, N) int token ids
+        y = labels[idx]                         # (B,)
+        w = np.ones((batch_size,), np.float32)  # (B,) per-example weights
+
+        mask = (x != pad_id).astype(np.float32)             # (B, N)
+        outer = mask[:, :, None] * mask[:, None, :]         # (B, N, N)
+        a = base_adj[None, :, :] * outer                    # (B, N, N)
+
+        # Inputs are (tokens, adj, mask)
+        yield x, a, mask, y, w
+
+
 
 
 def initialize_model(model_with_loss, example_batch) -> Tuple[float, float]:
