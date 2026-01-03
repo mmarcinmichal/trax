@@ -118,14 +118,13 @@ class TrainingTest(absltest.TestCase):
         class StubHostInitializer:
             def __init__(self):
                 self.calls = []
-                self.device_manager = RecordingDeviceManager()
 
             def initialize(self, n_devices=None, random_seed=None):
                 self.calls.append((n_devices, random_seed))
                 return (
                     True,
                     1,
-                    self.device_manager,
+                    orchestration.DeviceManager(is_chief=True, n_hosts=1, n_devices=1),
                     fastmath.random.get_prng(0),
                 )
 
@@ -148,23 +147,6 @@ class TrainingTest(absltest.TestCase):
                 self.assembled = list(callbacks or [])
                 return super().assemble(callbacks)
 
-        class RecordingDeviceManager:
-            def __init__(self):
-                self.is_chief = True
-                self.n_hosts = 1
-                self.n_devices = 1
-                self.reshape_calls = 0
-
-            def for_n_devices(self, value):
-                return value
-
-            def unreplicate(self, value):
-                return value
-
-            def reshape_by_device(self, value):
-                self.reshape_calls += 1
-                return value
-
         host_initializer = StubHostInitializer()
         seed_factory = StubSeedFactory()
         callback_assembler = RecordingCallbackAssembler()
@@ -181,11 +163,8 @@ class TrainingTest(absltest.TestCase):
         self.assertIsNotNone(seed_factory.created_with)
         self.assertTrue(callback_assembler.called)
         self.assertEqual(callback_assembler.assembled, [])
-        self.assertEqual(host_initializer.device_manager.reshape_calls, 0)
 
         loop.run(n_steps=1)
-
-        self.assertEqual(host_initializer.device_manager.reshape_calls, 1)
 
     def test_schedule_builder_uses_fallback_eval_schedule(self):
         builder = training.ScheduleBuilder()

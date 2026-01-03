@@ -43,23 +43,34 @@ def _copy_weights(tree):
     return jax.tree_util.tree_map(lambda x: np.asarray(x).copy(), tree)
 
 
-def _prepare_models(batch, learning_rate, n_devices):
+def _prepare_models(batch, learning_rate, n_devices, hidden_dim=4):
     if torch is None:
         raise absltest.SkipTest("PyTorch is required for trainer parity tests.")
     torch.manual_seed(0)
     input_dim = batch[0].shape[-1]
-    torch_model = torch.nn.Linear(input_dim, 1, bias=True)
+    torch_model = torch.nn.Sequential(
+        torch.nn.Linear(input_dim, hidden_dim, bias=True),
+        torch.nn.ReLU(),
+        torch.nn.Linear(hidden_dim, 1, bias=True),
+    )
     torch_optimizer = torch.optim.SGD(torch_model.parameters(), lr=learning_rate)
     torch_loss = torch.nn.MSELoss()
 
-    trax_model = tl.Serial(tl.Dense(1), tl.L2Loss())
+    trax_model = tl.Serial(tl.Dense(hidden_dim), tl.Relu(), tl.Dense(1), tl.L2Loss())
     trax_model.init(batch, rng=fastmath.random.get_prng(0))
 
-    torch_weight = torch_model.weight.detach().cpu().numpy().astype(np.float32)
-    torch_bias = torch_model.bias.detach().cpu().numpy().astype(np.float32)
-    dense_layer = trax_model.sublayers[0]
-    dense_layer.weights = (torch_weight.T, torch_bias)
-    trax_model.weights = (dense_layer.weights, ())
+    torch_linears = [m for m in torch_model.modules() if isinstance(m, torch.nn.Linear)]
+    trax_denses = [m for m in trax_model.sublayers if isinstance(m, tl.Dense)]
+    if len(torch_linears) != len(trax_denses):
+        raise ValueError(
+            "Mismatched layer counts between torch and trax: "
+            f"{len(torch_linears)} vs {len(trax_denses)}"
+        )
+    for torch_layer, trax_layer in zip(torch_linears, trax_denses):
+        torch_weight = torch_layer.weight.detach().cpu().numpy().astype(np.float32)
+        torch_bias = torch_layer.bias.detach().cpu().numpy().astype(np.float32)
+        trax_layer.weights = (torch_weight.T, torch_bias)
+    trax_model.weights = tuple(layer.weights for layer in trax_model.sublayers)
 
     trax_optimizer = optimizers.SGD(learning_rate)
     trax_optimizer.tree_init(trax_model.weights)
@@ -68,7 +79,9 @@ def _prepare_models(batch, learning_rate, n_devices):
     return torch_model, torch_optimizer, torch_loss, trax_trainer
 
 
-def _run_step_parity(batch, learning_rate, warmup_steps, measured_steps, n_devices, atol, rtol):
+def _run_step_parity(
+    batch, learning_rate, warmup_steps, measured_steps, n_devices, atol, rtol
+):
     torch_model, torch_optimizer, torch_loss, trax_trainer = _prepare_models(
         batch, learning_rate, n_devices
     )
@@ -86,7 +99,7 @@ def _run_step_parity(batch, learning_rate, warmup_steps, measured_steps, n_devic
     def trax_loss_and_grads(weights, state, rng_key):
         def loss_fn(curr_w):
             loss_val, _ = trax_trainer.model_with_loss.pure_fn(
-                batch, curr_w, state, rng_key, use_cache=True
+                batch, curr_w, state, rng_key, use_cache=False
             )
             return loss_val
 
@@ -143,7 +156,15 @@ class TrainerParityTest(absltest.TestCase):
         weights = np.ones_like(targets, dtype=np.float32)
         batch = (inputs, targets, weights)
 
-        _run_step_parity(batch, learning_rate=0.05, warmup_steps=1, measured_steps=3, n_devices=1, atol=1e-4, rtol=1e-4)
+        _run_step_parity(
+            batch,
+            learning_rate=0.05,
+            warmup_steps=2,
+            measured_steps=5,
+            n_devices=1,
+            atol=1e-4,
+            rtol=1e-4,
+        )
 
     def test_multi_device_parity_with_padding(self):
         if torch is None:
@@ -162,7 +183,7 @@ class TrainerParityTest(absltest.TestCase):
             batch,
             learning_rate=0.05,
             warmup_steps=2,
-            measured_steps=2,
+            measured_steps=4,
             n_devices=n_devices,
             atol=5e-4,
             rtol=5e-4,
@@ -178,7 +199,7 @@ class TrainerParityTest(absltest.TestCase):
             batch,
             learning_rate=0.05,
             warmup_steps=2,
-            measured_steps=2,
+            measured_steps=4,
             n_devices=n_devices,
             atol=5e-4,
             rtol=5e-4,
