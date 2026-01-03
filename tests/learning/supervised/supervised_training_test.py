@@ -29,7 +29,7 @@ from tests.fastmath.jax.config import config
 from trax import data, fastmath, optimizers
 from trax import layers as tl
 from trax.layers import base
-from trax.learning.supervised import callbacks, training
+from trax.learning.supervised import callbacks, orchestration, training
 from trax.models import transformer
 from trax.utils import shapes, test_utils
 
@@ -108,6 +108,99 @@ class TrainingTest(absltest.TestCase):
         self.assertEqual(call_counter["model"], 5)
         self.assertEqual(call_counter["lowest_l2_loss"], 0)
         self.assertEqual(call_counter["highest_l2_loss"], 1)
+
+    def test_loop_allows_service_overrides(self):
+        model = tl.Serial(tl.Dense(1))
+        task = training.TrainTask(
+            _very_simple_data(), tl.L2Loss(), optimizers.SGD(0.01)
+        )
+
+        class StubHostInitializer:
+            def __init__(self):
+                self.calls = []
+                self.device_manager = RecordingDeviceManager()
+
+            def initialize(self, n_devices=None, random_seed=None):
+                self.calls.append((n_devices, random_seed))
+                return (
+                    True,
+                    1,
+                    self.device_manager,
+                    fastmath.random.get_prng(0),
+                )
+
+        class StubSeedFactory(orchestration.SeedManagerFactory):
+            def __init__(self):
+                super().__init__()
+                self.created_with = None
+
+            def create(self, initial_rng):
+                self.created_with = initial_rng
+                return orchestration.SeedManager(initial_rng)
+
+        class RecordingCallbackAssembler(orchestration.CallbackAssembler):
+            def __init__(self):
+                self.assembled = "not called"
+                self.called = False
+
+            def assemble(self, callbacks=None):
+                self.called = True
+                self.assembled = list(callbacks or [])
+                return super().assemble(callbacks)
+
+        class RecordingDeviceManager:
+            def __init__(self):
+                self.is_chief = True
+                self.n_hosts = 1
+                self.n_devices = 1
+                self.reshape_calls = 0
+
+            def for_n_devices(self, value):
+                return value
+
+            def unreplicate(self, value):
+                return value
+
+            def reshape_by_device(self, value):
+                self.reshape_calls += 1
+                return value
+
+        host_initializer = StubHostInitializer()
+        seed_factory = StubSeedFactory()
+        callback_assembler = RecordingCallbackAssembler()
+
+        loop = training.Loop(
+            model,
+            [task],
+            host_device_initializer=host_initializer,
+            seed_manager_factory=seed_factory,
+            callback_assembler=callback_assembler,
+        )
+
+        self.assertEqual(host_initializer.calls, [(None, None)])
+        self.assertIsNotNone(seed_factory.created_with)
+        self.assertTrue(callback_assembler.called)
+        self.assertEqual(callback_assembler.assembled, [])
+        self.assertEqual(host_initializer.device_manager.reshape_calls, 0)
+
+        loop.run(n_steps=1)
+
+        self.assertEqual(host_initializer.device_manager.reshape_calls, 1)
+
+    def test_schedule_builder_uses_fallback_eval_schedule(self):
+        builder = training.ScheduleBuilder()
+
+        class DummyTask:
+            n_steps_per_checkpoint = 5
+            n_steps_per_permanent_checkpoint = 10
+
+        checkpoint_at, _, _, _ = builder.build_checkpoint_managers(
+            DummyTask, None, None
+        )
+        eval_at = builder.build_eval_schedule(DummyTask, None, fallback=checkpoint_at)
+
+        self.assertTrue(eval_at(1))
+        self.assertFalse(eval_at(6))
 
     def test_train_dense_layer(self):
         """Trains a very simple network on a very simple task."""
