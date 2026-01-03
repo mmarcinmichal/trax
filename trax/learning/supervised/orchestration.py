@@ -171,7 +171,7 @@ class TrainingOrchestrator:
             sync_fn()
         self.callback_pipeline.on_step_begin(step)
         learning_rate = task.learning_rate(step)
-        batch = task.next_batch()
+        batch = self.device_manager.reshape_by_device(task.next_batch())
         rng = self.seed_manager.new_rng()
         loss, stats = trainer.one_step(batch, rng, step=step, learning_rate=learning_rate)
         self.callback_pipeline.on_step_end(step)
