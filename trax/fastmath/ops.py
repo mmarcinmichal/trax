@@ -188,7 +188,46 @@ def remat(*args, **kwargs):
 
 def cond(*args, **kwargs):
     """Conditional computation to run on accelerators."""
-    return backend()["cond"](*args, **kwargs)
+    cond_impl = backend()["cond"]
+    if kwargs:
+        if "true_operand" in kwargs or "false_operand" in kwargs:
+            pred = kwargs.pop("pred")
+            true_operand = kwargs.pop("true_operand")
+            true_fun = kwargs.pop("true_fun")
+            false_operand = kwargs.pop("false_operand")
+            false_fun = kwargs.pop("false_fun")
+            if kwargs:
+                raise TypeError(f"Unexpected keyword arguments: {sorted(kwargs)}")
+
+            def wrapped_true(operands):
+                return true_fun(operands[0])
+
+            def wrapped_false(operands):
+                return false_fun(operands[1])
+
+            return cond_impl(
+                pred, wrapped_true, wrapped_false, (true_operand, false_operand)
+            )
+
+        if "pred" in kwargs and "true_fun" in kwargs and "false_fun" in kwargs:
+            pred = kwargs.pop("pred")
+            true_fun = kwargs.pop("true_fun")
+            false_fun = kwargs.pop("false_fun")
+            if "operand" in kwargs:
+                operand = kwargs.pop("operand")
+                if kwargs:
+                    raise TypeError(f"Unexpected keyword arguments: {sorted(kwargs)}")
+                return cond_impl(pred, true_fun, false_fun, operand)
+            if "operands" in kwargs:
+                operands = kwargs.pop("operands")
+                if kwargs:
+                    raise TypeError(f"Unexpected keyword arguments: {sorted(kwargs)}")
+                return cond_impl(pred, true_fun, false_fun, *operands)
+            if kwargs:
+                raise TypeError(f"Unexpected keyword arguments: {sorted(kwargs)}")
+            return cond_impl(pred, true_fun, false_fun)
+
+    return cond_impl(*args, **kwargs)
 
 
 def lt(*args, **kwargs):

@@ -11,10 +11,12 @@ import argparse
 import csv
 import json
 import time
+
 from typing import Dict, List, Tuple
 
 import jax
 import numpy as np
+
 try:
     import torch
 except ImportError as exc:  # pragma: no cover

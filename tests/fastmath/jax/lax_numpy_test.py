@@ -23,11 +23,16 @@ import warnings
 from functools import partial
 from unittest import SkipTest
 
+import jax
 import numpy as onp
 import six
 import tensorflow.compat.v2 as tf
 
 from absl.testing import absltest, parameterized
+from jax import dtypes, lax
+from jax._src.public_test_util import check_grads
+from jax.extend import linear_util
+from jax.interpreters import partial_eval
 
 import tests.fastmath.jax.utils as jtu
 import trax.tf.extensions as npe
@@ -79,7 +84,7 @@ def _valid_dtypes_for_shape(shape, dtypes):
 def _shape_and_dtypes(shapes, dtypes):
     for shape in shapes:
         for dtype in _valid_dtypes_for_shape(shape, dtypes):
-            yield (shape, dtype)
+            yield shape, dtype
 
 
 OpRecord = collections.namedtuple(
@@ -827,8 +832,10 @@ CombosWithReplacement = itertools.combinations_with_replacement
 def _dtypes_are_compatible_for_bitwise_ops(args):
     if len(args) <= 1:
         return True
-    is_signed = lambda dtype: lnp.issubdtype(dtype, onp.signedinteger)
-    width = lambda dtype: lnp.iinfo(dtype).bits
+    def is_signed(dtype):
+        return lnp.issubdtype(dtype, onp.signedinteger)
+    def width(dtype):
+        return lnp.iinfo(dtype).bits
     x, y = args
     # `lnp.iinfo(dtype).bits` can't be called on bools, so we convert bools to
     # ints.
@@ -1034,7 +1041,8 @@ class LaxBackedNumpyTests(jtu.TestCase):
         # onp and lnp arrays have different type promotion rules; force the use of
         # lnp arrays.
         args_maker = self._GetArgsMaker(rng, shapes, dtypes, onp_arrays=False)
-        fun = lambda *xs: getattr(operator, name.strip("_"))(*xs)
+        def fun(*xs):
+            return getattr(operator, name.strip("_"))(*xs)
         scalar_arg = (
             jtu.PYTHON_SCALAR_SHAPE in shapes
             or jtu.NUMPY_SCALAR_SHAPE in shapes
@@ -1080,7 +1088,8 @@ class LaxBackedNumpyTests(jtu.TestCase):
             raise SkipTest()  # TODO(mattjj): clean up
         rng = rng_factory()
         args_maker = self._GetArgsMaker(rng, shapes, dtypes, onp_arrays=False)
-        fun = lambda fst, snd: getattr(snd, name)(fst)
+        def fun(fst, snd):
+            return getattr(snd, name)(fst)
         tol = max(jtu.tolerance(dtype, op_tolerance) for dtype in dtypes)
         scalar_arg = (
             jtu.PYTHON_SCALAR_SHAPE in shapes
@@ -1135,7 +1144,7 @@ class LaxBackedNumpyTests(jtu.TestCase):
         # which `jit` can't do (when np.result_type is called inside `jit`, tensor
         # values are not available), so we skip dtype check in this case.
         check_dtypes = not (
-            set(shapes) & set([jtu.NUMPY_SCALAR_SHAPE, jtu.PYTHON_SCALAR_SHAPE, ()])
+                set(shapes) & {jtu.NUMPY_SCALAR_SHAPE, jtu.PYTHON_SCALAR_SHAPE, ()}
         )
         self._CompileAndCheck(lnp_op, args_maker, check_dtypes=check_dtypes)
 
@@ -1163,7 +1172,7 @@ class LaxBackedNumpyTests(jtu.TestCase):
                 for shape in rec.shapes
                 for dtype in rec.dtypes
                 for out_dtype in [None] + rec.dtypes
-                for axis in set(range(-len(shape), len(shape))) | set([None])
+                for axis in set(range(-len(shape), len(shape))) | {None}
                 for keepdims in [False, True]
             )
             for rec in JAX_REDUCER_RECORDS
@@ -1189,8 +1198,10 @@ class LaxBackedNumpyTests(jtu.TestCase):
             return onp_op(x_cast, axis, dtype=t, keepdims=keepdims)
 
         onp_fun = _promote_like_lnp(onp_fun, inexact)
-        lnp_fun = lambda x: lnp_op(x, axis, dtype=out_dtype, keepdims=keepdims)
-        args_maker = lambda: [rng(shape, dtype)]
+        def lnp_fun(x):
+            return lnp_op(x, axis, dtype=out_dtype, keepdims=keepdims)
+        def args_maker():
+            return [rng(shape, dtype)]
         tol_spec = {
             onp.float16: 1e-2,
             onp.float32: 1e-3,
@@ -1232,7 +1243,7 @@ class LaxBackedNumpyTests(jtu.TestCase):
             for rec in JAX_REDUCER_NO_DTYPE_RECORDS
             for shape in rec.shapes
             for dtype in rec.dtypes
-            for axis in set(range(-len(shape), len(shape))) | set([None])
+            for axis in set(range(-len(shape), len(shape))) | {None}
             for keepdims in [False, True]
         )
     )
@@ -1240,10 +1251,13 @@ class LaxBackedNumpyTests(jtu.TestCase):
         self, onp_op, lnp_op, rng_factory, shape, dtype, axis, keepdims, inexact
     ):
         rng = rng_factory()
-        onp_fun = lambda x: onp_op(x, axis, keepdims=keepdims)
+        def onp_fun(x):
+            return onp_op(x, axis, keepdims=keepdims)
         onp_fun = _promote_like_lnp(onp_fun, inexact)
-        lnp_fun = lambda x: lnp_op(x, axis, keepdims=keepdims)
-        args_maker = lambda: [rng(shape, dtype)]
+        def lnp_fun(x):
+            return lnp_op(x, axis, keepdims=keepdims)
+        def args_maker():
+            return [rng(shape, dtype)]
         self._CheckAgainstNumpy(onp_fun, lnp_fun, args_maker, check_dtypes=True)
         self._CompileAndCheck(lnp_fun, args_maker, check_dtypes=True)
 
@@ -1259,14 +1273,17 @@ class LaxBackedNumpyTests(jtu.TestCase):
             }
             for shape in all_shapes
             for dtype in all_dtypes
-            for axis in set(range(-len(shape), len(shape))) | set([None])
+            for axis in set(range(-len(shape), len(shape))) | {None}
         )
     )
     def testCountNonzero(self, shape, dtype, axis):
         rng = jtu.rand_some_zero()
-        onp_fun = lambda x: onp.count_nonzero(x, axis)
-        lnp_fun = lambda x: lnp.count_nonzero(x, axis)
-        args_maker = lambda: [rng(shape, dtype)]
+        def onp_fun(x):
+            return onp.count_nonzero(x, axis)
+        def lnp_fun(x):
+            return lnp.count_nonzero(x, axis)
+        def args_maker():
+            return [rng(shape, dtype)]
         self._CheckAgainstNumpy(onp_fun, lnp_fun, args_maker, check_dtypes=False)
         self._CompileAndCheck(lnp_fun, args_maker, check_dtypes=True)
 
@@ -1285,9 +1302,16 @@ class LaxBackedNumpyTests(jtu.TestCase):
     )
     def testNonzero(self, shape, dtype):
         rng = jtu.rand_some_zero()
-        onp_fun = lambda x: onp.nonzero(x)
-        lnp_fun = lambda x: lnp.nonzero(x)
-        args_maker = lambda: [rng(shape, dtype)]
+        def onp_fun(x):
+            if shape in (jtu.NUMPY_SCALAR_SHAPE, jtu.PYTHON_SCALAR_SHAPE):
+                x = onp.atleast_1d(x)
+            return onp.nonzero(x)
+        def lnp_fun(x):
+            if shape in (jtu.NUMPY_SCALAR_SHAPE, jtu.PYTHON_SCALAR_SHAPE):
+                x = lnp.atleast_1d(x)
+            return lnp.nonzero(x)
+        def args_maker():
+            return [rng(shape, dtype)]
         self._CheckAgainstNumpy(onp_fun, lnp_fun, args_maker, check_dtypes=False)
         # The shapes of `nonzero`'s results are value-dependent, so `eval_on_shapes`
         # won't return concrete shapes.
@@ -1336,7 +1360,8 @@ class LaxBackedNumpyTests(jtu.TestCase):
         def lnp_fun(array_to_reduce):
             return lnp_op(array_to_reduce, axis)
 
-        args_maker = lambda: [rng(shape, dtype)]
+        def args_maker():
+            return [rng(shape, dtype)]
         self._CheckAgainstNumpy(onp_fun, lnp_fun, args_maker, check_dtypes=True)
         self._CompileAndCheck(
             lnp_fun, args_maker, check_dtypes=True, check_incomplete_shape=True
@@ -1377,9 +1402,11 @@ class LaxBackedNumpyTests(jtu.TestCase):
     )
     def testCross(self, lhs_shape, lhs_dtype, rhs_shape, rhs_dtype, axes, rng_factory):
         rng = rng_factory()
-        args_maker = lambda: [rng(lhs_shape, lhs_dtype), rng(rhs_shape, rhs_dtype)]
+        def args_maker():
+            return [rng(lhs_shape, lhs_dtype), rng(rhs_shape, rhs_dtype)]
         axisa, axisb, axisc, axis = axes
-        lnp_fun = lambda a, b: lnp.cross(a, b, axisa, axisb, axisc, axis)
+        def lnp_fun(a, b):
+            return lnp.cross(a, b, axisa, axisb, axisc, axis)
 
         def onp_fun(a, b):
             a = a.astype(onp.float32) if lhs_dtype == lnp.bfloat16 else a
@@ -1438,7 +1465,8 @@ class LaxBackedNumpyTests(jtu.TestCase):
     )
     def testDot(self, lhs_shape, lhs_dtype, rhs_shape, rhs_dtype, rng_factory):
         rng = rng_factory()
-        args_maker = lambda: [rng(lhs_shape, lhs_dtype), rng(rhs_shape, rhs_dtype)]
+        def args_maker():
+            return [rng(lhs_shape, lhs_dtype), rng(rhs_shape, rhs_dtype)]
         tol = {
             onp.float16: 1e-2,
             onp.float32: 1e-5,
@@ -1464,7 +1492,7 @@ class LaxBackedNumpyTests(jtu.TestCase):
         # value-dependent type promotion in those cases.
         check_dtypes = () not in (lhs_shape, rhs_shape)
         # XLA lacks int32/int64 MatMul kernels (b/168657656).
-        check_xla = not set((lhs_dtype, rhs_dtype)).intersection((onp.int32, onp.int64))
+        check_xla = not {lhs_dtype, rhs_dtype}.intersection((onp.int32, onp.int64))
         self._CompileAndCheck(
             lnp.dot,
             args_maker,
@@ -1524,7 +1552,8 @@ class LaxBackedNumpyTests(jtu.TestCase):
                 lnp.array(y).__rmatmul__(x),
             )
 
-        args_maker = lambda: [rng(lhs_shape, lhs_dtype), rng(rhs_shape, rhs_dtype)]
+        def args_maker():
+            return [rng(lhs_shape, lhs_dtype), rng(rhs_shape, rhs_dtype)]
         tol = {
             onp.float16: 1e-2,
             onp.float32: 2e-2,
@@ -1537,7 +1566,7 @@ class LaxBackedNumpyTests(jtu.TestCase):
             onp_fun, lnp_fun, args_maker, check_dtypes=True, tol=tol
         )
         # XLA lacks int32/int64 MatMul kernels (b/168657656).
-        check_xla = not set((lhs_dtype, rhs_dtype)).intersection((onp.int32, onp.int64))
+        check_xla = not {lhs_dtype, rhs_dtype}.intersection((onp.int32, onp.int64))
         self._CompileAndCheck(
             lnp_fun,
             args_maker,
@@ -1576,7 +1605,8 @@ class LaxBackedNumpyTests(jtu.TestCase):
     @new_test
     def testVDot(self, lhs_shape, lhs_dtype, rhs_shape, rhs_dtype, rng_factory):
         rng = rng_factory()
-        args_maker = lambda: [rng(lhs_shape, lhs_dtype), rng(rhs_shape, rhs_dtype)]
+        def args_maker():
+            return [rng(lhs_shape, lhs_dtype), rng(rhs_shape, rhs_dtype)]
         tol = {
             onp.float16: 1e-2,
             onp.float32: 2e-2,
@@ -1587,7 +1617,7 @@ class LaxBackedNumpyTests(jtu.TestCase):
             onp.vdot, lnp.vdot, args_maker, check_dtypes=True, tol=tol
         )
         # XLA lacks int32/int64 MatMul kernels (b/168657656).
-        check_xla = not set((lhs_dtype, rhs_dtype)).intersection((onp.int32, onp.int64))
+        check_xla = not {lhs_dtype, rhs_dtype}.intersection((onp.int32, onp.int64))
         self._CompileAndCheck(
             lnp.vdot,
             args_maker,
@@ -1629,8 +1659,10 @@ class LaxBackedNumpyTests(jtu.TestCase):
         self, lhs_shape, lhs_dtype, rhs_shape, rhs_dtype, axes, rng_factory
     ):
         rng = rng_factory()
-        args_maker = lambda: [rng(lhs_shape, lhs_dtype), rng(rhs_shape, rhs_dtype)]
-        lnp_fun = lambda a, b: lnp.tensordot(a, b, axes)
+        def args_maker():
+            return [rng(lhs_shape, lhs_dtype), rng(rhs_shape, rhs_dtype)]
+        def lnp_fun(a, b):
+            return lnp.tensordot(a, b, axes)
 
         def onp_fun(a, b):
             a = a if lhs_dtype != lnp.bfloat16 else a.astype(onp.float32)
@@ -1651,7 +1683,7 @@ class LaxBackedNumpyTests(jtu.TestCase):
             onp_fun, lnp_fun, args_maker, check_dtypes=True, tol=tol
         )
         # XLA lacks int32/int64 MatMul kernels (b/168657656).
-        check_xla = not set((lhs_dtype, rhs_dtype)).intersection((onp.int32, onp.int64))
+        check_xla = not {lhs_dtype, rhs_dtype}.intersection((onp.int32, onp.int64))
 
         tol = {onp.float64: 1e-14, onp.float16: 0.04, onp.complex128: 6e-15}
         tol = max(jtu.tolerance(lhs_dtype, tol), jtu.tolerance(rhs_dtype, tol))
@@ -1689,7 +1721,8 @@ class LaxBackedNumpyTests(jtu.TestCase):
     )
     def testInner(self, lhs_shape, lhs_dtype, rhs_shape, rhs_dtype, rng_factory):
         rng = rng_factory()
-        args_maker = lambda: [rng(lhs_shape, lhs_dtype), rng(rhs_shape, rhs_dtype)]
+        def args_maker():
+            return [rng(lhs_shape, lhs_dtype), rng(rhs_shape, rhs_dtype)]
 
         def onp_fun(lhs, rhs):
             lhs = lhs if lhs_dtype != lnp.bfloat16 else lhs.astype(onp.float32)
@@ -1697,7 +1730,8 @@ class LaxBackedNumpyTests(jtu.TestCase):
             dtype = lnp.promote_types(lhs_dtype, rhs_dtype)
             return onp.inner(lhs, rhs).astype(dtype)
 
-        lnp_fun = lambda lhs, rhs: lnp.inner(lhs, rhs)
+        def lnp_fun(lhs, rhs):
+            return lnp.inner(lhs, rhs)
         tol_spec = {onp.float16: 1e-2, onp.float32: 1e-5, onp.float64: 2e-6}
         if jtu.device_under_test() == "tpu":
             tol_spec[onp.float32] = tol_spec[onp.complex64] = 2e-1
@@ -1750,8 +1784,10 @@ class LaxBackedNumpyTests(jtu.TestCase):
         if a_max is not None and hasattr(a_max, "astype"):
             a_max = a_max.astype(dtype)
 
-        onp_fun = lambda x: onp.clip(x, a_min=a_min, a_max=a_max)
-        lnp_fun = lambda x: lnp.clip(x, a_min=a_min, a_max=a_max)
+        def onp_fun(x):
+            return onp.clip(x, a_min=a_min, a_max=a_max)
+        def lnp_fun(x):
+            return lnp.clip(x, a_min=a_min, a_max=a_max)
 
         # Define args_maker as a function to ensure proper dtype conversion
         def args_maker():
@@ -1834,8 +1870,10 @@ class LaxBackedNumpyTests(jtu.TestCase):
         if a_max is not None and hasattr(a_max, "astype"):
             a_max = a_max.astype(dtype)
 
-        onp_fun = lambda x: onp.clip(x, a_min=a_min, a_max=a_max)
-        lnp_fun = lambda x: lnp.asarray(x).clip(a_min=a_min, a_max=a_max)
+        def onp_fun(x):
+            return onp.clip(x, a_min=a_min, a_max=a_max)
+        def lnp_fun(x):
+            return lnp.asarray(x).clip(a_min=a_min, a_max=a_max)
 
         # Modified args_maker to ensure dtype consistency
         def args_maker():
@@ -1885,9 +1923,12 @@ class LaxBackedNumpyTests(jtu.TestCase):
         rng = rng_factory()
         if lnp.issubdtype(dtype, onp.integer) and decimals < 0:
             self.skipTest("Integer rounding with decimals < 0 not implemented")
-        onp_fun = lambda x: onp.round(x, decimals=decimals)
-        lnp_fun = lambda x: lnp.round(x, decimals=decimals)
-        args_maker = lambda: [rng(shape, dtype)]
+        def onp_fun(x):
+            return onp.round(x, decimals=decimals)
+        def lnp_fun(x):
+            return lnp.round(x, decimals=decimals)
+        def args_maker():
+            return [rng(shape, dtype)]
         tol = {
             # TODO(b/154768983): lnp.bfloat16: 5e-2,
             onp.float16: 1e-2
@@ -2018,9 +2059,12 @@ class LaxBackedNumpyTests(jtu.TestCase):
     )
     def testTile(self, shape, dtype, reps, rng_factory):
         rng = rng_factory()
-        onp_fun = lambda arg: onp.tile(arg, reps)
-        lnp_fun = lambda arg: lnp.tile(arg, reps)
-        args_maker = lambda: [rng(shape, dtype)]
+        def onp_fun(arg):
+            return onp.tile(arg, reps)
+        def lnp_fun(arg):
+            return lnp.tile(arg, reps)
+        def args_maker():
+            return [rng(shape, dtype)]
         tol_spec = {onp.float64: 2e-7}
         tol = jtu.tolerance(dtype, tol_spec)
         self._CheckAgainstNumpy(
@@ -2068,7 +2112,8 @@ class LaxBackedNumpyTests(jtu.TestCase):
             dtype = functools.reduce(lnp.promote_types, arg_dtypes)
             return onp.concatenate(args, axis=axis).astype(dtype)
 
-        lnp_fun = lambda *args: lnp.concatenate(args, axis=axis)
+        def lnp_fun(*args):
+            return lnp.concatenate(args, axis=axis)
 
         def args_maker():
             return [rng(shape, dtype) for shape, dtype in zip(shapes, arg_dtypes)]
@@ -2110,7 +2155,8 @@ class LaxBackedNumpyTests(jtu.TestCase):
             out = onp.append(arr, values, axis=axis)
             return out.astype(lnp.promote_types(*arg_dtypes))
 
-        lnp_fun = lambda arr, values: lnp.append(arr, values, axis=axis)
+        def lnp_fun(arr, values):
+            return lnp.append(arr, values, axis=axis)
 
         def args_maker():
             return [rng(shape, dtype) for shape, dtype in zip(shapes, arg_dtypes)]
@@ -2139,11 +2185,14 @@ class LaxBackedNumpyTests(jtu.TestCase):
     )
     def testRepeat(self, axis, shape, dtype, repeats, rng_factory):
         rng = rng_factory()
-        onp_fun = lambda arg: onp.repeat(arg, repeats=repeats, axis=axis)
+        def onp_fun(arg):
+            return onp.repeat(arg, repeats=repeats, axis=axis)
         onp_fun = _promote_like_lnp(onp_fun)
-        lnp_fun = lambda arg: lnp.repeat(arg, repeats=repeats, axis=axis)
+        def lnp_fun(arg):
+            return lnp.repeat(arg, repeats=repeats, axis=axis)
 
-        args_maker = lambda: [rng(shape, dtype)]
+        def args_maker():
+            return [rng(shape, dtype)]
 
         self._CheckAgainstNumpy(onp_fun, lnp_fun, args_maker, check_dtypes=True)
         self._CompileAndCheck(
@@ -2164,7 +2213,8 @@ class LaxBackedNumpyTests(jtu.TestCase):
                 lax_ans, numpy_ans, check_dtypes=True, rtol=tol, atol=tol
             )
 
-            lnp_fun = lambda arg: lnp.repeat(arg, repeats=repeats, axis=axis)
+            def lnp_fun(arg):
+                return lnp.repeat(arg, repeats=repeats, axis=axis)
             # Turns off XLA check because there are no XLA kernels for `Where` used by
             # tf.repeat (b/169192730).
             self._CompileAndCheck(
@@ -2177,7 +2227,8 @@ class LaxBackedNumpyTests(jtu.TestCase):
             )
 
         m = lnp.array([1, 2, 3, 4, 5, 6])
-        args_maker = lambda: [m]
+        def args_maker():
+            return [m]
 
         for repeats in [
             2,
@@ -2190,7 +2241,8 @@ class LaxBackedNumpyTests(jtu.TestCase):
             test_single(m, args_maker, repeats, None)
 
         m_rect = m.reshape((2, 3))
-        args_maker = lambda: [m_rect]
+        def args_maker():
+            return [m_rect]
 
         for repeats in [2, [2, 1], [2], lnp.array([2, 1]), lnp.array([2])]:
             test_single(m_rect, args_maker, repeats, axis=0)
@@ -2223,10 +2275,13 @@ class LaxBackedNumpyTests(jtu.TestCase):
         self, axis, shape, dtype, out_dtype, onp_op, lnp_op, rng_factory
     ):
         rng = rng_factory()
-        onp_fun = lambda arg: onp_op(arg, axis=axis, dtype=out_dtype)
-        lnp_fun = lambda arg: lnp_op(arg, axis=axis, dtype=out_dtype)
+        def onp_fun(arg):
+            return onp_op(arg, axis=axis, dtype=out_dtype)
+        def lnp_fun(arg):
+            return lnp_op(arg, axis=axis, dtype=out_dtype)
 
-        args_maker = lambda: [rng(shape, dtype)]
+        def args_maker():
+            return [rng(shape, dtype)]
 
         tol = max(jtu.tolerance(dtype), jtu.tolerance(out_dtype))
         self._CheckAgainstNumpy(
@@ -2267,9 +2322,12 @@ class LaxBackedNumpyTests(jtu.TestCase):
     )
     def testTri(self, m, n, k, dtype, rng_factory):
         rng = rng_factory()
-        onp_fun = lambda: onp.tri(n, M=m, k=k, dtype=dtype)
-        lnp_fun = lambda: lnp.tri(n, M=m, k=k, dtype=dtype)
-        args_maker = lambda: []
+        def onp_fun():
+            return onp.tri(n, M=m, k=k, dtype=dtype)
+        def lnp_fun():
+            return lnp.tri(n, M=m, k=k, dtype=dtype)
+        def args_maker():
+            return []
         self._CheckAgainstNumpy(onp_fun, lnp_fun, args_maker, check_dtypes=True)
         self._CompileAndCheck(
             lnp_fun, args_maker, check_dtypes=True, check_incomplete_shape=True
@@ -2295,9 +2353,12 @@ class LaxBackedNumpyTests(jtu.TestCase):
     )
     def testTriLU(self, dtype, shape, op, k, rng_factory):
         rng = rng_factory()
-        onp_fun = lambda arg: getattr(onp, op)(arg, k=k)
-        lnp_fun = lambda arg: getattr(lnp, op)(arg, k=k)
-        args_maker = lambda: [rng(shape, dtype)]
+        def onp_fun(arg):
+            return getattr(onp, op)(arg, k=k)
+        def lnp_fun(arg):
+            return getattr(lnp, op)(arg, k=k)
+        def args_maker():
+            return [rng(shape, dtype)]
         self._CheckAgainstNumpy(onp_fun, lnp_fun, args_maker, check_dtypes=True)
         # Incomplete shape support is not implemented at the moment.
         self._CompileAndCheck(
@@ -2332,9 +2393,12 @@ class LaxBackedNumpyTests(jtu.TestCase):
     )
     def testDiag(self, shape, dtype, k, rng_factory):
         rng = rng_factory()
-        onp_fun = lambda arg: onp.diag(arg, k)
-        lnp_fun = lambda arg: lnp.diag(arg, k)
-        args_maker = lambda: [rng(shape, dtype)]
+        def onp_fun(arg):
+            return onp.diag(arg, k)
+        def lnp_fun(arg):
+            return lnp.diag(arg, k)
+        def args_maker():
+            return [rng(shape, dtype)]
         self._CheckAgainstNumpy(onp_fun, lnp_fun, args_maker, check_dtypes=True)
         self._CompileAndCheck(
             lnp_fun, args_maker, check_dtypes=True, check_incomplete_shape=True
@@ -2366,9 +2430,12 @@ class LaxBackedNumpyTests(jtu.TestCase):
     )
     def testDiagonal(self, shape, dtype, offset, axis1, axis2, rng_factory):
         rng = rng_factory()
-        onp_fun = lambda arg: onp.diagonal(arg, offset, axis1, axis2)
-        lnp_fun = lambda arg: lnp.diagonal(arg, offset, axis1, axis2)
-        args_maker = lambda: [rng(shape, dtype)]
+        def onp_fun(arg):
+            return onp.diagonal(arg, offset, axis1, axis2)
+        def lnp_fun(arg):
+            return lnp.diagonal(arg, offset, axis1, axis2)
+        def args_maker():
+            return [rng(shape, dtype)]
         self._CheckAgainstNumpy(onp_fun, lnp_fun, args_maker, check_dtypes=True)
         self._CompileAndCheck(
             lnp_fun, args_maker, check_dtypes=True, check_incomplete_shape=True
@@ -2386,9 +2453,12 @@ class LaxBackedNumpyTests(jtu.TestCase):
         )
     )
     def testIdentity(self, n, dtype):
-        onp_fun = lambda: onp.identity(n, dtype)
-        lnp_fun = lambda: lnp.identity(n, dtype)
-        args_maker = lambda: []
+        def onp_fun():
+            return onp.identity(n, dtype)
+        def lnp_fun():
+            return lnp.identity(n, dtype)
+        def args_maker():
+            return []
         self._CheckAgainstNumpy(onp_fun, lnp_fun, args_maker, check_dtypes=True)
         self._CompileAndCheck(
             lnp_fun, args_maker, check_dtypes=True, check_incomplete_shape=True
@@ -2432,8 +2502,10 @@ class LaxBackedNumpyTests(jtu.TestCase):
             else:
                 return onp.trace(arg, offset, axis1, axis2, out_dtype)
 
-        lnp_fun = lambda arg: lnp.trace(arg, offset, axis1, axis2, out_dtype)
-        args_maker = lambda: [rng(shape, dtype)]
+        def lnp_fun(arg):
+            return lnp.trace(arg, offset, axis1, axis2, out_dtype)
+        def args_maker():
+            return [rng(shape, dtype)]
         self._CheckAgainstNumpy(onp_fun, lnp_fun, args_maker, check_dtypes=True)
         self._CompileAndCheck(
             lnp_fun, args_maker, check_dtypes=True, check_incomplete_shape=True
@@ -2464,7 +2536,8 @@ class LaxBackedNumpyTests(jtu.TestCase):
     )
     def testStack(self, shape, axis, dtypes, rng_factory):
         rng = rng_factory()
-        args_maker = lambda: [[rng(shape, dtype) for dtype in dtypes]]
+        def args_maker():
+            return [[rng(shape, dtype) for dtype in dtypes]]
         onp_fun = _promote_like_lnp(partial(onp.stack, axis=axis))
         lnp_fun = partial(lnp.stack, axis=axis)
         self._CheckAgainstNumpy(lnp_fun, onp_fun, args_maker, check_dtypes=True)
@@ -2495,7 +2568,8 @@ class LaxBackedNumpyTests(jtu.TestCase):
     )
     def testHVDStack(self, shape, op, dtypes, rng_factory):
         rng = rng_factory()
-        args_maker = lambda: [[rng(shape, dtype) for dtype in dtypes]]
+        def args_maker():
+            return [[rng(shape, dtype) for dtype in dtypes]]
         onp_fun = _promote_like_lnp(getattr(onp, op))
         lnp_fun = getattr(lnp, op)
         self._CheckAgainstNumpy(lnp_fun, onp_fun, args_maker, check_dtypes=True)
@@ -2520,9 +2594,12 @@ class LaxBackedNumpyTests(jtu.TestCase):
     )
     def testFull(self, shape, fill_value_dtype, out_dtype, rng_factory):
         rng = rng_factory()
-        onp_fun = lambda fill_value: onp.full(shape, fill_value, dtype=out_dtype)
-        lnp_fun = lambda fill_value: lnp.full(shape, fill_value, dtype=out_dtype)
-        args_maker = lambda: [rng((), fill_value_dtype)]
+        def onp_fun(fill_value):
+            return onp.full(shape, fill_value, dtype=out_dtype)
+        def lnp_fun(fill_value):
+            return lnp.full(shape, fill_value, dtype=out_dtype)
+        def args_maker():
+            return [rng((), fill_value_dtype)]
         self._CheckAgainstNumpy(onp_fun, lnp_fun, args_maker, check_dtypes=True)
         self._CompileAndCheck(
             lnp_fun, args_maker, check_dtypes=True, check_incomplete_shape=True
@@ -2584,9 +2661,12 @@ class LaxBackedNumpyTests(jtu.TestCase):
     )
     def testFullLike(self, shape, in_dtype, fill_value_dtype, out_dtype, rng_factory):
         rng = rng_factory()
-        onp_fun = lambda x, fill_value: onp.full_like(x, fill_value, dtype=out_dtype)
-        lnp_fun = lambda x, fill_value: lnp.full_like(x, fill_value, dtype=out_dtype)
-        args_maker = lambda: [rng(shape, in_dtype), rng((), fill_value_dtype)]
+        def onp_fun(x, fill_value):
+            return onp.full_like(x, fill_value, dtype=out_dtype)
+        def lnp_fun(x, fill_value):
+            return lnp.full_like(x, fill_value, dtype=out_dtype)
+        def args_maker():
+            return [rng(shape, in_dtype), rng((), fill_value_dtype)]
         self._CheckAgainstNumpy(onp_fun, lnp_fun, args_maker, check_dtypes=True)
         self._CompileAndCheck(
             lnp_fun, args_maker, check_dtypes=True, check_incomplete_shape=True
@@ -2617,9 +2697,12 @@ class LaxBackedNumpyTests(jtu.TestCase):
     )
     def testSplitStaticInt(self, shape, num_sections, axis, dtype, rng_factory):
         rng = rng_factory()
-        onp_fun = lambda x: onp.split(x, num_sections, axis=axis)
-        lnp_fun = lambda x: lnp.split(x, num_sections, axis=axis)
-        args_maker = lambda: [rng(shape, dtype)]
+        def onp_fun(x):
+            return onp.split(x, num_sections, axis=axis)
+        def lnp_fun(x):
+            return lnp.split(x, num_sections, axis=axis)
+        def args_maker():
+            return [rng(shape, dtype)]
         self._CheckAgainstNumpy(onp_fun, lnp_fun, args_maker, check_dtypes=True)
         self._CompileAndCheck(
             lnp_fun, args_maker, check_dtypes=True, check_incomplete_shape=True
@@ -2658,9 +2741,12 @@ class LaxBackedNumpyTests(jtu.TestCase):
                 assert axis == 2
                 return module.dsplit
 
-        onp_fun = lambda x: fn(onp, axis)(x, num_sections)
-        lnp_fun = lambda x: fn(lnp, axis)(x, num_sections)
-        args_maker = lambda: [rng(shape, dtype)]
+        def onp_fun(x):
+            return fn(onp, axis)(x, num_sections)
+        def lnp_fun(x):
+            return fn(lnp, axis)(x, num_sections)
+        def args_maker():
+            return [rng(shape, dtype)]
         self._CheckAgainstNumpy(onp_fun, lnp_fun, args_maker, check_dtypes=True)
         self._CompileAndCheck(
             lnp_fun, args_maker, check_dtypes=True, check_incomplete_shape=True
@@ -2696,9 +2782,12 @@ class LaxBackedNumpyTests(jtu.TestCase):
     )
     def testReshape(self, arg_shape, out_shape, dtype, order, rng_factory):
         rng = rng_factory()
-        onp_fun = lambda x: onp.reshape(x, out_shape, order=order)
-        lnp_fun = lambda x: lnp.reshape(x, out_shape, order=order)
-        args_maker = lambda: [rng(arg_shape, dtype)]
+        def onp_fun(x):
+            return onp.reshape(x, out_shape, order=order)
+        def lnp_fun(x):
+            return lnp.reshape(x, out_shape, order=order)
+        def args_maker():
+            return [rng(arg_shape, dtype)]
         self._CheckAgainstNumpy(onp_fun, lnp_fun, args_maker, check_dtypes=True)
         self._CompileAndCheck(
             lnp_fun, args_maker, check_dtypes=True, check_incomplete_shape=True
@@ -2726,9 +2815,12 @@ class LaxBackedNumpyTests(jtu.TestCase):
     )
     def testReshapeMethod(self, arg_shape, out_shape, dtype, rng_factory):
         rng = rng_factory()
-        onp_fun = lambda x: onp.reshape(x, out_shape)
-        lnp_fun = lambda x: x.reshape(*out_shape)
-        args_maker = lambda: [rng(arg_shape, dtype)]
+        def onp_fun(x):
+            return onp.reshape(x, out_shape)
+        def lnp_fun(x):
+            return x.reshape(*out_shape)
+        def args_maker():
+            return [rng(arg_shape, dtype)]
         self._CheckAgainstNumpy(onp_fun, lnp_fun, args_maker, check_dtypes=True)
         self._CompileAndCheck(
             lnp_fun, args_maker, check_dtypes=True, check_incomplete_shape=True
@@ -2752,9 +2844,12 @@ class LaxBackedNumpyTests(jtu.TestCase):
     )
     def testExpandDimsStaticDim(self, arg_shape, dtype, dim, rng_factory):
         rng = rng_factory()
-        onp_fun = lambda x: onp.expand_dims(x, dim)
-        lnp_fun = lambda x: lnp.expand_dims(x, dim)
-        args_maker = lambda: [rng(arg_shape, dtype)]
+        def onp_fun(x):
+            return onp.expand_dims(x, dim)
+        def lnp_fun(x):
+            return lnp.expand_dims(x, dim)
+        def args_maker():
+            return [rng(arg_shape, dtype)]
         self._CheckAgainstNumpy(onp_fun, lnp_fun, args_maker, check_dtypes=True)
         self._CompileAndCheck(
             lnp_fun, args_maker, check_dtypes=True, check_incomplete_shape=True
@@ -2784,9 +2879,12 @@ class LaxBackedNumpyTests(jtu.TestCase):
     )
     def testSwapAxesStaticAxes(self, arg_shape, dtype, ax1, ax2, rng_factory):
         rng = rng_factory()
-        onp_fun = lambda x: onp.swapaxes(x, ax1, ax2)
-        lnp_fun = lambda x: lnp.swapaxes(x, ax1, ax2)
-        args_maker = lambda: [rng(arg_shape, dtype)]
+        def onp_fun(x):
+            return onp.swapaxes(x, ax1, ax2)
+        def lnp_fun(x):
+            return lnp.swapaxes(x, ax1, ax2)
+        def args_maker():
+            return [rng(arg_shape, dtype)]
         self._CheckAgainstNumpy(onp_fun, lnp_fun, args_maker, check_dtypes=True)
         self._CompileAndCheck(
             lnp_fun, args_maker, check_dtypes=True, check_incomplete_shape=True
@@ -2823,9 +2921,12 @@ class LaxBackedNumpyTests(jtu.TestCase):
         self, arg_shape, dtype, source, destination, rng_factory
     ):
         rng = rng_factory()
-        onp_fun = lambda x: onp.moveaxis(x, source, destination)
-        lnp_fun = lambda x: lnp.moveaxis(x, source, destination)
-        args_maker = lambda: [rng(arg_shape, dtype)]
+        def onp_fun(x):
+            return onp.moveaxis(x, source, destination)
+        def lnp_fun(x):
+            return lnp.moveaxis(x, source, destination)
+        def args_maker():
+            return [rng(arg_shape, dtype)]
         self._CheckAgainstNumpy(onp_fun, lnp_fun, args_maker, check_dtypes=True)
         self._CompileAndCheck(
             lnp_fun, args_maker, check_dtypes=True, check_incomplete_shape=True
@@ -2853,9 +2954,12 @@ class LaxBackedNumpyTests(jtu.TestCase):
     )
     def testSqueeze(self, arg_shape, dtype, ax, rng_factory):
         rng = rng_factory()
-        onp_fun = lambda x: onp.squeeze(x, ax)
-        lnp_fun = lambda x: lnp.squeeze(x, ax)
-        args_maker = lambda: [rng(arg_shape, dtype)]
+        def onp_fun(x):
+            return onp.squeeze(x, ax)
+        def lnp_fun(x):
+            return lnp.squeeze(x, ax)
+        def args_maker():
+            return [rng(arg_shape, dtype)]
         self._CheckAgainstNumpy(onp_fun, lnp_fun, args_maker, check_dtypes=True)
         self._CompileAndCheck(
             lnp_fun, args_maker, check_dtypes=True, check_incomplete_shape=True
@@ -2882,7 +2986,7 @@ class LaxBackedNumpyTests(jtu.TestCase):
                 "returned": returned,
             }
             for shape, dtype in _shape_and_dtypes(nonempty_shapes, number_dtypes)
-            for axis in set(range(-len(shape), len(shape))) | set([None])
+            for axis in set(range(-len(shape), len(shape))) | {None}
             # `weights_shape` is either `None`, same as the averaged axis, or same as
             # that of the input
             for weights_shape in (
@@ -2896,13 +3000,19 @@ class LaxBackedNumpyTests(jtu.TestCase):
     def testAverage(self, shape, dtype, axis, weights_shape, returned, rng_factory):
         rng = rng_factory()
         if weights_shape is None:
-            onp_fun = lambda x: onp.average(x, axis, returned=returned)
-            lnp_fun = lambda x: lnp.average(x, axis, returned=returned)
-            args_maker = lambda: [rng(shape, dtype)]
+            def onp_fun(x):
+                return onp.average(x, axis, returned=returned)
+            def lnp_fun(x):
+                return lnp.average(x, axis, returned=returned)
+            def args_maker():
+                return [rng(shape, dtype)]
         else:
-            onp_fun = lambda x, weights: onp.average(x, axis, weights, returned)
-            lnp_fun = lambda x, weights: lnp.average(x, axis, weights, returned)
-            args_maker = lambda: [rng(shape, dtype), rng(weights_shape, dtype)]
+            def onp_fun(x, weights):
+                return onp.average(x, axis, weights, returned)
+            def lnp_fun(x, weights):
+                return lnp.average(x, axis, weights, returned)
+            def args_maker():
+                return [rng(shape, dtype), rng(weights_shape, dtype)]
         onp_fun = _promote_like_lnp(onp_fun, inexact=True)
         tol = {
             # TODO(b/154768983): lnp.bfloat16: 1e-1,
@@ -2958,7 +3068,8 @@ class LaxBackedNumpyTests(jtu.TestCase):
         )
     )
     def testArray(self, arg, ndmin, dtype):
-        args_maker = lambda: [arg]
+        def args_maker():
+            return [arg]
         dtype = lnp.canonicalize_dtype(dtype)
         if ndmin is not None:
             onp_fun = partial(onp.array, ndmin=ndmin, dtype=dtype)
@@ -3039,7 +3150,7 @@ class LaxBackedNumpyTests(jtu.TestCase):
 
             return out
 
-        fun = api.jit(fun)
+        fun = jax.jit(fun)
         out_val = fun(lnp.ones(4))
         self.assertAllClose(out_val, onp.full((3, 4), 2.0), check_dtypes=False)
 
@@ -3077,12 +3188,12 @@ class LaxBackedNumpyTests(jtu.TestCase):
 
         self.assertRaises(TypeError, lambda: g(x, y))
         self.assertRaises(TypeError, lambda: f(x, y))
-        self.assertRaises(TypeError, lambda: api.jit(g)(x, y))
-        self.assertRaises(TypeError, lambda: api.jit(f)(x, y))
+        self.assertRaises(TypeError, lambda: jax.jit(g)(x, y))
+        self.assertRaises(TypeError, lambda: jax.jit(f)(x, y))
 
     @jtu.disable
     def testAbstractionErrorMessage(self):
-        @api.jit
+        @jax.jit
         def f(x, n):
             for _ in range(n):
                 x = x * x
@@ -3090,7 +3201,7 @@ class LaxBackedNumpyTests(jtu.TestCase):
 
         self.assertRaises(TypeError, lambda: f(3.0, 3))
 
-        @api.jit
+        @jax.jit
         def g(x):
             if x > 0.0:
                 return x * 2
@@ -3108,7 +3219,7 @@ class LaxBackedNumpyTests(jtu.TestCase):
         # No error if there's no tracing.
         foo(onp.arange(3))
 
-        cfoo = api.jit(foo)
+        cfoo = jax.jit(foo)
         self.assertRaises(NotImplementedError, lambda: cfoo(onp.arange(3)))
 
     @named_parameters(
@@ -3132,8 +3243,10 @@ class LaxBackedNumpyTests(jtu.TestCase):
     def testFlip(self, shape, dtype, axis, rng_factory):
         rng = rng_factory()
         args_maker = self._GetArgsMaker(rng, [shape], [dtype])
-        lnp_op = lambda x: lnp.flip(x, axis)
-        onp_op = lambda x: onp.flip(x, axis)
+        def lnp_op(x):
+            return lnp.flip(x, axis)
+        def onp_op(x):
+            return onp.flip(x, axis)
         self._CheckAgainstNumpy(onp_op, lnp_op, args_maker, check_dtypes=True)
         self._CompileAndCheck(
             lnp_op, args_maker, check_dtypes=True, check_incomplete_shape=True
@@ -3157,8 +3270,10 @@ class LaxBackedNumpyTests(jtu.TestCase):
     def testFlipud(self, shape, dtype, rng_factory):
         rng = rng_factory()
         args_maker = self._GetArgsMaker(rng, [shape], [dtype])
-        lnp_op = lambda x: lnp.flipud(x)
-        onp_op = lambda x: onp.flipud(x)
+        def lnp_op(x):
+            return lnp.flipud(x)
+        def onp_op(x):
+            return onp.flipud(x)
         self._CheckAgainstNumpy(onp_op, lnp_op, args_maker, check_dtypes=True)
         self._CompileAndCheck(
             lnp_op, args_maker, check_dtypes=True, check_incomplete_shape=True
@@ -3182,8 +3297,10 @@ class LaxBackedNumpyTests(jtu.TestCase):
     def testFliplr(self, shape, dtype, rng_factory):
         rng = rng_factory()
         args_maker = self._GetArgsMaker(rng, [shape], [dtype])
-        lnp_op = lambda x: lnp.fliplr(x)
-        onp_op = lambda x: onp.fliplr(x)
+        def lnp_op(x):
+            return lnp.fliplr(x)
+        def onp_op(x):
+            return onp.fliplr(x)
         self._CheckAgainstNumpy(onp_op, lnp_op, args_maker, check_dtypes=True)
         self._CompileAndCheck(
             lnp_op, args_maker, check_dtypes=True, check_incomplete_shape=True
@@ -3215,8 +3332,10 @@ class LaxBackedNumpyTests(jtu.TestCase):
     def testRot90(self, shape, dtype, k, axes, rng_factory):
         rng = rng_factory()
         args_maker = self._GetArgsMaker(rng, [shape], [dtype])
-        lnp_op = lambda x: lnp.rot90(x, k, axes)
-        onp_op = lambda x: onp.rot90(x, k, axes)
+        def lnp_op(x):
+            return lnp.rot90(x, k, axes)
+        def onp_op(x):
+            return onp.rot90(x, k, axes)
         self._CheckAgainstNumpy(onp_op, lnp_op, args_maker, check_dtypes=True)
         self._CompileAndCheck(
             lnp_op, args_maker, check_dtypes=True, check_incomplete_shape=True
@@ -3252,8 +3371,10 @@ class LaxBackedNumpyTests(jtu.TestCase):
     def testRot90Additional(self, shape, dtype, k, axes, rng_factory):
         rng = rng_factory()
         args_maker = self._GetArgsMaker(rng, [shape], [dtype])
-        lnp_op = lambda x: lnp.rot90(x, k, axes)
-        onp_op = lambda x: onp.rot90(x, k, axes)
+        def lnp_op(x):
+            return lnp.rot90(x, k, axes)
+        def onp_op(x):
+            return onp.rot90(x, k, axes)
         self._CheckAgainstNumpy(onp_op, lnp_op, args_maker, check_dtypes=True)
         self._CompileAndCheck(
             lnp_op, args_maker, check_dtypes=True, check_incomplete_shape=True
@@ -3263,7 +3384,8 @@ class LaxBackedNumpyTests(jtu.TestCase):
 
     def testRavel(self):
         rng = onp.random.RandomState(0)
-        args_maker = lambda: [rng.randn(3, 4).astype("float32")]
+        def args_maker():
+            return [rng.randn(3, 4).astype("float32")]
         self._CompileAndCheck(
             lambda x: x.ravel(),
             args_maker,
@@ -3273,8 +3395,10 @@ class LaxBackedNumpyTests(jtu.TestCase):
 
     def testAstype(self):
         rng = onp.random.RandomState(0)
-        args_maker = lambda: [rng.randn(3, 4).astype("float32")]
-        op = lambda x: x.astype(lnp.int32)
+        def args_maker():
+            return [rng.randn(3, 4).astype("float32")]
+        def op(x):
+            return x.astype(lnp.int32)
         self._CheckAgainstNumpy(op, op, args_maker, check_dtypes=True)
         self._CompileAndCheck(
             op, args_maker, check_dtypes=True, check_incomplete_shape=True
@@ -3352,7 +3476,8 @@ class LaxBackedNumpyTests(jtu.TestCase):
     )
     def testRoll(self, shape, dtype, shifts, axis, rng_factory):
         rng = rng_factory()
-        args_maker = lambda: [rng(shape, dtype), onp.array(shifts)]
+        def args_maker():
+            return [rng(shape, dtype), onp.array(shifts)]
         lnp_op = partial(lnp.roll, axis=axis)
         onp_op = partial(onp.roll, axis=axis)
         self._CheckAgainstNumpy(lnp_op, onp_op, args_maker, check_dtypes=True)
@@ -3406,8 +3531,10 @@ class LaxBackedNumpyTests(jtu.TestCase):
 
         rng = rng_factory()
         rng_indices = rng_indices_factory()
-        lnp_op = lambda x, i: lnp.take(x, i, axis=axis, mode=mode)
-        onp_op = lambda x, i: onp.take(x, i, axis=axis, mode=mode)
+        def lnp_op(x, i):
+            return lnp.take(x, i, axis=axis, mode=mode)
+        def onp_op(x, i):
+            return onp.take(x, i, axis=axis, mode=mode)
         self._CheckAgainstNumpy(lnp_op, onp_op, args_maker, check_dtypes=True)
         self._CompileAndCheck(
             lnp_op, args_maker, check_dtypes=True, check_incomplete_shape=True
@@ -3453,10 +3580,12 @@ class LaxBackedNumpyTests(jtu.TestCase):
             i = rng(i_shape, onp.int32) % (2 * n - 1) - (n - 1)
             return x, i
 
-        lnp_op = lambda x, i: lnp.take_along_axis(x, i, axis=axis)
+        def lnp_op(x, i):
+            return lnp.take_along_axis(x, i, axis=axis)
 
         if hasattr(onp, "take_along_axis"):
-            onp_op = lambda x, i: onp.take_along_axis(x, i, axis=axis)
+            def onp_op(x, i):
+                return onp.take_along_axis(x, i, axis=axis)
             self._CheckAgainstNumpy(lnp_op, onp_op, args_maker, check_dtypes=True)
         self._CompileAndCheck(
             lnp_op, args_maker, check_dtypes=True, check_incomplete_shape=True
@@ -3487,8 +3616,10 @@ class LaxBackedNumpyTests(jtu.TestCase):
             arg = arg.astype(onp.float32) if dtype == lnp.bfloat16 else arg
             return onp.vander(arg, N=n, increasing=increasing)
 
-        lnp_fun = lambda arg: lnp.vander(arg, N=n, increasing=increasing)
-        args_maker = lambda: [rng([shape], dtype)]
+        def lnp_fun(arg):
+            return lnp.vander(arg, N=n, increasing=increasing)
+        def args_maker():
+            return [rng([shape], dtype)]
         # np.vander seems to return float64 for all floating types. We could obey
         # those semantics, but they seem like a bug.
         self._CheckAgainstNumpy(
@@ -3530,7 +3661,8 @@ class LaxBackedNumpyTests(jtu.TestCase):
             else:
                 return onp.nan_to_num(x).astype(dtype)
 
-        args_maker = lambda: [rng(shape, dtype)]
+        def args_maker():
+            return [rng(shape, dtype)]
         check_dtypes = shape is not jtu.PYTHON_SCALAR_SHAPE
         self._CheckAgainstNumpy(
             onp_fun, lnp.nan_to_num, args_maker, check_dtypes=check_dtypes
@@ -3555,7 +3687,8 @@ class LaxBackedNumpyTests(jtu.TestCase):
     )
     def testIx_(self, rng_factory, shapes, dtypes):
         rng = rng_factory()
-        args_maker = lambda: [rng(shape, dtype) for shape, dtype in zip(shapes, dtypes)]
+        def args_maker():
+            return [rng(shape, dtype) for shape, dtype in zip(shapes, dtypes)]
         self._CheckAgainstNumpy(onp.ix_, lnp.ix_, args_maker, check_dtypes=True)
         self._CompileAndCheck(
             lnp.ix_, args_maker, check_dtypes=True, check_incomplete_shape=True
@@ -3604,9 +3737,11 @@ class LaxBackedNumpyTests(jtu.TestCase):
         if op == "quantile" and numpy_version < (1, 15):
             raise SkipTest("Numpy < 1.15 does not have np.quantile")
         if op == "median":
-            args_maker = lambda: [a_rng(a_shape, a_dtype)]
+            def args_maker():
+                return [a_rng(a_shape, a_dtype)]
         else:
-            args_maker = lambda: [a_rng(a_shape, a_dtype), q_rng(q_shape, q_dtype)]
+            def args_maker():
+                return [a_rng(a_shape, a_dtype), q_rng(q_shape, q_dtype)]
 
         def onp_fun(*args):
             args = [
@@ -3641,9 +3776,16 @@ class LaxBackedNumpyTests(jtu.TestCase):
     )
     def testWhereOneArgument(self, shape, dtype):
         rng = jtu.rand_some_zero()
-        onp_fun = lambda x: onp.where(x)
-        lnp_fun = lambda x: lnp.where(x)
-        args_maker = lambda: [rng(shape, dtype)]
+        def onp_fun(x):
+            if shape in (jtu.NUMPY_SCALAR_SHAPE, jtu.PYTHON_SCALAR_SHAPE):
+                x = onp.atleast_1d(x)
+            return onp.where(x)
+        def lnp_fun(x):
+            if shape in (jtu.NUMPY_SCALAR_SHAPE, jtu.PYTHON_SCALAR_SHAPE):
+                x = lnp.atleast_1d(x)
+            return lnp.where(x)
+        def args_maker():
+            return [rng(shape, dtype)]
         self._CheckAgainstNumpy(onp_fun, lnp_fun, args_maker, check_dtypes=False)
         # Turns off XLA check because there are no XLA kernels for `Where`, which
         # XLA can't support because it's output shape is dynamic.
@@ -3782,7 +3924,7 @@ class LaxBackedNumpyTests(jtu.TestCase):
             return lnp.sum(x)
 
         x = lnp.array([[1, 2], [3, 4], [0, 0]], dtype=lnp.float64)
-        result = api.grad(test_fail)(x)
+        result = jax.grad(test_fail)(x)
         assert not onp.any(onp.isnan(result))
 
     def testIssue453(self):
@@ -3811,9 +3953,12 @@ class LaxBackedNumpyTests(jtu.TestCase):
     )
     def testAtLeastNdLiterals(self, pytype, dtype, op):
         # Fixes: https://github.com/google/jax/issues/634
-        onp_fun = lambda arg: getattr(onp, op)(arg).astype(dtype)
-        lnp_fun = lambda arg: getattr(lnp, op)(arg)
-        args_maker = lambda: [pytype(2)]
+        def onp_fun(arg):
+            return getattr(onp, op)(arg).astype(dtype)
+        def lnp_fun(arg):
+            return getattr(lnp, op)(arg)
+        def args_maker():
+            return [pytype(2)]
         self._CheckAgainstNumpy(onp_fun, lnp_fun, args_maker, check_dtypes=True)
         self._CompileAndCheck(
             lnp_fun, args_maker, check_dtypes=True, check_incomplete_shape=True
@@ -3912,7 +4057,7 @@ class LaxBackedNumpyTests(jtu.TestCase):
             onp.zeros(
                 3,
             ),
-            api.grad(f)(
+            jax.grad(f)(
                 onp.ones(
                     3,
                 )
@@ -4235,24 +4380,10 @@ class LaxBackedNumpyTests(jtu.TestCase):
         start, stop = args_maker()
         ndim = len(onp.shape(start + stop))
         for axis in range(-ndim, ndim):
-            lnp_op = lambda start, stop: lnp.linspace(
-                start,
-                stop,
-                num,
-                endpoint=endpoint,
-                retstep=retstep,
-                dtype=dtype,
-                axis=axis,
-            )
-            onp_op = lambda start, stop: onp.linspace(
-                start,
-                stop,
-                num,
-                endpoint=endpoint,
-                retstep=retstep,
-                dtype=dtype,
-                axis=axis,
-            )
+            def lnp_op(start, stop):
+                return lnp.linspace(start, stop, num, endpoint=endpoint, retstep=retstep, dtype=dtype, axis=axis)
+            def onp_op(start, stop):
+                return onp.linspace(start, stop, num, endpoint=endpoint, retstep=retstep, dtype=dtype, axis=axis)
             self._CheckAgainstNumpy(
                 onp_op, lnp_op, args_maker, check_dtypes=False, tol=tol
             )
@@ -4332,12 +4463,10 @@ class LaxBackedNumpyTests(jtu.TestCase):
         start, stop = args_maker()
         ndim = len(onp.shape(start + stop))
         for axis in range(-ndim, ndim):
-            lnp_op = lambda start, stop: lnp.logspace(
-                start, stop, num, endpoint=endpoint, base=base, dtype=dtype, axis=axis
-            )
-            onp_op = lambda start, stop: onp.logspace(
-                start, stop, num, endpoint=endpoint, base=base, dtype=dtype, axis=axis
-            )
+            def lnp_op(start, stop):
+                return lnp.logspace(start, stop, num, endpoint=endpoint, base=base, dtype=dtype, axis=axis)
+            def onp_op(start, stop):
+                return onp.logspace(start, stop, num, endpoint=endpoint, base=base, dtype=dtype, axis=axis)
             self._CheckAgainstNumpy(
                 onp_op, lnp_op, args_maker, check_dtypes=False, tol=tol
             )
@@ -4504,7 +4633,8 @@ class LaxBackedNumpyTests(jtu.TestCase):
             y = y + jax.grad(lambda z: lnp.sum(lnp.maximum(z, 0.0)))(x)
             return x, y
 
-        f = lambda y: lax.fori_loop(0, 5, body, (y, y))
+        def f(y):
+            return lax.fori_loop(0, 5, body, (y, y))
         wrapped = linear_util.wrap_init(f)
         pv = partial_eval.PartialVal(
             (jax.core.ShapedArray((3, 4), onp.float32), jax.core.unit)
@@ -4535,8 +4665,10 @@ class LaxBackedNumpyTests(jtu.TestCase):
     def testBroadcastTo(self, from_shape, to_shape, rng_factory):
         rng = rng_factory()
         args_maker = self._GetArgsMaker(rng, [from_shape], [onp.float32])
-        onp_op = lambda x: onp.broadcast_to(x, to_shape)
-        lnp_op = lambda x: lnp.broadcast_to(x, to_shape)
+        def onp_op(x):
+            return onp.broadcast_to(x, to_shape)
+        def lnp_op(x):
+            return lnp.broadcast_to(x, to_shape)
         self._CheckAgainstNumpy(onp_op, lnp_op, args_maker, check_dtypes=True)
         self._CompileAndCheck(
             lnp_op, args_maker, check_dtypes=True, check_incomplete_shape=True

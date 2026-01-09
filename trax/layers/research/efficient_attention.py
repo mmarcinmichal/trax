@@ -2234,7 +2234,7 @@ class LSHSelfAttention(base.Layer):
         # np.take(so, undo_sort, axis=0); np.take(slogits, undo_sort, axis=0) would
         # also work, but these helpers include performance optimizations for TPU.
         o = permute_via_gather(so, undo_sort, sticker, axis=0)
-        logits = permute_via_sort(slogits, sticker, buckets_and_t, axis=-1)
+        logits = permute_via_gather(slogits, undo_sort, sticker, axis=0)
 
         if self._n_hashes > 1:
             o = np.reshape(o, (self._n_hashes, seqlen, o.shape[-1]))
@@ -3186,7 +3186,7 @@ class PureLSHSelfAttention(base.Layer):
         # np.take(so, undo_sort, axis=0); np.take(slogits, undo_sort, axis=0) would
         # also work, but these helpers include performance optimizations for TPU.
         o = permute_via_gather(so, undo_sort, sticker, axis=0)
-        logits = permute_via_sort(slogits, sticker, buckets_and_t, axis=-1)
+        logits = permute_via_gather(slogits, undo_sort, sticker, axis=0)
 
         if self._n_hashes > 1:
             o = np.reshape(o, (self._n_hashes, seqlen, o.shape[-1]))

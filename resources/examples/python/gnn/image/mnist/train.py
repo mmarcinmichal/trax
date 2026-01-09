@@ -7,7 +7,7 @@ from resources.examples.python.base import (
     DeviceType,
     Splits,
     evaluate_model,
-    graph_batch_generator,
+    cretae_graph_batch_generator,
     initialize_model,
     load_dataset,
     train_model,
@@ -60,7 +60,7 @@ def main():
     images, labels = load_dataset(Dataset.MNIST.value)
     nodes, adjacency = create_graph_data(images)
 
-    batch_generator = graph_batch_generator(
+    batch_generator = cretae_graph_batch_generator(
         nodes, adjacency, labels, batch_size=DEFAULT_BATCH_SIZE
     )
     example_batch = next(batch_generator)
@@ -83,7 +83,7 @@ def main():
     images, labels = load_dataset(Dataset.MNIST.value, Splits.TEST.value)
     nodes, adjacency = create_graph_data(images)
 
-    test_batch_gen = graph_batch_generator(
+    test_batch_gen = cretae_graph_batch_generator(
         nodes, adjacency, labels, batch_size=DEFAULT_BATCH_SIZE
     )
 

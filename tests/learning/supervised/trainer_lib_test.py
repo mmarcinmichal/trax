@@ -29,7 +29,6 @@ from trax import layers as tl
 from trax import optimizers as trax_opt
 from trax.data.preprocessing import inputs as inputs_lib
 from trax.fastmath import numpy as jnp
-from trax.learning.supervised import lr_schedules as lr
 from trax.learning.supervised import loop
 from trax.tf import extensions as npe
 from trax.tf import numpy as tf_np
@@ -201,7 +200,7 @@ class TraxTest(parameterized.TestCase):
 
             # Train and evaluate
             output_dir = self.create_tempdir().full_path
-            loop = loop.train(
+            _loop = loop.train(
                 output_dir,
                 model=model_fn,
                 inputs=inputs,
@@ -212,14 +211,14 @@ class TraxTest(parameterized.TestCase):
             )
 
             # Assert total train steps
-            self.assertEqual(steps, loop.step)
+            self.assertEqual(steps, _loop.step)
 
             inputs = inputs.train_stream(1)
 
             # Predict with final weights
             model = model_fn()
-            weights = loop.model.weights
-            state = loop.model.state
+            weights = _loop.model.weights
+            state = _loop.model.state
             model(next(inputs)[:n_in], weights=weights, state=state)
 
             # Predict with weights loaded from file.
@@ -271,7 +270,7 @@ class TraxTest(parameterized.TestCase):
             )
 
             # Restart training
-            loop = loop.train(
+            _loop = loop.train(
                 output_dir,
                 model=model_fn,
                 inputs=inputs,
@@ -281,7 +280,7 @@ class TraxTest(parameterized.TestCase):
             )
 
             # Assert total train steps
-            self.assertEqual(loop.step, 2 * steps)
+            self.assertEqual(_loop.step, 2 * steps)
 
     @parameterized.parameters(BACKENDS)
     def test_train_permanent_checkpoints(self, backend):
@@ -297,7 +296,7 @@ class TraxTest(parameterized.TestCase):
             output_dir = self.create_tempdir().full_path
 
             # Steps 1 -> 5
-            loop = loop.train(
+            _loop = loop.train(
                 output_dir,
                 model=model_fn,
                 inputs=inputs,
@@ -308,7 +307,7 @@ class TraxTest(parameterized.TestCase):
             )
 
             # Steps 6 -> 10
-            loop = loop.train(
+            _loop = loop.train(
                 output_dir,
                 model=model_fn,
                 inputs=inputs,
@@ -340,7 +339,7 @@ class TraxTest(parameterized.TestCase):
                     )
 
             # Assert total train steps
-            self.assertEqual(loop.step, 10)
+            self.assertEqual(_loop.step, 10)
 
     @parameterized.parameters(BACKENDS)
     def test_train_restart_with_same_steps(self, backend):
@@ -364,7 +363,7 @@ class TraxTest(parameterized.TestCase):
             )
 
             # Restart training
-            loop = loop.train(
+            _loop = loop.train(
                 output_dir,
                 model=model_fn,
                 inputs=inputs,
@@ -374,7 +373,7 @@ class TraxTest(parameterized.TestCase):
             )
 
             # Assert total train steps
-            self.assertEqual(loop.step, steps)
+            self.assertEqual(_loop.step, steps)
 
     def test_train_with_pure_lsh_attention(self, backend=fastmath.Backend.JAX):
         with fastmath.use_backend(backend):
@@ -484,7 +483,7 @@ class TraxTest(parameterized.TestCase):
 
             # Train and evaluate
             output_dir = self.create_tempdir().full_path
-            loop = loop.train(
+            _loop = loop.train(
                 output_dir,
                 model=model_fn,
                 inputs=inputs,
@@ -494,8 +493,8 @@ class TraxTest(parameterized.TestCase):
                 additional_eval_streams=[additional_eval_stream],
             )
 
-            self.assertLen(loop.eval_tasks, 2)
-            eval_task_1, eval_task_2 = loop.eval_tasks
+            self.assertLen(_loop.eval_tasks, 2)
+            eval_task_1, eval_task_2 = _loop.eval_tasks
             self.assertCountEqual(eval_task_1.metrics, eval_task_2.metrics)
             self.assertCountEqual(eval_task_1.metric_names, eval_task_2.metric_names)
 

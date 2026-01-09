@@ -36,16 +36,19 @@ import warnings
 import zlib
 
 from contextlib import contextmanager
-from distutils.util import strtobool
 from functools import partial
 from typing import Dict, Sequence, Union
 
+import jax
 import numpy as onp
 import numpy.random as npr
 import scipy
 import tensorflow.compat.v2 as tf
 
 from absl.testing import parameterized
+from distutils.util import strtobool
+from jax import core, dtypes, lax, lib
+from jax.tree_util import tree_all, tree_reduce
 
 import trax.tf.extensions as npe
 import trax.tf.numpy as tf_np
@@ -60,7 +63,10 @@ FLAGS = flags.FLAGS
 
 
 # TODO(wangpeng): Remove this flag after broken tests are fixed
-flags.DEFINE_bool("enable_x64", strtobool("False"), "Enable 64-bit types to be used.")
+if "enable_x64" not in flags.values:
+    flags.DEFINE_bool(
+        "enable_x64", strtobool("False"), "Enable 64-bit types to be used."
+    )
 
 
 flags.DEFINE_enum(
@@ -83,8 +89,8 @@ EPS = 1e-4
 python_scalar_dtypes = {
     bool: onp.dtype(onp.bool_),
     int: onp.dtype(onp.int_),
-    float: onp.dtype(onp.float_),
-    complex: onp.dtype(onp.complex_),
+    float: onp.dtype(onp.float64),
+    complex: onp.dtype(onp.complex128),
 }
 
 
@@ -697,7 +703,7 @@ def _iter_eqns(jaxpr):
 
 
 def assert_dot_precision(expected_precision, fun, *args):
-    jaxpr = api.make_jaxpr(fun)(*args)
+    jaxpr = jax.make_jaxpr(fun)(*args)
     precisions = [
         eqn.params["precision"]
         for eqn in _iter_eqns(jaxpr.jaxpr)

@@ -35,7 +35,8 @@ import numpy as np
 from trax import layers as tl
 from trax.learning.reinforcement import serialization_utils
 from trax.learning.supervised import decoding
-from trax.utils import jaxboard, shapes
+from trax.utils import shapes
+from trax.utils.board import base
 
 
 class TrainingStepCallback:
@@ -153,7 +154,7 @@ class SerializedModelEvaluation(TrainingStepCallback):
         pass
 
     def on_step_end(self, step):
-        summary_writer = jaxboard.SummaryWriter(
+        summary_writer = base.JaxboardMetricsSink(
             os.path.join(self._loop.output_dir, "srl_eval")
         )
         try:

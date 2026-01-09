@@ -39,7 +39,7 @@ from trax.data.preprocessing.tf.math import (
 
 # How many examples from the stream to skip at random during training.
 # For now, we skip at most 100K examples for efficiency.
-_MAX_SKIP_EXAMPLES = 1e5
+_MAX_SKIP_EXAMPLES = 100_000
 
 _T2T_TO_TFDS_MAP = {
     # Translation

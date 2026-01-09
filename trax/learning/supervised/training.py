@@ -37,8 +37,8 @@ import collections
 import contextlib
 import functools
 import gzip as gzip_lib
-import os
 import inspect
+import os
 import pickle
 import random
 import sys
@@ -52,6 +52,8 @@ import tensorflow as tf
 
 from absl import logging
 
+import trax.utils.board as board
+
 from trax import fastmath
 from trax import layers as tl
 from trax.data.preprocessing import inputs
@@ -62,8 +64,7 @@ from trax.learning.supervised import history as trax_history
 from trax.learning.supervised import orchestration
 from trax.optimizers import base as optim_base
 from trax.trainers import base as trainer
-from trax.utils import artifacts
-from trax.utils import jaxboard, shapes
+from trax.utils import shapes
 
 _Evaluator = collections.namedtuple("_Evaluator", ["weights", "state", "metrics_fn"])
 
@@ -270,7 +271,7 @@ class Loop:
                 eval_tasks = [eval_tasks]
 
         expanded_output_dir = os.path.expanduser(output_dir) if output_dir else None
-        self._registry = registry or artifacts
+        self._registry = registry or board.base
         self._checkpoint_store = self._init_checkpoint_store(
             checkpoint_store, expanded_output_dir
         )
@@ -435,7 +436,7 @@ class Loop:
         )
 
     def _init_checkpoint_store(self, checkpoint_store, base_dir):
-        if isinstance(checkpoint_store, artifacts.CheckpointStore):
+        if isinstance(checkpoint_store, board.base.CheckpointStore):
             return checkpoint_store
         if isinstance(checkpoint_store, str):
             return self._registry.CHECKPOINT_STORE_REGISTRY.get(
@@ -448,7 +449,7 @@ class Loop:
         return checkpoint_store
 
     def _init_metrics_sink(self, metrics_sink, base_dir):
-        if isinstance(metrics_sink, artifacts.MetricsSink):
+        if isinstance(metrics_sink, board.base.MetricsSink):
             return metrics_sink
         if isinstance(metrics_sink, str):
             return self._registry.METRICS_SINK_REGISTRY.get(
@@ -456,7 +457,7 @@ class Loop:
             )
         if metrics_sink is None:
             if base_dir is None:
-                return artifacts.NullMetricsSink(base_dir=base_dir)
+                return board.base.NullMetricsSink(base_dir=base_dir)
             return self._registry.METRICS_SINK_REGISTRY.get(
                 "jaxboard", base_dir=base_dir
             )
@@ -835,7 +836,7 @@ class Loop:
         if summary_writer is not None:
             summary_writer.log_text(
                 "gin_config",
-                jaxboard.markdownify_operative_config_str(config_str),
+                board.jaxboard.markdownify_operative_config_str(config_str),
                 self.step,
             )
 

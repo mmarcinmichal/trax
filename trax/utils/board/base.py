@@ -2,12 +2,14 @@
 import abc
 import contextlib
 import os
+
 from typing import Callable, Dict, Optional
 
 import tensorflow as tf
+
 from absl import logging
 
-from trax.utils import jaxboard
+from trax.utils.board import jaxboard
 
 
 class CheckpointStore(abc.ABC):

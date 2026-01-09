@@ -7,11 +7,12 @@ light-weight graph attention layer.
 """
 
 from jax import nn
-
+from jax.experimental import sparse
 from layers import LayerNorm
+
 from trax import layers as tl
-from trax.layers import initializers as init
 from trax.fastmath import numpy as jnp
+from trax.layers import initializers as init
 
 
 def normalize_adjacency(adj, add_self_loops=True, eps=1e-8):
@@ -250,4 +251,42 @@ def GraphEdgeNet(
             add_self_loops=add_self_loops,
         )
     )
+    return tl.Serial(*layers)
+
+
+def GraphConvSparse(adj_csr, out_dim, activation=tl.Relu):
+    """GCN layer używający znormalizowanej, rzadkiej macierzy sąsiedztwa (CSR).
+
+    Args:
+        adj_csr: jax.experimental.sparse.CSR – stała znormalizowana macierz A_hat.
+        out_dim: wymiar wyjściowy reprezentacji węzłów.
+        activation: konstruktor aktywacji z trax.layers (np. tl.Relu).
+
+    Wejście:  h \in R^{N x F}
+    Wyjście:  h' \in R^{N x out_dim}
+    """
+
+    def _aggregate(h):
+        # h: (N, F); adj_csr: CSR (N, N)
+        # result: (N, F)
+        # używamy csr_matmat dla A @ H
+        return sparse.csr_matmat(adj_csr, h)
+
+    return tl.Serial(
+        tl.Fn("SparseAggregate", _aggregate, n_out=1),  # A_hat @ H
+        tl.Dense(out_dim),
+        activation(),
+    )
+
+
+def GraphConvNetSparse(adj_csr, hidden_sizes=(200, 200, 2), activation=tl.Relu):
+    """Prosty GCN w stylu TextGCN na stałym, rzadkim grafie.
+
+    hidden_sizes[-1] zazwyczaj = liczba klas.
+    """
+    layers = []
+    for size in hidden_sizes[:-1]:
+        layers.append(GraphConvSparse(adj_csr, size, activation=activation))
+    # Ostatnia warstwa – bez aktywacji (tl.Serial jako "no-op")
+    layers.append(GraphConvSparse(adj_csr, hidden_sizes[-1], activation=tl.Serial))
     return tl.Serial(*layers)

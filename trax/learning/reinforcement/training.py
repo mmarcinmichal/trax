@@ -25,10 +25,11 @@ import gin
 import numpy as np
 import tensorflow as tf
 
+import trax.utils.board as board
+
 from trax import data, fastmath, models
 from trax import layers as tl
 from trax.fastmath import numpy as jnp
-from trax.learning.supervised import training
 from trax.learning.reinforcement import (
     advantages,
     distributions,
@@ -36,8 +37,9 @@ from trax.learning.reinforcement import (
 )
 from trax.learning.reinforcement import task as rl_task
 from trax.learning.supervised import lr_schedules as lr
+from trax.learning.supervised import training
 from trax.optimizers import adam
-from trax.utils import jaxboard, shapes
+from trax.utils import shapes
 
 
 class Agent:
@@ -123,7 +125,7 @@ class Agent:
             f.write(config_str)
         if summary_writer is not None:
             summary_writer.text(
-                "gin_config", jaxboard.markdownify_operative_config_str(config_str)
+                "gin_config", board.jaxboard.markdownify_operative_config_str(config_str)
             )
 
     def save_to_file(
@@ -200,7 +202,7 @@ class Agent:
           provided, yields None.
         """
         if self._output_dir is not None:
-            writer = jaxboard.SummaryWriter(
+            writer = board.jaxboard.SummaryWriter(
                 os.path.join(self._output_dir, "reinforcement")
             )
             try:

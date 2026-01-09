@@ -14,10 +14,13 @@
 # limitations under the License.
 """Parity checks between Trax JAX trainers and PyTorch."""
 
-from typing import Sequence
+from typing import Any, Sequence
 
 import jax
 import numpy as np
+
+from numpy import floating
+
 try:
     import torch
 except ImportError:  # pragma: no cover
@@ -30,11 +33,11 @@ from trax import layers as tl
 from trax.trainers import jax as trainers_jax
 
 
-def _flatten_l2_norms(tree) -> Sequence[float]:
+def _flatten_l2_norms(tree) -> list[floating[Any]]:
     return [np.linalg.norm(np.asarray(leaf)) for leaf in jax.tree_util.tree_leaves(tree)]
 
 
-def _flatten_deltas(new_tree, old_tree) -> Sequence[float]:
+def _flatten_deltas(new_tree, old_tree) -> list[floating[Any]]:
     deltas = jax.tree_util.tree_map(lambda n, o: np.asarray(n) - np.asarray(o), new_tree, old_tree)
     return _flatten_l2_norms(deltas)
 

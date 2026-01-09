@@ -29,7 +29,7 @@ from tests.layers import test_utils as tl_test_utils
 from trax import models
 from trax.data.preprocessing import inputs
 from trax.learning.reinforcement import serialization_utils, space_serializer
-from trax.learning.supervised import callbacks, lr_schedules, loop, training
+from trax.learning.supervised import callbacks, loop, lr_schedules, training
 from trax.utils import test_utils
 
 

@@ -204,7 +204,6 @@ class TFDatasetTest(tf.test.TestCase):
         self.assertEqual(proc_example["inputs"].dtype, tf.int64)
         self.assertEqual(proc_example["targets"].dtype, tf.int64)
 
-    # TODO(afrozm): Why does this test take so much time?
     def test_inputs_using_generic_text_dataset_preprocess_fn(self):
         gin.bind_parameter("generic_text_dataset_preprocess_fn.spm_path", _spm_path())
         gin.bind_parameter(

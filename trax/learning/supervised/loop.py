@@ -20,6 +20,7 @@ simplify construction of standard supervised training runs. Unlike the legacy
 and state management to :class:`Loop` while keeping commonly used defaults.
 """
 import itertools
+
 from typing import Iterable, List, Optional, Sequence
 
 import gin
@@ -29,7 +30,8 @@ from trax import fastmath
 from trax import layers as tl
 from trax import optimizers as trax_opt
 from trax.data.preprocessing import inputs as trax_inputs
-from trax.learning.supervised import common, lr_schedules as lr, training
+from trax.learning.supervised import common, training
+from trax.learning.supervised import lr_schedules as lr
 from trax.trainers import base as trainer_base
 
 _DEFAULT_METRICS = common.default_metrics()
