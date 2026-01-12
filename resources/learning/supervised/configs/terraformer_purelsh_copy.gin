@@ -20,7 +20,7 @@ import trax.data
 import trax.models
 import trax.optimizers
 import trax.learning.training.trainer
-import trax.learning.utils.lr_schedules
+import trax.learning.supervised.lr_schedules
 
 # Parameters for PureLSHSelfAttention:
 # ==============================================================================
