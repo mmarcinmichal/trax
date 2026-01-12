@@ -20,9 +20,10 @@ import functools
 import gymnasium as gym
 import numpy as np
 
+from learning.training.utils import space_serializer
+
 from trax import layers as tl
 from trax.fastmath import numpy as jnp
-from trax.learning.base import space_serializer
 
 
 # pylint: disable=invalid-name

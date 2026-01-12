@@ -1,8 +1,8 @@
 # coding=utf-8
 """Public learning API for Trax."""
 
-from learning.base.task import EvaluationTask, TrainingTask
-from learning.base.trainer import Loop, epochs, num_devices, train
+from learning.training.task import EvaluationTask, TrainingTask
+from learning.training.engines import Loop, epochs, num_devices, train
 
 __all__ = [
     "EvaluationTask",

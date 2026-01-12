@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for Trax base layer classes and generic layer-creating functions."""
+"""Tests for Trax training layer classes and generic layer-creating functions."""
 
 import numpy as np
 

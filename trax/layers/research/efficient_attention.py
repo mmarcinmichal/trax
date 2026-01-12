@@ -336,7 +336,7 @@ def permute_via_sort(val, keys, inverse_keys, axis=0):
 class EfficientAttentionBase(base.Layer):
     """Base class for efficient attention.
 
-    This is a base class that implements memory-efficient batching for both the
+    This is a training class that implements memory-efficient batching for both the
     forward and backward passes. Subclasses should override
     `create_weights_unbatched`, `create_state_unbatched`, `forward_unbatched`, and
     optionally `incremental_forward_unbatched` to define the actual attention

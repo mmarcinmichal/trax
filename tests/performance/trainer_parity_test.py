@@ -14,7 +14,7 @@
 # limitations under the License.
 """Parity checks between Trax JAX trainers and PyTorch."""
 
-from typing import Any, Sequence
+from typing import Any
 
 import jax
 import numpy as np
@@ -30,7 +30,7 @@ from absl.testing import absltest
 
 from trax import fastmath, optimizers
 from trax import layers as tl
-from trax.trainers import jax as trainers_jax
+from learning.training.engines import jax as trainers_jax
 
 
 def _flatten_l2_norms(tree) -> list[floating[Any]]:
@@ -77,7 +77,7 @@ def _prepare_models(batch, learning_rate, n_devices, hidden_dim=4):
 
     trax_optimizer = optimizers.SGD(learning_rate)
     trax_optimizer.tree_init(trax_model.weights)
-    trax_trainer = trainers_jax.Trainer(trax_model, trax_optimizer, n_devices=n_devices)
+    trax_trainer = trainers_jax.TrainingEngine(trax_model, trax_optimizer, n_devices=n_devices)
 
     return torch_model, torch_optimizer, torch_loss, trax_trainer
 

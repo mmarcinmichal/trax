@@ -18,7 +18,7 @@ from trax import layers as tl
 from trax import optimizers
 from trax.fastmath import numpy as jnp
 from trax.models import gnn
-from trax.trainers import jax as trainers
+from learning.training.engines import jax as trainers
 
 MAX_LEN = 2000
 VOCAB_SIZE = 200_000
@@ -130,7 +130,7 @@ def main():
     initialize_model(model_with_loss, example_batch)
 
     optimizer = optimizers.Adam(0.00001)
-    trainer = trainers.Trainer(model_with_loss, optimizer)
+    trainer = trainers.TrainingEngine(model_with_loss, optimizer)
 
     base_rng = fastmath.random.get_prng(0)
     train_model(

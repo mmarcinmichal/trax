@@ -706,7 +706,7 @@ class CondTest(absltest.TestCase):
         self.assertEqual(
             as_list(layer.state), as_list((cond.state, true.state, false.state))
         )
-        # just check if simple assignments (setter from base.Layer) work correctly
+        # just check if simple assignments (setter from training.Layer) work correctly
         # with Cond.init_weights_and_state ; all states are empty so there is no
         # point in checking equality
         false.state = true.state

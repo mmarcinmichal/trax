@@ -12,7 +12,7 @@ from trax import layers as tl
 from trax import optimizers
 
 # from trax.data.encoder import encoder as encoder
-# from trax.data.loader.tf import base as dataset
+# from trax.data.loader.tf import training as dataset
 # from trax.data.preprocessing import inputs as preprocessing
 from trax.fastmath import numpy as jnp
 

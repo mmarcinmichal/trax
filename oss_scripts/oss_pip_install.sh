@@ -38,7 +38,7 @@ fi
 # Just print the version again to make sure.
 python -c 'import tensorflow as tf; print(tf.__version__)'
 
-# First ensure that the base dependencies are sufficient for a full import
+# First ensure that the training dependencies are sufficient for a full import
 pip install -q -e .
 
 # Then install the test dependencies

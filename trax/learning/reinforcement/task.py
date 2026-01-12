@@ -22,10 +22,12 @@ import gin
 import gymnasium as gym
 import numpy as np
 
-from trax import fastmath
+from learning.training import engines as supervised_trainer
+
 import trax.utils.board as board
+
+from trax import fastmath
 from trax.learning.reinforcement import advantages
-from learning.base import trainer as supervised_trainer
 
 # TimeStepBatch stores a single step in the trajectory of an RL run, or
 # a sequence of timesteps (trajectory slice), or a batch of such sequences.
@@ -518,7 +520,7 @@ class RLTask:
 
     def _epoch_filename(self, base_filename, epoch):
         """Helper function: file name for saving the given epoch."""
-        # If base is /foo/task.pkl, we save epoch 1 under /foo/task_epoch1.pkl.
+        # If training is /foo/task.pkl, we save epoch 1 under /foo/task_epoch1.pkl.
         filename, ext = os.path.splitext(base_filename)
         return filename + "_epoch" + str(epoch) + ext
 

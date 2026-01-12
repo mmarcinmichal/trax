@@ -221,7 +221,7 @@ class SinCosPositionalEncoding(layer_base.Layer):
 
 
 class FixedBasePositionalEncoding(layer_base.Layer):
-    """Implements fixed-base positional encoding."""
+    """Implements fixed-training positional encoding."""
 
     def __init__(
         self,

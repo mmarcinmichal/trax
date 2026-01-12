@@ -32,8 +32,9 @@ import os
 import gin
 import numpy as np
 
+from learning.training.utils import serialization_utils
+
 from trax import layers as tl
-from trax.learning.base import serialization_utils
 from trax.learning.supervised import decoding
 from trax.utils import shapes
 from trax.utils.board import base
@@ -66,7 +67,7 @@ class SerializedModelEvaluation(TrainingStepCallback):
     Example: time series prediction. We can serialize a time series into
     a sequence of discrete tokens and model this sequence using an autoregressive
     sequence model, such as Transformer - see
-    `trax.learning.base.serialization_utils.SerializedModel`. Then we can use this callback
+    `trax.learning.training.serialization_utils.SerializedModel`. Then we can use this callback
     to evaluate long-horizon predictions of such a model.
     """
 
@@ -87,7 +88,7 @@ class SerializedModelEvaluation(TrainingStepCallback):
           loop: Instance of `trax.learning.trainer.Loop` or `None`. Can be set to
             `None` for testing - in such a case, `model` and `eval_task` must be
             provided.
-          model: Instance of `trax.learning.base.serialization_utils.SerializedModel`. Not
+          model: Instance of `trax.learning.training.serialization_utils.SerializedModel`. Not
             required if `loop` is provided.
           eval_at: When to evaluate. Either int (every how many steps to evaluate),
             or a list of ints (step numbers), or a function int -> bool (step

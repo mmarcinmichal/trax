@@ -28,7 +28,6 @@ import jax
 import numpy as np
 import tensorflow as tf
 
-import trax.learning.base.history
 import trax.utils.shapes
 
 from trax import fastmath
@@ -56,7 +55,7 @@ class Layer:
     optionally using trainable weights (common) and non-parameter state (not
     common).
 
-    Layer subclasses typically override at most two methods of the base `Layer`
+    Layer subclasses typically override at most two methods of the training `Layer`
     class:
 
       `forward(inputs)`:
@@ -70,7 +69,7 @@ class Layer:
     of their sublayers, e.g., applying their sublayers in series or in parallel.
 
     All layers have the following properties, with default values implemented
-    in the base `Layer` class:
+    in the training `Layer` class:
 
       - `n_in`: int (default 1)
       - `n_out`: int (default 1)
@@ -544,7 +543,7 @@ class Layer:
     def rng(self):
         """Returns this layer's current single-use random number generator.
 
-        Code that wants to base random samples on this generator must explicitly
+        Code that wants to training random samples on this generator must explicitly
         split off new generators from it. (See, for example, the `rng` setter code
         below.)
         """
@@ -1009,15 +1008,15 @@ def _short_traceback(skip=3):
         skip:
     ]  # pylint: disable=unexpected-keyword-arg
     for l in lines:
-        if l.startswith("trax.layers.base.LayerError"):
-            l = l[len("trax.layers.base.") :]  # Remove the trax.layers.base prefix.
+        if l.startswith("trax.layers.training.LayerError"):
+            l = l[len("trax.layers.training.") :]  # Remove the trax.layers.training prefix.
         res.append(_shorten_file_path(l))
         if counter % 2 == 1:
             res.append("")
         counter += 1
         # If we see a LayerError, the traceback has already been processed.
         if l.startswith("LayerError"):
-            # Skip 4 back except last as these are internal base-layer calls.
+            # Skip 4 back except last as these are internal training-layer calls.
             res = res[:-4] + [res[-1]]
             res += lines[counter:]
             break

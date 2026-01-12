@@ -44,7 +44,7 @@ def ConfigurableTerraformer(
     max_len=2048,
     encoder_attention_type=tl.SelfAttention,
     encoder_decoder_attention_type=tl.SelfAttention,
-    pos_type="fixed-base",
+    pos_type="fixed-training",
     pos_axial_shape=(),
     pos_d_axial_embs=None,
     pos_start_from_zero_prob=1.0,

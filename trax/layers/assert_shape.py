@@ -27,8 +27,8 @@ from trax.layers import base, combinators
 def assert_shape(specification):
     """Decorator for checking the input and output shapes of Layer.
 
-    Decorator can be applied on trax.base.Layer class, or a function returning
-    a trax.base.Layer class. It uses notation similar to einsum (Einstein
+    Decorator can be applied on trax.training.Layer class, or a function returning
+    a trax.training.Layer class. It uses notation similar to einsum (Einstein
     summation convention), achieving concise and simple representation of tensors.
     For example 'ij,jh->ih' is a valid representation of a function taking two
     2D matrices as input, and returning a single output, also a 2D matrix.
@@ -73,7 +73,7 @@ def assert_shape(specification):
     # may change in size, while the sizes of all previous dimensions, marked by
     # an ellipsis, will stay the same.
     @assert_shape('...a->...b')
-    class Dense(base.Layer):
+    class Dense(training.Layer):
       (...)
 
     # DotProductCausalAttention takes three tensors as input: Queries, Keys, and
@@ -81,10 +81,10 @@ def assert_shape(specification):
     # all those tensors must match, while the last dimension must match only
     # between Queries and Keys, and separately between Values and output tensor.
     @assert_shape('blk,blk,bld->bld')
-    class DotProductCausalAttention(base.Layer):
+    class DotProductCausalAttention(training.Layer):
       (...)
 
-    # assert_shape can also be placed before the function returning base.Layer.
+    # assert_shape can also be placed before the function returning training.Layer.
     @assert_shape('...d->...')
     def ReduceSum():
       return Fn('ReduceSum', lambda x: jnp.sum(x, axis=-1, keepdims=False))
@@ -155,7 +155,7 @@ def AssertFunction(specification, layer, message=None):  # pylint: disable=inval
     Args:
       specification: A specification. See assert_shape decorator for a full
           documentation.
-      layer: A base.Layer to wrap around.
+      layer: A training.Layer to wrap around.
       message: An optional message to print if an assert fails. By default it will
           print the filename and the line number where AssertFunction was called.
 

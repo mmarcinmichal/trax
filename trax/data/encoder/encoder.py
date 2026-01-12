@@ -15,7 +15,7 @@
 
 """Encoders for text data.
 
-* TextEncoder: base class
+* TextEncoder: training class
 * ByteTextEncoder: for ascii text
 * TokenTextEncoder: with user-supplied vocabulary file
 * SubwordTextEncoder: invertible
@@ -1709,7 +1709,7 @@ class SentencePieceEncoder:
         self.total_vocab_size = self.vocab_size + self.extra_ids
 
     def encode(self, text):
-        # Tokenize the text into base SentencePiece IDs
+        # Tokenize the text into training SentencePiece IDs
         tokens = self.tokenizer.tokenize([text])
         # Back to numpy from tf
         return tokens.flat_values

@@ -117,7 +117,7 @@ class ConfigurableTransformerTest(parameterized.TestCase):
 
     @parameterized.named_parameters(
         ("positional_encoding", None),
-        ("fixed_base_positional_encoding", "fixed-base"),
+        ("fixed_base_positional_encoding", "fixed-training"),
         ("infinite_positional_encoding", "infinite"),
         ("infinite_affine_positional_encoding", "infinite-affine"),
         ("axial_positional_encoding", (2, 16)),

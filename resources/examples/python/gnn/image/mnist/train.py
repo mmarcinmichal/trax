@@ -14,7 +14,7 @@ from resources.examples.python.base import (
 from trax import layers as tl
 from trax import optimizers
 from trax.models import gnn
-from trax.trainers import jax as trainers
+from learning.training.engines import jax as trainers
 
 
 def grid_adjacency(height=28, width=28):
@@ -68,7 +68,7 @@ def main():
     initialize_model(model_with_loss, example_batch)
 
     optimizer = optimizers.Adam(0.0001)
-    trainer = trainers.Trainer(model_with_loss, optimizer)
+    trainer = trainers.TrainingEngine(model_with_loss, optimizer)
 
     base_rng = fastmath.random.get_prng(0)
     train_model(

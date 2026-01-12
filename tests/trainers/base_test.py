@@ -20,7 +20,7 @@ import time
 import numpy as np
 
 from absl.testing import absltest
-from trainers.base import ReversibleSerialTrainer, Trainer, extract_reversible_blocks
+from learning.training.engines.base import ReversibleSerialTrainer, TrainingEngine, extract_reversible_blocks
 
 from tests.fastmath.jax.config import config
 from trax import fastmath, optimizers
@@ -49,7 +49,7 @@ class TrainerTest(absltest.TestCase):
         loss_layer.init(labeled_batch)
         optimizer = optimizers.SGD(0.01)
         optimizer.tree_init(loss_layer.weights)
-        trainer = Trainer(loss_layer, optimizer)
+        trainer = TrainingEngine(loss_layer, optimizer)
         rng = fastmath.random.get_prng(0)
         trainer.one_step(labeled_batch, rng)
 
@@ -89,7 +89,7 @@ class TrainerTest(absltest.TestCase):
             lambda x: x[0], tl.shard(model_with_loss.weights, base.N_WEIGHTS_SHARDS)
         )
         optimizer.tree_init(split_w)
-        trainer = Trainer(model_with_loss, optimizer)
+        trainer = TrainingEngine(model_with_loss, optimizer)
         rng_step1 = fastmath.random.get_prng(7)
         trainer.one_step(labeled_batch, rng_step1)
         # Reset shards back to default.
@@ -137,7 +137,7 @@ class TrainerTest(absltest.TestCase):
         # Make 2 steps with the original trainers.
         optimizer = optimizer_fn()
         optimizer.tree_init(model.weights)
-        trainer = Trainer(model, optimizer)
+        trainer = TrainingEngine(model, optimizer)
         rng_step1 = fastmath.random.get_prng(7)
         rng_step2 = fastmath.random.get_prng(8)
         trainer.one_step(labeled_batch, rng_step1)
@@ -196,7 +196,7 @@ class TrainerTest(absltest.TestCase):
         # Make 3 steps with the original trainers.
         optimizer = optimizer_fn()
         optimizer.tree_init(model.weights)
-        trainer = Trainer(model, optimizer)
+        trainer = TrainingEngine(model, optimizer)
         rng_step1 = fastmath.random.get_prng(7)
         rng_step2 = fastmath.random.get_prng(8)
         rng_step3 = fastmath.random.get_prng(9)
@@ -260,7 +260,7 @@ class TrainerTest(absltest.TestCase):
         # Make 3 steps with the original trainers.
         optimizer = optimizer_fn()
         optimizer.tree_init(model_with_loss.weights)
-        trainer = Trainer(model_with_loss, optimizer)
+        trainer = TrainingEngine(model_with_loss, optimizer)
         rng_step1 = fastmath.random.get_prng(7)
         rng_step2 = fastmath.random.get_prng(8)
         rng_step3 = fastmath.random.get_prng(9)

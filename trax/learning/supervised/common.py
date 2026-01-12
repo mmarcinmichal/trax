@@ -15,8 +15,9 @@
 
 """Common utilities shared between supervised training entry points."""
 
+from learning.training.task import EvaluationTask, TrainingTask
+
 from trax import layers as tl
-from learning.base.task import EvaluationTask, TrainingTask
 from trax.optimizers import base as optim_base
 
 

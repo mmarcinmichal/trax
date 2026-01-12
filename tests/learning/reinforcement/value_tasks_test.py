@@ -29,7 +29,7 @@ from trax.learning.reinforcement import (
     value_tasks,
 )
 from trax.learning.reinforcement import task as rl_task
-from learning.base import trainer as training
+from learning.training import engines as training
 from trax.learning.supervised import lr_schedules
 
 

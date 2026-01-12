@@ -122,7 +122,7 @@ html_static_path = ["_static"]
 
 # -- Options for HTMLHelp output ---------------------------------------------
 
-# Output file base name for HTML help loader.
+# Output file training name for HTML help loader.
 htmlhelp_basename = "Traxdoc"
 
 

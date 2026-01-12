@@ -11,7 +11,7 @@ from resources.examples.python.base import (
 )
 from trax import layers as tl
 from trax import optimizers
-from trax.trainers import jax as trainers
+from learning.training.engines import jax as trainers
 
 
 def build_model():
@@ -41,7 +41,7 @@ def main():
 
     # Setup optimizer and trainers
     optimizer = optimizers.Adam(0.001)
-    trainer = trainers.Trainer(model_with_loss, optimizer)
+    trainer = trainers.TrainingEngine(model_with_loss, optimizer)
 
     base_rng = fastmath.random.get_prng(0)
 

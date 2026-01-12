@@ -35,8 +35,8 @@ from six.moves import (
 )
 
 from tests.data.utils import (  # relative import
-    _TESTDATA,
-    _spm_path,
+    _TEST_VOCAB,
+    _spm_path, _TEST_CORPUS,
 )
 from trax.data.encoder import encoder as text_encoder
 
@@ -448,7 +448,7 @@ class TokenizerTest(tf.test.TestCase):
                 text_encoder.tokenize(
                     dataset(),
                     vocab_type="sentencepiece",
-                    vocab_dir=_TESTDATA,
+                    vocab_dir=_TEST_VOCAB,
                     vocab_file="sentencepiece.model",
                 )
             )
@@ -458,7 +458,7 @@ class TokenizerTest(tf.test.TestCase):
             detok = text_encoder.detokenize(
                 list(tok_spc[0]),
                 vocab_type="sentencepiece",
-                vocab_dir=_TESTDATA,
+                vocab_dir=_TEST_VOCAB,
                 vocab_file="sentencepiece.model",
             )
 
@@ -473,7 +473,7 @@ class TokenizerTest(tf.test.TestCase):
             text_encoder.tokenize(
                 dataset(),
                 vocab_type="subword",
-                vocab_dir=_TESTDATA,
+                vocab_dir=_TEST_VOCAB,
                 vocab_file="en_8k.subword",
             )
         )
@@ -481,7 +481,7 @@ class TokenizerTest(tf.test.TestCase):
         detok = text_encoder.detokenize(
             tok_sbw[0],
             vocab_type="subword",
-            vocab_dir=_TESTDATA,
+            vocab_dir=_TEST_VOCAB,
             vocab_file="en_8k.subword",
         )
         self.assertEqual(detok, "I have a cat.")
@@ -495,7 +495,7 @@ class TokenizerTest(tf.test.TestCase):
             text_encoder.tokenize(
                 dataset(),
                 vocab_type="bert-lowercase",
-                vocab_dir=_TESTDATA,
+                vocab_dir=_TEST_VOCAB,
                 vocab_file="bert_uncased_vocab.txt",
             )
         )
@@ -504,7 +504,7 @@ class TokenizerTest(tf.test.TestCase):
         detok = text_encoder.detokenize(
             tok_sbw[0],
             vocab_type="bert-lowercase",
-            vocab_dir=_TESTDATA,
+            vocab_dir=_TEST_VOCAB,
             vocab_file="bert_uncased_vocab.txt",
         )
         self.assertEqual(detok, "i have a cat .")
@@ -552,7 +552,7 @@ class TokenizerTest(tf.test.TestCase):
         # Sentencepiece.
         spc_size = text_encoder.vocab_size(
             vocab_type="sentencepiece",
-            vocab_dir=_TESTDATA,
+            vocab_dir=_TEST_VOCAB,
             vocab_file="sentencepiece.model",
         )
         self.assertEqual(spc_size, 32000)
@@ -560,7 +560,7 @@ class TokenizerTest(tf.test.TestCase):
     def test_vocab_size_subword_level(self):
         sbw_size = text_encoder.vocab_size(
             vocab_type="subword",
-            vocab_dir=_TESTDATA,
+            vocab_dir=_TEST_VOCAB,
             vocab_file="en_8k.subword",
         )
         self.assertEqual(sbw_size, 8183)
@@ -569,7 +569,7 @@ class TokenizerTest(tf.test.TestCase):
         # Bert_uncased.
         sbw_size = text_encoder.vocab_size(
             vocab_type="bert-lowercase",
-            vocab_dir=_TESTDATA,
+            vocab_dir=_TEST_VOCAB,
             vocab_file="bert_uncased_vocab.txt",
         )
         self.assertEqual(sbw_size, 30522)
@@ -617,8 +617,8 @@ class BLTEncoderTest(tf.test.TestCase):
 class TestTokenCounts(tf.test.TestCase):
     def setUp(self):
         super(TestTokenCounts, self).setUp()
-        self.corpus_path = os.path.join(_TESTDATA, "corpus-*.txt")
-        self.vocab_path = os.path.join(_TESTDATA, "vocab-*.txt")
+        self.corpus_path = os.path.join(_TEST_CORPUS, "corpus-*.txt")
+        self.vocab_path = os.path.join(_TEST_VOCAB, "vocab-*.txt")
 
     def test_corpus_token_counts_split_on_newlines(self):
         token_counts = text_encoder.corpus_token_counts(

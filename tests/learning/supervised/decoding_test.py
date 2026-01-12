@@ -25,7 +25,7 @@ from tensorflow.compat.v2 import test
 
 from tests.data.utils import (  # relative import
     _CONFIG_DIR,
-    _SUPERVISED_TESTDATA,
+    _TEST_CORPUS,
 )
 from tests.fastmath.jax.config import config
 from trax import fastmath, models
@@ -186,7 +186,7 @@ class DecodingTest(test.TestCase):
             mode="predict",
         )
         shape11 = shapes.ShapeDtype((1, 1), dtype=np.int32)
-        model_path = os.path.join(_SUPERVISED_TESTDATA, "transformerlm_copy.pkl.gz")
+        model_path = os.path.join(_TEST_CORPUS, "transformerlm_copy.pkl.gz")
         pred_model.init_from_file(
             model_path, weights_only=True, input_signature=(shape11, shape11)
         )
@@ -207,7 +207,7 @@ class DecodingTest(test.TestCase):
             vocab_size=13,
             mode="eval",
         )
-        model_path = os.path.join(_SUPERVISED_TESTDATA, "transformerlm_copy.pkl.gz")
+        model_path = os.path.join(_TEST_CORPUS, "transformerlm_copy.pkl.gz")
         eval_model.init_from_file(model_path)
         inputs = np.array([[0, 3, 7, 5, 3, 2, 4, 0]], dtype=np.int32)
         s = decoding.autoregressive_sample(
@@ -227,7 +227,7 @@ class DecodingTest(test.TestCase):
             mode="predict",
         )
         shape11 = shapes.ShapeDtype((1, 1), dtype=np.int32)
-        model_path = os.path.join(_SUPERVISED_TESTDATA, "transformerlm_copy.pkl.gz")
+        model_path = os.path.join(_TEST_CORPUS, "transformerlm_copy.pkl.gz")
         pred_model.init_from_file(
             model_path, weights_only=True, input_signature=(shape11, shape11)
         )
@@ -251,7 +251,7 @@ class DecodingTest(test.TestCase):
             mode="predict",
         )
         shape11 = shapes.ShapeDtype((1, 1), dtype=np.int32)
-        model_path = os.path.join(_SUPERVISED_TESTDATA, "transformer_copy.pkl.gz")
+        model_path = os.path.join(_TEST_CORPUS, "transformer_copy.pkl.gz")
         pred_model.init_from_file(
             model_path, weights_only=True, input_signature=(shape11, shape11)
         )
@@ -322,7 +322,7 @@ class DecodingTest(test.TestCase):
             shape1l = shapes.ShapeDtype((1, max_len), dtype=np.int32)
 
             model_path = os.path.join(
-                _SUPERVISED_TESTDATA, "terraformer_copy_lsh_attn.pkl.gz"
+                _TEST_CORPUS, "terraformer_copy_lsh_attn.pkl.gz"
             )
             pred_model.init_from_file(
                 model_path, weights_only=True, input_signature=(shape1l, shape11)
@@ -372,7 +372,7 @@ class DecodingTest(test.TestCase):
                 max_length_for_buckets=1024,
             ),
             vocab_size=13,
-            pos_type="fixed-base",
+            pos_type="fixed-training",
             pos_d_axial_embs=None,
         )
 
@@ -418,14 +418,14 @@ class DecodingTest(test.TestCase):
                 max_length_for_buckets=1024,
             ),
             vocab_size=13,
-            pos_type="fixed-base",
+            pos_type="fixed-training",
             pos_d_axial_embs=None,
         )
 
         shape11 = shapes.ShapeDtype((1, 1), dtype=np.int32)
 
         model_path = os.path.join(
-            _SUPERVISED_TESTDATA, "reformerlm_copy_lsh_attn.pkl.gz"
+            _TEST_CORPUS, "reformerlm_copy_lsh_attn.pkl.gz"
         )
         pred_model.init_from_file(
             model_path, weights_only=True, input_signature=shape11
@@ -508,7 +508,7 @@ class DecodingTest(test.TestCase):
             shape1l = shapes.ShapeDtype((1, max_len), dtype=np.int32)
 
             model_path = os.path.join(
-                _SUPERVISED_TESTDATA, "terraformer_purelsh_copy.pkl.gz"
+                _TEST_CORPUS, "terraformer_purelsh_copy.pkl.gz"
             )
             pred_model.init_from_file(
                 model_path, weights_only=True, input_signature=(shape1l, shape11)

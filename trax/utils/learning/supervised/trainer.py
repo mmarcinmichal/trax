@@ -27,7 +27,7 @@ from absl import app, flags, logging
 from jax.lib import xla_extension as xc
 
 from trax import fastmath
-from learning.base import trainer as supervised_trainer
+from learning.training import engines as supervised_trainer
 from trax.tf import numpy as tf_np
 
 FLAGS = flags.FLAGS

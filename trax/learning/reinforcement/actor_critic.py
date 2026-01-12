@@ -22,17 +22,17 @@ import gymnasium as gym
 import numpy as np
 import tensorflow as tf
 
-from . import advantages as rl_advantages
-from . import distributions, policy_tasks, value_tasks
-from . import trainer as rl_training
-
 from trax import fastmath
 from trax import layers as tl
 from trax.fastmath import numpy as jnp
-from ..base import trainer as supervised_trainer
-from trax.learning.base import lr_schedules as lr
 from trax.optimizers import adam
 from trax.utils import shapes
+
+from ..training import engines as supervised_trainer
+from ..training.utils import lr_schedules as lr
+from . import advantages as rl_advantages
+from . import distributions, policy_tasks, value_tasks
+from . import trainer as rl_training
 
 
 class ActorCriticTrainer(rl_training.PolicyTrainer):
@@ -599,7 +599,7 @@ class AdvantageBasedActorCriticTrainer(ActorCriticTrainer):
 
 
 # TODO(pkozakowski): Rewrite all interleaved actor-critic algos to subclass
-# this, then rename to ActorCriticTrainer and remove the other base classes.
+# this, then rename to ActorCriticTrainer and remove the other training classes.
 class LoopActorCriticTrainer(rl_training.RLTrainer):
     """Base class for actor-critic algorithms based on `Loop`."""
 
@@ -804,7 +804,8 @@ class LoopActorCriticTrainer(rl_training.RLTrainer):
             policy_n_steps_per_epoch + value_n_steps_per_epoch
         )
 
-        checkpoint_at = lambda step: step % self._n_train_steps_per_epoch == 0
+        def checkpoint_at(step):
+            return step % self._n_train_steps_per_epoch == 0
 
         def which_task(step):
             if step % self._n_train_steps_per_epoch < value_n_steps_per_epoch:
@@ -824,7 +825,7 @@ class LoopActorCriticTrainer(rl_training.RLTrainer):
         )
 
         # Validate the restored checkpoints.
-        # TODO(pkozakowski): Move this to the base class once all trainers use Loop.
+        # TODO(pkozakowski): Move this to the training class once all trainers use Loop.
         if self._loop.step != self._epoch * self._n_train_steps_per_epoch:
             raise ValueError(
                 "The number of Loop steps must equal the number of RLTrainer epochs "

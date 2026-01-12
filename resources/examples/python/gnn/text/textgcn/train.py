@@ -17,7 +17,7 @@ from trax import layers as tl
 from trax import optimizers
 from trax.fastmath import numpy as jnp
 from trax.models.gnn import GraphConvSparse
-from trax.trainers import jax as trainers
+from learning.training.engines import jax as trainers
 
 logging.set_verbosity(logging.INFO)
 
@@ -153,7 +153,7 @@ def main():
     initialize_model(model_with_loss, example_batch)
 
     optimizer = optimizers.Adam(0.02)
-    trainer = trainers.Trainer(model_with_loss, optimizer)
+    trainer = trainers.TrainingEngine(model_with_loss, optimizer)
 
     eval_model = build_model(num_nodes, num_docs, num_classes, adj_csr, mode="eval")
     initialize_model(eval_model, example_batch)

@@ -220,7 +220,7 @@ def PositionalEncoder(
         )
     elif pos_type == "sin-cos":
         positional_encoding = tl.SinCosPositionalEncoding(mode=mode)
-    elif pos_type == "fixed-base":
+    elif pos_type == "fixed-training":
         positional_encoding = tl.FixedBasePositionalEncoding(mode=mode)
     elif pos_type == "infinite":
         positional_encoding = tl.InfinitePositionalEncoding(affine=False)

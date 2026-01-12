@@ -172,7 +172,7 @@ def LocallyConnectedDense(
           a linear map `y = Wx`.
 
     Returns:
-        LocallyConnectedDense base.Layer.
+        LocallyConnectedDense training.Layer.
     """
     if n_modules == 1:
         return tl.Dense(
@@ -327,7 +327,7 @@ def LocallyConvDense(n_modules, n_units, mode, kernel_size=1, length_kernel_size
         which is often the sentence length in sequence models.
 
     Returns:
-        LocallyConvDense base.Layer.
+        LocallyConvDense training.Layer.
     """
     if n_modules == 1:
         return tl.Dense(n_units)

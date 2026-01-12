@@ -13,12 +13,12 @@ from t5.data import preprocessors as t5_processors
 from trax.data.loader.tf import base as ds
 
 pkg_dir, _ = os.path.split(__file__)
-_TESTDATA = os.path.normpath(os.path.join(pkg_dir, "../../resources/data/testdata"))
+_TEST_VOCAB = os.path.normpath(os.path.join(pkg_dir, "../../resources/data/vocabs/test"))
 _CONFIG_DIR = os.path.normpath(
-    os.path.join(pkg_dir, "../../resources/supervised/configs/")
+    os.path.join(pkg_dir, "../../resources/learning/supervised/configs/")
 )
-_SUPERVISED_TESTDATA = os.path.normpath(
-    os.path.join(pkg_dir, "../../resources/supervised/testdata")
+_TEST_CORPUS = os.path.normpath(
+    os.path.join(pkg_dir, "../../resources/data/corpus/test")
 )
 
 # _ProxyTest is required because py2 does not allow instantiating
@@ -52,7 +52,7 @@ def _test_dataset_ints(inp_lengths, tgt_lengths):
 
 
 def _load_dataset(name, split="train"):
-    return tfds.load(name=name, split=split, data_dir=_TESTDATA, shuffle_files=False)
+    return tfds.load(name=name, split=split, data_dir=_TEST_CORPUS, shuffle_files=False)
 
 
 def _c4_dataset(split="train"):
@@ -60,7 +60,7 @@ def _c4_dataset(split="train"):
 
 
 def _spm_path():
-    return os.path.join(_TESTDATA, "sentencepiece.model")
+    return os.path.join(_TEST_VOCAB, "sentencepiece.model")
 
 
 def _t5_gin_config():

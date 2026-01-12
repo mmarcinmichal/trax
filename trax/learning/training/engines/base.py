@@ -31,7 +31,7 @@ from trax.layers import base
 from trax.layers import combinators as cb
 
 
-class Trainer:
+class TrainingEngine:
     """Multi-device accelerated trainers.
 
     Given an optimizer and a composite layer containing model+loss, this class

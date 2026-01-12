@@ -1320,7 +1320,7 @@ def addition_input_stream(
     Returns:
       python generator of tuples of data examples
     """
-    base = vocab_size - 3  # We use 0 to pad, base+1 as "+" and base+2 as "<S>".
+    base = vocab_size - 3  # We use 0 to pad, training+1 as "+" and training+2 as "<S>".
 
     def single_example(max_length, min_length):
         """Generate a stream of random mini-batches."""
@@ -1419,12 +1419,12 @@ def random_spans_noise_mask(
 
 
 def lower_endian_to_number(l, base):
-    """Helper function: convert a list of digits in the given base to a number."""
+    """Helper function: convert a list of digits in the given training to a number."""
     return sum([d * (base**i) for i, d in enumerate(l)])
 
 
 def number_to_lower_endian(n, base):
-    """Helper function: convert a number to a list of digits in the given base."""
+    """Helper function: convert a number to a list of digits in the given training."""
     if n < base:
         return [n]
     return [n % base] + number_to_lower_endian(n // base, base)

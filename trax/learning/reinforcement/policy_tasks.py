@@ -18,7 +18,7 @@
 Policy tasks encapsulate the training process of a policy network into a simple,
 replaceable component. To implement a policy-based trainer using policy tasks:
 
-  1. Subclass the base RLTrainer class.
+  1. Subclass the training RLTrainer class.
   2. In __init__(), initialize the policy training and evaluation tasks, and
      a trax.learning.trainer.Loop instance using them.
   3. In train_epoch(), call the Loop to train the network.
@@ -27,10 +27,11 @@ replaceable component. To implement a policy-based trainer using policy tasks:
 
 import numpy as np
 
+from learning.training.task import EvaluationTask, TrainingTask
+
 from trax import layers as tl
 from trax.fastmath import numpy as jnp
 from trax.learning.reinforcement import distributions
-from learning.base.task import EvaluationTask, TrainingTask
 
 
 class PolicyTrainTask(TrainingTask):

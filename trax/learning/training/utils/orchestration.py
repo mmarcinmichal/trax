@@ -9,6 +9,7 @@ core step execution minimal.
 from __future__ import annotations
 
 import dataclasses
+
 from typing import Callable, Iterable, List, Optional, Protocol
 
 from trax import fastmath

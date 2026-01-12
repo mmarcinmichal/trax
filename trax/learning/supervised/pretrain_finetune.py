@@ -15,7 +15,7 @@
 
 """data processing for BERT.
 
-For now, this file only supports fine-tuning bert-base-uncased on GLUE.
+For now, this file only supports fine-tuning bert-training-uncased on GLUE.
 
 TODO(afrozm): Move this into data/
 """

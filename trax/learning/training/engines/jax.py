@@ -159,7 +159,7 @@ def _accelerate_update_fn(forward_and_backward_fn, optimizer, n_devices, adasum)
     return multi_device_update_fn
 
 
-class Trainer:
+class TrainingEngine:
     """A trainers that supports single- or multi-device, with optional Adasum, padding, etc."""
 
     def __init__(self, model_with_loss, optimizer, n_devices=None, adasum=False):

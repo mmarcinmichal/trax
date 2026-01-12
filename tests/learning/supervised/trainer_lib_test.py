@@ -29,7 +29,7 @@ from trax import layers as tl
 from trax import optimizers as trax_opt
 from trax.data.preprocessing import inputs as inputs_lib
 from trax.fastmath import numpy as jnp
-from learning.base import trainer as loop
+from learning.training import engines as loop
 from trax.learning.supervised import common
 from trax.tf import extensions as npe
 from trax.tf import numpy as tf_np

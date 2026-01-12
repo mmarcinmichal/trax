@@ -31,7 +31,7 @@ from trax.fastmath import numpy as np
 # pylint: disable=invalid-name
 
 _MODEL_LINKS = {
-    'bert-base-uncased':
+    'bert-training-uncased':
         'https://storage.googleapis.com/bert_models/2018_10_18/uncased_L-12_H-768_A-12.zip'
 }
 
@@ -109,7 +109,7 @@ def BERT(
     init_checkpoint=None,
     mode='eval',
 ):
-  """BERT (default hparams are for bert-base-uncased)."""
+  """BERT (default hparams are for bert-training-uncased)."""
   # TODO(piotrekp1): loading config from model_name
 
   layer_norm_eps = 1e-12

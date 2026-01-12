@@ -26,7 +26,7 @@ except ImportError as exc:  # pragma: no cover
 
 from trax import fastmath, optimizers
 from trax import layers as tl
-from trax.trainers import jax as trainers_jax
+from learning.training.engines import jax as trainers_jax
 
 
 def _prepare_batch(
@@ -100,7 +100,7 @@ def _prepare_models(
 
     trax_optimizer = optimizers.SGD(learning_rate)
     trax_optimizer.tree_init(trax_model.weights)
-    trax_trainer = trainers_jax.Trainer(trax_model, trax_optimizer, n_devices=n_devices, adasum=adasum)
+    trax_trainer = trainers_jax.TrainingEngine(trax_model, trax_optimizer, n_devices=n_devices, adasum=adasum)
 
     return torch_model, torch_optimizer, torch_loss, trax_trainer
 

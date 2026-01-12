@@ -22,7 +22,7 @@ import gin
 from absl.testing import absltest
 
 from trax.data.encoder import encoder as encoder
-from learning.base import trainer as loop
+from learning.training import engines as loop
 from trax.utils import test_utils
 
 pkg_dir, _ = os.path.split(__file__)

@@ -29,8 +29,8 @@ from tests.fastmath.jax.config import config
 from trax import data, fastmath, optimizers
 from trax import layers as tl
 from trax.layers import base
-from learning.base import trainer as training
-from trax.learning.base import orchestration
+from learning.training import engines as training
+from learning.training.utils import orchestration
 from trax.learning.supervised import callbacks
 from trax.models import transformer
 from trax.utils import shapes, test_utils

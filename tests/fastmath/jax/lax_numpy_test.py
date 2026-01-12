@@ -4422,7 +4422,7 @@ class LaxBackedNumpyTests(jtu.TestCase):
                 "stop_shape": stop_shape,
                 "num": num,
                 "endpoint": endpoint,
-                "base": base,
+                "training": base,
                 "dtype": dtype,
                 "rng_factory": rng_factory,
             }

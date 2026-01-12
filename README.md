@@ -146,9 +146,10 @@ backends -- [JAX](https://github.com/google/jax) and [TensorFlow numpy](https://
 
 ```python
 from trax.fastmath import numpy as fastnp
+
 trax.fastmath.use_backend('jax')  # Can be 'jax' or 'tensorflow-numpy'.
 
-matrix  = fastnp.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+matrix = fastnp.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
 print(f'matrix = \n{matrix}')
 vector = fastnp.ones(3)
 print(f'vector = {vector}')
@@ -187,43 +188,43 @@ at the implementation of one core Trax layer, `Embedding`:
 
 ```python
 class Embedding(base.Layer):
-  """Trainable layer that maps discrete tokens/IDs to vectors."""
+    """Trainable layer that maps discrete tokens/IDs to vectors."""
 
-  def __init__(self,
-               vocab_size,
-               d_feature,
-               kernel_initializer=init.RandomNormalInitializer(1.0)):
-    """Returns an embedding layer with given vocabulary size and vector size.
+    def __init__(self,
+                 vocab_size,
+                 d_feature,
+                 kernel_initializer=init.RandomNormalInitializer(1.0)):
+        """Returns an embedding layer with given vocabulary size and vector size.
+    
+        Args:
+          vocab_size: Size of the input vocabulary. The layer will assign a unique
+              vector to each ID in `range(vocab_size)`.
+          d_feature: Dimensionality/depth of the output vectors.
+          kernel_initializer: Function that creates (random) initial vectors for
+              the embedding.
+        """
+        super().__init__(name=f'Embedding_{vocab_size}_{d_feature}')
+        self._d_feature = d_feature  # feature dimensionality
+        self._vocab_size = vocab_size
+        self._kernel_initializer = kernel_initializer
 
-    Args:
-      vocab_size: Size of the input vocabulary. The layer will assign a unique
-          vector to each ID in `range(vocab_size)`.
-      d_feature: Dimensionality/depth of the output vectors.
-      kernel_initializer: Function that creates (random) initial vectors for
-          the embedding.
-    """
-    super().__init__(name=f'Embedding_{vocab_size}_{d_feature}')
-    self._d_feature = d_feature  # feature dimensionality
-    self._vocab_size = vocab_size
-    self._kernel_initializer = kernel_initializer
+    def forward(self, x):
+        """Returns embedding vectors corresponding to input token IDs.
+    
+        Args:
+          x: Tensor of token IDs.
+    
+        Returns:
+          Tensor of embedding vectors.
+        """
+        return jnp.take(self.weights, x, axis=0, mode='clip')
 
-  def forward(self, x):
-    """Returns embedding vectors corresponding to input token IDs.
-
-    Args:
-      x: Tensor of token IDs.
-
-    Returns:
-      Tensor of embedding vectors.
-    """
-    return jnp.take(self.weights, x, axis=0, mode='clip')
-
-  def init_weights_and_state(self, input_signature):
-    """Returns tensor of newly initialized embedding vectors."""
-    del input_signature
-    shape_w = (self._vocab_size, self._d_feature)
-    w = self._kernel_initializer(shape_w, self.rng)
-    self.weights = w
+    def init_weights_and_state(self, input_signature):
+        """Returns tensor of newly initialized embedding vectors."""
+        del input_signature
+        shape_w = (self._vocab_size, self._d_feature)
+        w = self._kernel_initializer(shape_w, self.rng)
+        self.weights = w
 ```
 
 Layers with trainable weights like `Embedding` need to be initialized with the signature (shape and dtype) of the input,
@@ -299,11 +300,11 @@ data_pipeline = trax.data.Serial(
     trax.data.Tokenize(vocab_file='en_8k.subword', keys=[0]),
     trax.data.Shuffle(),
     trax.data.FilterByLength(max_length=2048, length_keys=[0]),
-    trax.data.BucketByLength(boundaries=[  32, 128, 512, 2048],
-                             batch_sizes=[256,  64,  16,    4, 1],
+    trax.data.BucketByLength(boundaries=[32, 128, 512, 2048],
+                             batch_sizes=[256, 64, 16, 4, 1],
                              length_keys=[0]),
     trax.data.AddLossWeights()
-  )
+)
 train_batches_stream = data_pipeline(train_stream)
 eval_batches_stream = data_pipeline(eval_stream)
 example_batch = next(train_batches_stream)
@@ -319,7 +320,7 @@ training loop. The Trax training loop optimizes training and will create TensorB
 
 ```python
 
-from learning.base import trainer as training
+from learning.training import engines as training
 
 # Training task.
 train_task = training.TrainingTask(

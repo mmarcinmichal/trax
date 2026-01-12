@@ -16,7 +16,7 @@ from trax import layers as tl
 from trax import optimizers
 from trax.data.encoder import encoder as text_encoder
 from trax.models import gnn
-from trax.trainers import jax as trainers
+from learning.training.engines import jax as trainers
 
 MAX_LEN = 2_000
 WINDOW_SIZE = 10
@@ -144,7 +144,7 @@ def main():
     initialize_model(model_with_loss, example_batch)
 
     optimizer = optimizers.Adam(0.0001)
-    trainer = trainers.Trainer(model_with_loss, optimizer)
+    trainer = trainers.TrainingEngine(model_with_loss, optimizer)
 
     base_rng = fastmath.random.get_prng(0)
     train_model(

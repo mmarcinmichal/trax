@@ -24,7 +24,7 @@ from absl.testing import absltest
 from trax import layers as tl
 from trax.data.loader.tf import base as dataset
 from trax.data.preprocessing import inputs as preprocessing
-from learning.base import trainer as training
+from learning.training import engines as training
 from trax.optimizers import adam
 
 

@@ -1,12 +1,12 @@
 # coding=utf-8
 """Compatibility shim for learning rate schedules.
 
-Implementation lives in :mod:`trax.learning.base.lr_schedules`.
+Implementation lives in :mod:`trax.learning.training.lr_schedules`.
 """
 
 import gin
 
-from trax.learning.base import lr_schedules as _base
+from learning.training.utils import lr_schedules as _base
 
 constant = gin.external_configurable(
     _base.constant, module="trax.learning.supervised.lr_schedules"
