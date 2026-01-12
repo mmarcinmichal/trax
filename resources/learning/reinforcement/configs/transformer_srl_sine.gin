@@ -18,7 +18,7 @@
 import trax.data.tf_inputs
 import trax.models
 import trax.optimizers
-import trax.learning.trainer
+import trax.learning.training.trainer
 import trax.learning.supervised.callbacks
 
 # Module trax.data.inputs:

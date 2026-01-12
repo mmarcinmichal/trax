@@ -22,7 +22,6 @@ import jax
 import tensorflow.compat.v2 as tf
 
 from absl.testing import absltest, parameterized
-from learning.training import task, trainer
 
 from tests.fastmath.jax.config import config
 from trax import fastmath, models
@@ -31,6 +30,7 @@ from trax import optimizers as trax_opt
 from trax.data.preprocessing import inputs as inputs_lib
 from trax.fastmath import numpy as jnp
 from trax.learning.supervised import common
+from trax.learning.training import task, trainer
 from trax.tf import extensions as npe
 from trax.tf import numpy as tf_np
 from trax.utils import shapes as trax_shapes

@@ -19,8 +19,8 @@ include 'terraformer_copy.gin'
 import trax.data
 import trax.models
 import trax.optimizers
-import trax.learning.trainer
-
+import trax.learning.training.trainer
+import trax.learning.utils.lr_schedules
 
 # Parameters for PureLSHSelfAttention:
 # ==============================================================================

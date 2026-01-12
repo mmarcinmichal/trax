@@ -20,11 +20,11 @@ import io
 from unittest import mock
 
 from absl.testing import absltest
-from learning.training import task, trainer
 
 from trax import layers as tl
 from trax.data.loader.tf import base as dataset
 from trax.data.preprocessing import inputs as preprocessing
+from trax.learning.training import task, trainer
 from trax.optimizers import adam
 
 

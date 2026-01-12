@@ -20,16 +20,16 @@ import time
 import numpy as np
 
 from absl.testing import absltest
-from learning.training.engines.base import (
-    ReversibleSerialTrainer,
-    TrainingEngine,
-    extract_reversible_blocks,
-)
 
 from tests.fastmath.jax.config import config
 from trax import fastmath, optimizers
 from trax import layers as tl
 from trax.layers import base
+from trax.learning.training.engines.base import (
+    ReversibleSerialTrainer,
+    TrainingEngine,
+    extract_reversible_blocks,
+)
 from trax.models.research import terraformer
 from trax.utils import shapes
 

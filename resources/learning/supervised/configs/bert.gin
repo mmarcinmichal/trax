@@ -18,7 +18,7 @@ import trax.layers
 import trax.models
 import trax.optimizers
 import trax.learning.supervised.lr_schedules
-import trax.learning.trainer
+import trax.learning.training.trainer
 import trax.layers.metrics
 
 # Parameters for TFDS data pipeline:

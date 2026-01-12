@@ -19,7 +19,7 @@ include 'reformer_copy.gin'
 import trax.data
 import trax.models
 import trax.optimizers
-import trax.learning.trainer
+import trax.learning.training.trainer
 
 # Parameters for ConfigurableTerraformer:
 # ==============================================================================

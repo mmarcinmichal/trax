@@ -16,7 +16,8 @@
 """Tests for trax.learning.training.history."""
 
 from absl.testing import absltest
-from learning.training.utils import history as trax_history
+
+from trax.learning.training.utils import history as trax_history
 
 
 class HistoryTest(absltest.TestCase):

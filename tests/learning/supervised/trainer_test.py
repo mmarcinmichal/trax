@@ -24,14 +24,14 @@ import time
 import numpy as np
 
 from absl.testing import absltest
-from learning.training import engines as training
-from learning.training.utils import orchestration
 
 from tests.fastmath.jax.config import config
 from trax import data, fastmath, optimizers
 from trax import layers as tl
 from trax.layers import base
 from trax.learning.supervised import callbacks
+from trax.learning.training import trainer as training
+from trax.learning.training.utils import orchestration
 from trax.models import transformer
 from trax.utils import shapes, test_utils
 

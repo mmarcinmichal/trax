@@ -16,7 +16,8 @@ import trax.data.loader.tf.base
 import trax.data.preprocessing.inputs
 import trax.models
 import trax.optimizers
-import trax.learning.trainer
+import trax.learning.training.trainer
+import trax.learning.utils.lr_schedules
 
 vocab_size = 13  #  For addition, base = vocab_size - 3.
 max_len = 32

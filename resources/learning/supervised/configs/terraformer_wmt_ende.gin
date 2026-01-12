@@ -15,7 +15,7 @@
 import trax.data.loader.tf.base
 import trax.models
 import trax.optimizers
-import trax.learning.trainer
+import trax.learning.training.trainer
 import trax.data.preprocessing.tf.wmt
 
 MAX_EVAL_LENGTH = 512 # Get back to 65536
