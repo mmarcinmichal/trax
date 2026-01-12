@@ -140,7 +140,7 @@ class Embedding(base.Layer):
         vocab_size = 5
         word_ids = np.array([1, 2, 3, 4], dtype=np.int32)  # word_ids < vocab_size
         embedding_layer = tl.Embedding(vocab_size, 32)
-        embedding_layer.init(trax.shapes.signature(word_ids))
+        embedding_layer.init(trax.utils.shapes.signature(word_ids))
         embedded = embedding_layer(word_ids)  # embedded.shape = (4, 32)
     """
 

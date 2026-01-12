@@ -128,8 +128,8 @@ def GraphAttentionConvGAT(
         return h, adj
 
     def _attention(h, adj, a_src, a_dst):
-        attn_src = jnp.einsum("bnhd,hd->bnh", h, a_src)
-        attn_dst = jnp.einsum("bnhd,hd->bnh", h, a_dst)
+        attn_src = jnp.einsum("bnhd,hd->bhn", h, a_src)
+        attn_dst = jnp.einsum("bnhd,hd->bhn", h, a_dst)
         logits = attn_src[:, :, :, None] + attn_dst[:, :, None, :]
         logits = nn.leaky_relu(logits, negative_slope=leaky_relu_slope)
         mask = (adj > 0).astype(jnp.float32)
@@ -153,6 +153,7 @@ def GraphAttentionConvGAT(
                 tl.Weights(
                     init.GlorotUniformInitializer(), shape=(num_heads, out_dim)
                 ),
+                tl.Select([2, 3, 1, 0]),
                 tl.Fn("GATv1", _attention, n_out=1),
                 tl.Dense(out_dim),
                 activation(),

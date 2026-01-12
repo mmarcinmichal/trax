@@ -51,6 +51,7 @@ from trax import layers as tl
 from trax import models
 from trax.fastmath import numpy as numpy_math
 from trax.learning.supervised import decoding
+from trax.utils import shapes
 
 # from colabtools import adhoc_import
 # from colabtools import adhoc_import
@@ -147,8 +148,8 @@ for x in valid:
         break
 
 model_file = xm2a_main
-shape11 = trax.shapes.ShapeDtype((1, 1), dtype=numpy_math.int32)
-shape1l = trax.shapes.ShapeDtype((1, 15 * 1024), dtype=numpy_math.int32)
+shape11 = shapes.ShapeDtype((1, 1), dtype=numpy_math.int32)
+shape1l = shapes.ShapeDtype((1, 15 * 1024), dtype=numpy_math.int32)
 
 with trax.fastmath.use_backend(trax.fastmath.Backend.JAX):
     model = model(mode="eval")

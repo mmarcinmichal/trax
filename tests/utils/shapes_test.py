@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for trax.shapes."""
+"""Tests for trax.utils.shapes."""
 import numpy as np
 
 from absl.testing import absltest
