@@ -7,7 +7,7 @@ trax
     models.* <trax.models>
     data.* <trax.data>
     optimizers.* <trax.optimizers>
-    supervised.* <trax.supervised>
+    learning.* <trax.supervised>
     rl.* <trax.rl>
 
 

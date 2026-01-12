@@ -16,7 +16,7 @@ import trax.data.loader.tf.base
 import trax.data.preprocessing.tf.wmt
 import trax.models
 import trax.optimizers
-import trax.learning.supervised.trainer_lib
+import trax.learning.trainer
 
 # Parameters for batcher:
 # ==============================================================================
@@ -75,3 +75,4 @@ Reformer.n_heads = 16
 Reformer.n_encoder_layers = 6
 Reformer.n_decoder_layers = 6
 Reformer.input_vocab_size = 33300
+

@@ -17,7 +17,7 @@ import trax.data.preprocessing.tf.c4
 import trax.layers
 import trax.models
 import trax.optimizers
-import trax.learning.supervised.trainer_lib
+import trax.learning.trainer
 
 MAX_EVAL_LENGTH = 1024 # Get back to 65536
 BUCKETS = ([1025], [8, 1])
@@ -128,3 +128,4 @@ ReformerLM.n_layers = %n_layers
 ReformerLM.vocab_size = 32000  # Includes pad token and unused EOS token
 #ReformerLM.pos_axial_shape = (128, 512)
 ReformerLM.pos_axial_shape = (32, 32)
+

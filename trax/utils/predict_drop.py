@@ -93,7 +93,7 @@ def prepare_model(model_file, batch_size=1):
     print("Initializing the model in %s mode." % mode, flush=True)
 
     # Read the model name from the gin file
-    model_reference = gin.query_parameter("trax.supervised.training.train.model")
+    model_reference = gin.query_parameter("trax.learning.trainer.train.model")
     model = model_reference.scoped_configurable_fn(mode=mode)
 
     dec_len = 32 if FLAGS.use_eval_mode else 1

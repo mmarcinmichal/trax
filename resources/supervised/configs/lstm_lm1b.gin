@@ -15,7 +15,7 @@
 import trax.data
 import trax.models
 import trax.optimizers
-import trax.learning.supervised.trainer_lib
+import trax.learning.trainer
 
 # Parameters for batcher:
 # ==============================================================================
@@ -59,3 +59,4 @@ RNNLM.d_model = 512
 RNNLM.dropout = 0.1
 RNNLM.n_layers = 2
 RNNLM.vocab_size = 32000
+

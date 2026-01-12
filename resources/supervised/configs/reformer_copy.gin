@@ -16,7 +16,7 @@ import trax.data.loader.tf.base
 import trax.data.preprocessing.inputs
 import trax.models
 import trax.optimizers
-import trax.learning.supervised.trainer_lib
+import trax.learning.trainer
 
 vocab_size = 13  #  For addition, base = vocab_size - 3.
 max_len = 32
@@ -108,3 +108,4 @@ train.optimizer = @trax.optimizers.Adam
 train.steps = 100000
 # train.model = @trax.models.TransformerLM
 train.model = @trax.models.ReformerLM
+

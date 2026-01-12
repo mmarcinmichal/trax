@@ -25,7 +25,7 @@ from trax.data.encoder import encoder as tokenizer
 from trax.data.loader.tf.base import TFDS, generic_text_dataset_preprocess_fn, t5_data
 from trax.data.preprocessing.tf import bert as bert
 from trax.fastmath import numpy as jnp
-from trax.learning import supervised
+from trax.learning import EvaluationTask
 
 _GLUE_KEYS = {
     "cola": ("sentence",),
@@ -251,7 +251,7 @@ def _T5GlueEvalTask(benchmark_id):
         name_upper = "MNLI_matched" if split == "e" else "MNLI_mismatched"
     else:
         name_upper = benchmark.upper()
-    return supervised.training.EvalTask(
+    return EvaluationTask(
         eval_data(),
         metrics,
         metric_names=[f"{name_upper} accuracy", f"{name_upper} sequence accuracy"],

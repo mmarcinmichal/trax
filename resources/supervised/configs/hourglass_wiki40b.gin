@@ -15,7 +15,7 @@
 import trax.data
 import trax.models
 import trax.optimizers
-import trax.learning.supervised.trainer_lib
+import trax.learning.trainer
 
 # Macros:
 # ==============================================================================
@@ -124,3 +124,4 @@ HourglassLM.mode = 'train'
 HourglassLM.n_heads = 8
 HourglassLM.vocab_size = %vocab_size
 HourglassLM.attention_upsampling_fn = @LinearUpsampling
+

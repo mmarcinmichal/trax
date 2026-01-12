@@ -18,7 +18,8 @@
 import trax.data.tf_inputs
 import trax.models
 import trax.optimizers
-import trax.supervised.training
+import trax.learning.trainer
+import trax.learning.supervised.callbacks
 
 # Module trax.data.inputs:
 # ==============================================================================
@@ -46,13 +47,13 @@ TimeSeriesModel.precision = 2
 TimeSeriesModel.vocab_size = 16
 TimeSeriesModel.significance_decay = 0.7
 
-# Module trax.supervised.lr_schedules:
+# Module trax.learning.supervised.lr_schedules:
 # ==============================================================================
 multifactor.constant = 0.1
 multifactor.factors = 'constant * linear_warmup * rsqrt_decay'
 multifactor.warmup_steps = 1000
 
-# Module trax.supervised.training:
+# Module trax.learning.trainer:
 # ==============================================================================
 train.inputs = @trax.data.sine_inputs
 train.eval_frequency = 1000
@@ -61,10 +62,10 @@ train.model = @trax.rl.TimeSeriesModel
 train.optimizer = @trax.optimizers.Adam
 train.steps = 10000
 train.callbacks = (
-    @trax.supervised.callbacks.SerializedModelEvaluation,
+    @trax.learning.supervised.callbacks.SerializedModelEvaluation,
 )
 
-# Module trax.supervised.callbacks:
+# Module trax.learning.supervised.callbacks:
 # ==============================================================================
 SerializedModelEvaluation.eval_at = 500
 SerializedModelEvaluation.context_lengths = (0, 1, 10)

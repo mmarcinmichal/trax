@@ -15,14 +15,9 @@
 
 """Common utilities shared between supervised training entry points."""
 
-import collections
-import warnings
-
 from trax import layers as tl
-from trax.learning.supervised import training
+from learning.base.task import EvaluationTask, TrainingTask
 from trax.optimizers import base as optim_base
-
-NamedStream = collections.namedtuple("NamedStream", ["name", "stream"])
 
 
 def default_metrics():
@@ -41,17 +36,6 @@ def default_metrics():
     }
 
 
-def named_stream(name, stream):
-    """Factory for ``NamedStream`` with Gin compatibility."""
-
-    warnings.warn(
-        "NamedStream is deprecated; provide EvalTask instances directly instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return NamedStream(name=name, stream=stream)
-
-
 def create_train_task(
     inputs,
     loss_layer,
@@ -62,15 +46,15 @@ def create_train_task(
     permanent_checkpoint_frequency,
     use_memory_efficient_trainer,
 ):
-    """Builds a ``TrainTask`` from legacy trainer_lib arguments."""
+    """Builds a ``TrainingTask`` from training entry-point arguments."""
 
     opt = optimizer
     if not use_memory_efficient_trainer and not isinstance(optimizer, optim_base.Optimizer):
         # For non-memory-efficient trainers the optimizer factory must be called
-        # before constructing the TrainTask.
+        # before constructing the TrainingTask.
         opt = optimizer()
 
-    return training.TrainTask(
+    return TrainingTask(
         inputs.train_stream(n_devices),
         loss_layer=loss_layer,
         optimizer=opt,
@@ -81,15 +65,16 @@ def create_train_task(
 
 
 def create_eval_task(stream_or_inputs, metrics_dict, eval_steps, n_devices, export_prefix=None):
-    """Builds an ``EvalTask`` from legacy trainer_lib arguments."""
+    """Builds an ``EvaluationTask`` from training entry-point arguments."""
 
     names, metrics = zip(*metrics_dict.items())
-    stream = (
-        stream_or_inputs.eval_stream(n_devices)
-        if hasattr(stream_or_inputs, "eval_stream")
-        else stream_or_inputs.stream
-    )
-    return training.EvalTask(
+    if hasattr(stream_or_inputs, "eval_stream"):
+        stream = stream_or_inputs.eval_stream(n_devices)
+    elif hasattr(stream_or_inputs, "stream"):
+        stream = stream_or_inputs.stream
+    else:
+        stream = stream_or_inputs
+    return EvaluationTask(
         stream,
         metrics,
         metric_names=names,

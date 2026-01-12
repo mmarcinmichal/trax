@@ -7,8 +7,8 @@ import trax.fastmath as fastmath
 
 from resources.examples.python.base import (
     DeviceType,
+    crete_graph_batch_generator,
     evaluate_model,
-    cretae_graph_batch_generator,
     initialize_model,
     train_model,
 )
@@ -124,7 +124,7 @@ def main():
     STEPS_NUMBER = 40_000
 
     (x_train, y_train), (x_test, y_test), vocab_size, base_adj = load_data()
-    batch_gen = cretae_graph_batch_generator(
+    batch_gen = crete_graph_batch_generator(
         x_train, y_train, base_adj, batch_size=DEFAULT_BATCH_SIZE
     )
     example_batch = next(batch_gen)
@@ -155,7 +155,7 @@ def main():
         device_type=DeviceType.GPU.value,
     )
 
-    test_batch_gen = cretae_graph_batch_generator(
+    test_batch_gen = crete_graph_batch_generator(
         x_test, y_test, base_adj, batch_size=DEFAULT_BATCH_SIZE
     )
 

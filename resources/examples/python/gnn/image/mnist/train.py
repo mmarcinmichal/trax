@@ -1,15 +1,14 @@
 import numpy as np
 
+from data.loader.raw.base import RawDataset, Splits, load_dataset
+
 import trax.fastmath as fastmath
 
 from resources.examples.python.base import (
-    Dataset,
     DeviceType,
-    Splits,
+    crete_graph_batch_generator,
     evaluate_model,
-    cretae_graph_batch_generator,
     initialize_model,
-    load_dataset,
     train_model,
 )
 from trax import layers as tl
@@ -57,10 +56,10 @@ def main():
     DEFAULT_BATCH_SIZE = 8
     STEPS_NUMBER = 20_000
 
-    images, labels = load_dataset(Dataset.MNIST.value)
+    images, labels = load_dataset(RawDataset.MNIST.value)
     nodes, adjacency = create_graph_data(images)
 
-    batch_generator = cretae_graph_batch_generator(
+    batch_generator = crete_graph_batch_generator(
         nodes, adjacency, labels, batch_size=DEFAULT_BATCH_SIZE
     )
     example_batch = next(batch_generator)
@@ -80,10 +79,10 @@ def main():
         device_type=DeviceType.GPU.value,
     )
 
-    images, labels = load_dataset(Dataset.MNIST.value, Splits.TEST.value)
+    images, labels = load_dataset(RawDataset.MNIST.value, Splits.TEST.value)
     nodes, adjacency = create_graph_data(images)
 
-    test_batch_gen = cretae_graph_batch_generator(
+    test_batch_gen = crete_graph_batch_generator(
         nodes, adjacency, labels, batch_size=DEFAULT_BATCH_SIZE
     )
 

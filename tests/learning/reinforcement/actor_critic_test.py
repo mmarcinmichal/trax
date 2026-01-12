@@ -56,8 +56,8 @@ class ActorCriticTest(parameterized.TestCase):
         )
         trainer1.run(2)
         self.assertEqual(trainer1.current_epoch, 2)
-        self.assertEqual(trainer1._value_trainer.step, 2)
-        self.assertEqual(trainer1._policy_trainer.step, 4)
+        self.assertEqual(trainer1._value_loop.step, 2)
+        self.assertEqual(trainer1._policy_loop.step, 4)
         # Trainer 2 starts where trainers 1 stopped.
         trainer2 = actor_critic.A2C(
             task,
@@ -75,8 +75,8 @@ class ActorCriticTest(parameterized.TestCase):
         )
         trainer2.run(1)
         self.assertEqual(trainer2.current_epoch, 3)
-        self.assertEqual(trainer2._value_trainer.step, 3)
-        self.assertEqual(trainer2._policy_trainer.step, 6)
+        self.assertEqual(trainer2._value_loop.step, 3)
+        self.assertEqual(trainer2._policy_loop.step, 6)
         trainer1.close()
         trainer2.close()
 

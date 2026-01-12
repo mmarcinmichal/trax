@@ -28,7 +28,9 @@ except ValueError:
 
 
 _CLEAN_PATTERNS = [
-    (r"[^A-Za-z(),!?\.\'\`]", " "),
+    # 1) dokładnie jak w CNN_sentence / TextGCN:
+    #    zostawiamy A–Z, a–z, cyfry, nawiasy, , ! ? ' `
+    (r"[^A-Za-z0-9(),!?\'\`]", " "),
     (r"\'s", " 's"),
     (r"\'ve", " 've"),
     (r"n\'t", " n't"),
@@ -36,8 +38,6 @@ _CLEAN_PATTERNS = [
     (r"\'d", " 'd"),
     (r"\'ll", " 'll"),
     (r",", " , "),
-    (r"\.", " . "),
-    (r"\"", " , "),
     (r"!", " ! "),
     (r"\(", " ( "),
     (r"\)", " ) "),

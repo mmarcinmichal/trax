@@ -16,7 +16,7 @@ import trax.data
 import trax.layers
 import trax.models
 import trax.optimizers
-import trax.learning.supervised.trainer_lib
+import trax.learning.trainer
 
 # Parameters for batcher:
 # ==============================================================================
@@ -73,3 +73,4 @@ HourglassLM.hierarchy = '24@3'
 HourglassLM.vocab_size = 256
 HourglassLM.attention_downsampling_fn = @LinearPooling
 HourglassLM.ff_activation = @trax.layers.FastGelu
+

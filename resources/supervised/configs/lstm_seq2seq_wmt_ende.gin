@@ -16,7 +16,7 @@ import trax.data
 import trax.models
 import trax.optimizers
 import trax.learning.supervised.lr_schedules
-import trax.learning.supervised.trainer_lib
+import trax.learning.trainer
 
 # Parameters for batcher:
 # ==============================================================================
@@ -66,3 +66,4 @@ LSTMSeq2SeqAttn.attention_dropout = 0.2
 LSTMSeq2SeqAttn.n_attention_heads = 8
 LSTMSeq2SeqAttn.input_vocab_size = 33300
 LSTMSeq2SeqAttn.target_vocab_size = 33300
+

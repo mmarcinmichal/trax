@@ -15,7 +15,7 @@
 import trax.data
 import trax.models
 import trax.optimizers
-import trax.learning.supervised.trainer_lib
+import trax.learning.trainer
 
 # Macros:
 # ==============================================================================
@@ -162,3 +162,4 @@ ConfigurableTerraformer.use_two_swaps_per_encoder_block = False
 ConfigurableTerraformer.reversible_encoder = True
 ConfigurableTerraformer.pos_type = None
 ConfigurableTerraformer.pos_d_axial_embs = %pos_d_axial_embs
+

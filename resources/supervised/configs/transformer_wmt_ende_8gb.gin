@@ -15,7 +15,7 @@
 import trax.data
 import trax.models
 import trax.optimizers
-import trax.learning.supervised.trainer_lib
+import trax.learning.trainer
 
 # Parameters for batcher:
 # ==============================================================================
@@ -96,3 +96,4 @@ Transformer2.n_heads = %n_heads
 Transformer2.n_encoder_layers = %n_encoder_layers
 Transformer2.n_decoder_layers = %n_decoder_layers
 Transformer2.input_vocab_size = %input_vocab_size
+

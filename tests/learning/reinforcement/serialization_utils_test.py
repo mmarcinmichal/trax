@@ -27,7 +27,7 @@ from jax import numpy as jnp
 from trax import models as trax_models
 from trax.layers import base as layers_base
 from trax.learning.reinforcement import serialization_utils, space_serializer
-from trax.learning.supervised import loop
+from learning.base import trainer as loop
 from trax.models import transformer
 from trax.utils import shapes, test_utils
 

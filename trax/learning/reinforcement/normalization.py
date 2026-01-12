@@ -98,7 +98,7 @@ class Normalize(tl.Layer):
                 # Currently during data collection the batch size is 1 anyway.
                 count = running_mean_and_variance_get_count(state)
                 state = fastmath.cond(
-                    count < self._sample_limit,
+                    pred=count < self._sample_limit,
                     true_operand=(observation, state),
                     true_fun=lambda args: running_mean_and_variance_update(*args),
                     false_operand=None,

@@ -21,10 +21,10 @@ import numpy as np
 
 from trax import layers as tl
 from trax.fastmath import numpy as jnp
-from trax.learning.supervised import training
+from learning.base.task import EvaluationTask, TrainingTask
 
 
-class ValueTrainTask(training.TrainTask):
+class ValueTrainTask(TrainingTask):
     """Task for value training."""
 
     def __init__(
@@ -191,7 +191,7 @@ class ValueTrainTask(training.TrainTask):
         return np.squeeze(values, axis=-1) / self._target_scale
 
 
-class ValueEvalTask(training.EvalTask):
+class ValueEvalTask(EvaluationTask):
     """Task for value evaluation."""
 
     def __init__(self, train_task, n_eval_batches=1, head_selector=()):

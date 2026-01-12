@@ -13,11 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for trax.supervised.history."""
+"""Tests for trax.learning.base.history."""
 
 from absl.testing import absltest
 
-from trax.learning.supervised import history as trax_history
+from trax.learning.base import history as trax_history
 
 
 class HistoryTest(absltest.TestCase):

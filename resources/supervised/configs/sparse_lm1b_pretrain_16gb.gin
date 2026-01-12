@@ -15,7 +15,7 @@
 import trax.data
 import trax.models
 import trax.optimizers
-import trax.learning.supervised.trainer_lib
+import trax.learning.trainer
 
 
 ff_chunk_size = 0
@@ -111,3 +111,4 @@ ReformerLM.d_attention_key = %attn_kv    # d_model // n_heads
 ReformerLM.d_attention_value = %attn_kv  # d_model // n_heads
 ReformerLM.attention_type = %attn_type
 ReformerLM.loss_sparsity = %loss_sparsity
+

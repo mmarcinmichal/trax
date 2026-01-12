@@ -15,7 +15,7 @@
 import trax.data
 import trax.models
 import trax.optimizers
-import trax.learning.supervised.trainer_lib
+import trax.learning.trainer
 
 # Parameters for batcher:
 # ==============================================================================
@@ -66,3 +66,4 @@ EveryOtherLayerDropTransformerLM.n_heads = 8
 EveryOtherLayerDropTransformerLM.n_layers = 8
 EveryOtherLayerDropTransformerLM.vocab_size = 32000
 EveryOtherLayerDropTransformerLM.skip_mode = 'even'
+

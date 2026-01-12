@@ -13,10 +13,10 @@
 # limitations under the License.
 
 import trax.data
-import trax.supervised.lr_schedules
+import trax.learning.supervised.lr_schedules
 import trax.models
 import trax.optimizers
-import trax.learning.supervised.trainer_lib
+import trax.learning.trainer
 
 # Parameters for batcher:
 # ==============================================================================
@@ -61,3 +61,4 @@ train.eval_steps = 20
 train.model = @trax.models.Resnet50
 train.optimizer = @trax.optimizers.Momentum
 train.steps = 300000
+

@@ -78,7 +78,7 @@ def train(batch_size, learning_rate, num_training_iters, validation_steps):
             )
 
 
-def main(unused_argv):
+def main():
     train(
         FLAGS.batch_size,
         FLAGS.learning_rate,

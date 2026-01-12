@@ -29,7 +29,9 @@ from tests.fastmath.jax.config import config
 from trax import data, fastmath, optimizers
 from trax import layers as tl
 from trax.layers import base
-from trax.learning.supervised import callbacks, orchestration, training
+from learning.base import trainer as training
+from trax.learning.base import orchestration
+from trax.learning.supervised import callbacks
 from trax.models import transformer
 from trax.utils import shapes, test_utils
 
@@ -42,7 +44,7 @@ class TrainingTest(absltest.TestCase):
     def test_loop_no_eval_task(self):
         """Runs a training loop with no eval task(s)."""
         model = tl.Serial(tl.Dense(1))
-        task = training.TrainTask(
+        task = training.TrainingTask(
             _very_simple_data(), tl.L2Loss(), optimizers.SGD(0.01)
         )
         training_session = training.Loop(model, [task])
@@ -52,11 +54,11 @@ class TrainingTest(absltest.TestCase):
     def test_loop_checkpoint_low_metric(self):
         """Runs a training loop that saves checkpoints for low metric values."""
         model = tl.Serial(tl.Dense(1))
-        task = training.TrainTask(
+        task = training.TrainingTask(
             _very_simple_data(), tl.L2Loss(), optimizers.SGD(0.01)
         )
         eval_metric = tl.L2Loss()
-        eval_task = training.EvalTask(
+        eval_task = training.EvaluationTask(
             _very_simple_data(), [eval_metric], metric_names=["l2_loss"]
         )
         tmp_dir = self.create_tempdir().full_path
@@ -82,11 +84,11 @@ class TrainingTest(absltest.TestCase):
     def test_loop_checkpoint_high_metric(self):
         """Runs a training loop that saves checkpoints for high metric values."""
         model = tl.Serial(tl.Dense(1))
-        task = training.TrainTask(
+        task = training.TrainingTask(
             _very_simple_data(), tl.L2Loss(), optimizers.SGD(0.01)
         )
         eval_metric = tl.L2Loss()
-        eval_task = training.EvalTask(
+        eval_task = training.EvaluationTask(
             _very_simple_data(), [eval_metric], metric_names=["l2_loss"]
         )
         tmp_dir = self.create_tempdir().full_path
@@ -111,7 +113,7 @@ class TrainingTest(absltest.TestCase):
 
     def test_loop_allows_service_overrides(self):
         model = tl.Serial(tl.Dense(1))
-        task = training.TrainTask(
+        task = training.TrainingTask(
             _very_simple_data(), tl.L2Loss(), optimizers.SGD(0.01)
         )
 
@@ -184,10 +186,10 @@ class TrainingTest(absltest.TestCase):
     def test_train_dense_layer(self):
         """Trains a very simple network on a very simple task."""
         model = tl.Serial(tl.Dense(1))
-        task = training.TrainTask(
+        task = training.TrainingTask(
             _very_simple_data(), tl.L2Loss(), optimizers.SGD(0.01)
         )
-        eval_task = training.EvalTask(
+        eval_task = training.EvaluationTask(
             _very_simple_data(),  # deliberately re-using training data
             [tl.L2Loss()],
             metric_names=["SGD.L2Loss"],
@@ -210,10 +212,10 @@ class TrainingTest(absltest.TestCase):
         example_data = next(_very_simple_data())
         model.init(example_data)
         w = model.weights[0][0]
-        task = training.TrainTask(
+        task = training.TrainingTask(
             _very_simple_data(), tl.L2Loss(), optimizers.SGD(0.01)
         )
-        eval_task = training.EvalTask(
+        eval_task = training.EvaluationTask(
             _very_simple_data(),  # deliberately re-using training data
             [tl.L2Loss()],
             metric_names=["SGD.L2Loss"],
@@ -233,8 +235,8 @@ class TrainingTest(absltest.TestCase):
         train_data = data.Serial(
             lambda _: _very_simple_data(), data.CountAndSkip("simple_data")
         )
-        task = training.TrainTask(train_data(), tl.L2Loss(), optimizers.Adam(0.0001))
-        eval_task = training.EvalTask(
+        task = training.TrainingTask(train_data(), tl.L2Loss(), optimizers.Adam(0.0001))
+        eval_task = training.EvaluationTask(
             _very_simple_data(),  # deliberately re-using training data
             [tl.L2Loss()],
             metric_names=["SGD.L2Loss"],
@@ -312,8 +314,8 @@ class MatchByShapeTest(absltest.TestCase):
         train_data = data.Serial(
             lambda _: _very_simple_data(2, 2), data.CountAndSkip("simple_data")
         )
-        task = training.TrainTask(train_data(), tl.L2Loss(), optimizers.Adam(0.0001))
-        eval_task = training.EvalTask(
+        task = training.TrainingTask(train_data(), tl.L2Loss(), optimizers.Adam(0.0001))
+        eval_task = training.EvaluationTask(
             _very_simple_data(2, 2),  # deliberately re-using training data
             [tl.L2Loss()],
             metric_names=["SGD.L2Loss"],
@@ -342,10 +344,10 @@ class MatchByShapeTest(absltest.TestCase):
     def test_train_save_restore_transformer(self):
         """Saves and restores a checkpoint to check for equivalence."""
         vocab_size = 8
-        task = training.TrainTask(
+        task = training.TrainingTask(
             _very_simple_transformer_data(), tl.L2Loss(), optimizers.SGD(0.01)
         )
-        eval_task = training.EvalTask(
+        eval_task = training.EvaluationTask(
             _very_simple_transformer_data(),  # deliberately re-using training data
             [tl.L2Loss()],
             metric_names=["SGD.L2Loss"],
@@ -384,10 +386,10 @@ class MatchByShapeTest(absltest.TestCase):
     def test_train_dense_layer_with_momentum(self):
         """Trains with an optimizer that has slots / requires initialization."""
         model = tl.Serial(tl.Dense(1))
-        task = training.TrainTask(
+        task = training.TrainingTask(
             _very_simple_data(), tl.L2Loss(), optimizers.Momentum(0.01)
         )
-        eval_task = training.EvalTask(
+        eval_task = training.EvaluationTask(
             _very_simple_data(),  # deliberately re-using training data
             [tl.L2Loss()],
             metric_names=["Momentum.L2Loss"],
@@ -405,10 +407,10 @@ class MatchByShapeTest(absltest.TestCase):
     def test_train_dense_layer_evals(self):
         """Trains a very simple network on a very simple task, 2 epochs."""
         model = tl.Serial(tl.Dense(1))
-        task = training.TrainTask(
+        task = training.TrainingTask(
             _very_simple_data(), tl.L2Loss(), optimizers.SGD(0.01)
         )
-        eval_task = training.EvalTask(
+        eval_task = training.EvaluationTask(
             _very_simple_data(),
             [tl.L2Loss()],  # deliberately re-using training data
         )
@@ -424,10 +426,10 @@ class MatchByShapeTest(absltest.TestCase):
     def test_summaries_are_written(self):
         """Training writes down metrics when writing is turned on."""
         model = tl.Serial(tl.Dense(1))
-        task = training.TrainTask(
+        task = training.TrainingTask(
             _very_simple_data(), tl.L2Loss(), optimizers.SGD(0.01)
         )
-        eval_task = training.EvalTask(
+        eval_task = training.EvaluationTask(
             _very_simple_data(),  # deliberately re-using training data
             [tl.L2Loss()],
             metric_names=["SGD.L2Loss"],
@@ -465,7 +467,7 @@ class MatchByShapeTest(absltest.TestCase):
     def test_restores_step(self):
         """Training restores step from directory where it saved it."""
         model = tl.Serial(tl.Dense(1))
-        task = training.TrainTask(
+        task = training.TrainingTask(
             _very_simple_data(), tl.L2Loss(), optimizers.SGD(0.01)
         )
         tmp_dir = self.create_tempdir().full_path
@@ -483,7 +485,7 @@ class MatchByShapeTest(absltest.TestCase):
         """Training restores step from directory where it saved it."""
         self.skipTest("Broken by https://github.com/google/jax/pull/11234")
         model = tl.Serial(tl.Dense(4), tl.Dense(1))
-        task_std = training.TrainTask(
+        task_std = training.TrainingTask(
             _very_simple_data(), tl.L2Loss(), optimizers.Adam(0.0001)
         )
         tmp_dir = self.create_tempdir().full_path
@@ -494,7 +496,7 @@ class MatchByShapeTest(absltest.TestCase):
             output_dir=tmp_dir,
         )
         loop.run(4)
-        task_memeff = training.TrainTask(
+        task_memeff = training.TrainingTask(
             _very_simple_data(), tl.L2Loss(), optimizers.Adam
         )
         loop2 = training.Loop(
@@ -507,7 +509,7 @@ class MatchByShapeTest(absltest.TestCase):
         """Training restores from a checkpoint created with smaller model."""
         self.skipTest("Broken by https://github.com/google/jax/pull/11234")
         model1 = tl.Serial(tl.Dense(1))
-        task = training.TrainTask(
+        task = training.TrainingTask(
             _very_simple_data(), tl.L2Loss(), optimizers.Adam(0.01)
         )
         tmp_dir = self.create_tempdir().full_path
@@ -525,7 +527,7 @@ class MatchByShapeTest(absltest.TestCase):
     def test_restore_fails_different_model(self):
         """Training restores from a checkpoint created with smaller model."""
         model1 = tl.Serial(tl.Dense(1))
-        task = training.TrainTask(
+        task = training.TrainingTask(
             _very_simple_data(), tl.L2Loss(), optimizers.SGD(0.01)
         )
         tmp_dir = self.create_tempdir().full_path
@@ -550,7 +552,7 @@ class MatchByShapeTest(absltest.TestCase):
         model = tl.Serial(tl.Dense(1, use_bfloat16=True))
         # We'll also use Adafactor with bfloat16 to check restoring bfloat slots.
         opt = optimizers.Adafactor(0.01, do_momentum=True, momentum_in_bfloat16=True)
-        task = training.TrainTask(_very_simple_data(), tl.L2Loss(), opt)
+        task = training.TrainingTask(_very_simple_data(), tl.L2Loss(), opt)
         tmp_dir = self.create_tempdir().full_path
         loop = training.Loop(
             model,
@@ -567,7 +569,7 @@ class MatchByShapeTest(absltest.TestCase):
     def test_restores_step_sharded(self):
         """Training restores step from directory where it saved it, sharded."""
         model = tl.Serial(tl.Dense(1))
-        task = training.TrainTask(_very_simple_data(), tl.L2Loss(), optimizers.SGD)
+        task = training.TrainingTask(_very_simple_data(), tl.L2Loss(), optimizers.SGD)
         tmp_dir = self.create_tempdir().full_path
         loop = training.Loop(
             model,
@@ -585,7 +587,7 @@ class MatchByShapeTest(absltest.TestCase):
     def test_restores_step_sharded_bfloat16(self):
         """Training restores step from where it saved it, sharded and bfloat16."""
         model = tl.Serial(tl.Dense(1, use_bfloat16=True))
-        task = training.TrainTask(_very_simple_data(), tl.L2Loss(), optimizers.SGD)
+        task = training.TrainingTask(_very_simple_data(), tl.L2Loss(), optimizers.SGD)
         tmp_dir = self.create_tempdir().full_path
         loop = training.Loop(
             model,
@@ -605,10 +607,10 @@ class MatchByShapeTest(absltest.TestCase):
     def test_restores_history(self):
         """Training restores history from directory where it saved it."""
         model = tl.Serial(tl.Dense(1))
-        task = training.TrainTask(
+        task = training.TrainingTask(
             _very_simple_data(), tl.L2Loss(), optimizers.SGD(0.01)
         )
-        eval_task = training.EvalTask(
+        eval_task = training.EvaluationTask(
             _very_simple_data(),
             [tl.L2Loss()],  # deliberately re-using training data
         )
@@ -641,10 +643,10 @@ class MatchByShapeTest(absltest.TestCase):
     def test_trains_on_two_tasks(self):
         """Trains a very simple network on two very simple tasks."""
         model = tl.Serial(tl.Dense(3), tl.Dense(1))
-        task = training.TrainTask(
+        task = training.TrainingTask(
             _very_simple_data(), tl.L2Loss(), optimizers.SGD(0.01)
         )
-        eval_task = training.EvalTask(
+        eval_task = training.EvaluationTask(
             _very_simple_data(),  # deliberately re-using training data
             [tl.L2Loss()],
         )
@@ -663,17 +665,17 @@ class MatchByShapeTest(absltest.TestCase):
     def test_train_one_task_eval_two_tasks(self):
         """Trains a very simple network on one task and evaluates on two tasks."""
         model = tl.Serial(tl.Dense(3), tl.Dense(1))
-        task = training.TrainTask(
+        task = training.TrainingTask(
             _very_simple_data(), tl.L2Loss(), optimizers.SGD(0.01)
         )
         export_prefix_1 = "eval_1"
-        eval_task_1 = training.EvalTask(
+        eval_task_1 = training.EvaluationTask(
             _very_simple_data(),  # deliberately re-using training data
             [tl.L2Loss()],
             export_prefix=export_prefix_1,
         )
         export_prefix_2 = "eval_2"
-        eval_task_2 = training.EvalTask(
+        eval_task_2 = training.EvaluationTask(
             _very_simple_data(),  # deliberately re-using training data
             [tl.L2Loss()],
             export_prefix=export_prefix_2,
@@ -696,14 +698,14 @@ class MatchByShapeTest(absltest.TestCase):
             # The head we select from the model: 0 for output_dim 1 and 1 for 2.
             head_index = output_dim - 1
             train_tasks.append(
-                training.TrainTask(
+                training.TrainingTask(
                     _very_simple_data(output_dim),
                     tl.Serial(tl.Select([head_index], n_in=2), tl.L2Loss()),
                     optimizers.SGD(0.01),
                 )
             )
             eval_tasks.append(
-                training.EvalTask(
+                training.EvaluationTask(
                     _very_simple_data(output_dim),  # deliberately re-use training data
                     [tl.Serial(tl.Select([head_index], n_in=2), tl.L2Loss())],
                 )
@@ -759,8 +761,8 @@ class MatchByShapeTest(absltest.TestCase):
 
         # Run training.
         loss_layer = tl.WeightedCategoryCrossEntropy()
-        task = training.TrainTask(_data_gen(), loss_layer, optimizers.Adafactor)
-        eval_task = training.EvalTask(_data_gen(), [tl.WeightedCategoryCrossEntropy()])
+        task = training.TrainingTask(_data_gen(), loss_layer, optimizers.Adafactor)
+        eval_task = training.EvaluationTask(_data_gen(), [tl.WeightedCategoryCrossEntropy()])
         loop = training.Loop(
             model,
             [task],
@@ -794,7 +796,7 @@ class MatchByShapeTest(absltest.TestCase):
                 del step
 
         model = tl.Serial(tl.Dense(1))
-        task = training.TrainTask(
+        task = training.TrainingTask(
             _very_simple_data(), tl.L2Loss(), optimizers.SGD(0.01)
         )
         expected_loop = training.Loop(model, [task], callbacks=[TestCallback])
@@ -820,7 +822,7 @@ class MatchByShapeTest(absltest.TestCase):
                 end_steps.append(step)
 
         model = tl.Serial(tl.Dense(1))
-        task = training.TrainTask(
+        task = training.TrainingTask(
             _very_simple_data(), tl.L2Loss(), optimizers.SGD(0.01)
         )
         loop = training.Loop(model, [task], callbacks=[TestCallback])

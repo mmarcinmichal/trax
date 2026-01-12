@@ -1,13 +1,12 @@
+from data.loader.raw.base import RawDataset, Splits, load_dataset
+
 import trax.fastmath as fastmath
 
 from resources.examples.python.base import (
-    Dataset,
     DeviceType,
-    Splits,
     create_batch_generator,
     evaluate_model,
     initialize_model,
-    load_dataset,
     train_model,
 )
 from trax import layers as tl
@@ -30,7 +29,7 @@ def main():
     STEPS_NUMBER = 20_000
 
     # Load data
-    X, y = load_dataset(Dataset.MNIST.value)
+    X, y = load_dataset(RawDataset.MNIST.value)
     batch_generator = create_batch_generator(
         X, y, batch_size=DEFAULT_BATCH_SIZE, seed=42
     )
@@ -57,7 +56,7 @@ def main():
 
     # Load test data
     test_data, test_labels = load_dataset(
-        dataset_name=Dataset.MNIST.value, split=Splits.TEST.value
+        dataset_name=RawDataset.MNIST.value, split=Splits.TEST.value
     )
 
     # Create batch generator for test data

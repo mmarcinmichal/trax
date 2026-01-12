@@ -15,7 +15,7 @@
 import trax.data.loader.tf.base
 import trax.models
 import trax.optimizers
-import trax.learning.supervised.trainer_lib
+import trax.learning.trainer
 import trax.data.preprocessing.tf.wmt
 
 MAX_EVAL_LENGTH = 512 # Get back to 65536
@@ -107,3 +107,4 @@ ConfigurableTerraformer.encoder_attention_type = @encoder/LSHSelfAttention
 ConfigurableTerraformer.encoder_decoder_attention_type = @LSHSelfAttention
 ConfigurableTerraformer.pos_axial_shape  = (32, 16)  # should multiply out to max_len
 ConfigurableTerraformer.pos_d_axial_embs = (256, 256)  # should sum to d_model
+

@@ -15,7 +15,7 @@
 
 """Loop callbacks.
 
-Callbacks can be used to customize the behavior of `supervised.training.Loop`
+Callbacks can be used to customize the behavior of `trax.learning.trainer.Loop`
 to accomodate a variety of use-cases.
 
 Examples include:
@@ -33,7 +33,7 @@ import gin
 import numpy as np
 
 from trax import layers as tl
-from trax.learning.reinforcement import serialization_utils
+from trax.learning.base import serialization_utils
 from trax.learning.supervised import decoding
 from trax.utils import shapes
 from trax.utils.board import base
@@ -43,7 +43,7 @@ class TrainingStepCallback:
     """Callback triggered before and after a training step."""
 
     def __init__(self, loop):
-        """Initializes the callback with a `supervised.training.Loop` instance."""
+        """Initializes the callback with a `trax.learning.trainer.Loop` instance."""
         self._loop = loop
 
     def call_at(self, step):
@@ -66,7 +66,7 @@ class SerializedModelEvaluation(TrainingStepCallback):
     Example: time series prediction. We can serialize a time series into
     a sequence of discrete tokens and model this sequence using an autoregressive
     sequence model, such as Transformer - see
-    `trax.reinforcement.serialization_utils.SerializedModel`. Then we can use this callback
+    `trax.learning.base.serialization_utils.SerializedModel`. Then we can use this callback
     to evaluate long-horizon predictions of such a model.
     """
 
@@ -84,15 +84,15 @@ class SerializedModelEvaluation(TrainingStepCallback):
         """Initializes SerializedModelEvaluation.
 
         Args:
-          loop: Instance of `trax.supervised.training.Loop` or `None`. Can be set to
+          loop: Instance of `trax.learning.trainer.Loop` or `None`. Can be set to
             `None` for testing - in such a case, `model` and `eval_task` must be
             provided.
-          model: Instance of `trax.reinforcement.serialization_utils.SerializedModel`. Not
+          model: Instance of `trax.learning.base.serialization_utils.SerializedModel`. Not
             required if `loop` is provided.
           eval_at: When to evaluate. Either int (every how many steps to evaluate),
             or a list of ints (step numbers), or a function int -> bool (step
             predicate).
-          eval_task: Instance of `trax.supervised.training.EvalTask` with the
+          eval_task: Instance of `trax.learning.task.EvaluationTask` with the
             evaluation data, or None. If not provided, the task will be taken from
             `loop`.
           context_lengths: List of lengths of the context sequence fed into the

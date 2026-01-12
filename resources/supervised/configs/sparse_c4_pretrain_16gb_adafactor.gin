@@ -15,7 +15,7 @@
 import trax.data
 import trax.models
 import trax.optimizers
-import trax.learning.supervised.trainer_lib
+import trax.learning.trainer
 
 include 'c4_trax_data.gin'
 
@@ -179,3 +179,4 @@ ConfigurableTerraformer.n_layers_forget = 0
 ConfigurableTerraformer.pos_type = None
 ConfigurableTerraformer.pos_start_from_zero_prob = 1.0  # set lower to randomize positions
 ConfigurableTerraformer.pos_max_offset_to_add = 16384
+

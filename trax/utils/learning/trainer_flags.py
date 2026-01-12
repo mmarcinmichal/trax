@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Flags for trainers.py and rl_trainer.py.
+"""Flags for trainers.py and trainer.py.
 
 We keep these flags in sync across the trainers and the rl_trainer binaries.
 """
@@ -72,7 +72,7 @@ flags.DEFINE_bool(
 )
 flags.DEFINE_bool("tf_allow_float64", False, "Whether to allow float64 for TF.")
 
-# rl_trainer.py flags.
+# trainer.py flags.
 flags.DEFINE_boolean(
     "jax_debug_nans",
     False,

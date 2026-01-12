@@ -19,7 +19,7 @@ include 'terraformer_copy.gin'
 import trax.data
 import trax.models
 import trax.optimizers
-import trax.learning.supervised.trainer_lib
+import trax.learning.trainer
 
 
 # Parameters for PureLSHSelfAttention:
@@ -53,3 +53,4 @@ ConfigurableTerraformer.encoder_decoder_attention_type = @PureLSHSelfAttentionWr
 # ==============================================================================
 train.inputs = @trax.data.simple_sequence_copy_inputs
 train.model = @trax.models.ConfigurableTerraformer
+

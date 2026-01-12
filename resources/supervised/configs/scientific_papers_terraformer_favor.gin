@@ -15,7 +15,7 @@
 import trax.data
 import trax.models
 import trax.optimizers
-import trax.learning.supervised.trainer_lib
+import trax.learning.trainer
 
 # Macros:
 # ==============================================================================
@@ -140,4 +140,5 @@ ConfigurableTerraformer.encoder_attention_type = @Favor
 ConfigurableTerraformer.encoder_decoder_attention_type = @CausalFavor
 ConfigurableTerraformer.pos_type = 'fixed-base'
 ConfigurableTerraformer.pos_d_axial_embs = %pos_d_axial_embs
+
 

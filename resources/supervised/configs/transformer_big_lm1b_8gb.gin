@@ -15,7 +15,7 @@
 import trax.data
 import trax.models
 import trax.optimizers
-import trax.learning.supervised.trainer_lib
+import trax.learning.trainer
 
 # Parameters for batcher:
 # ==============================================================================
@@ -61,3 +61,4 @@ TransformerLM.mode = 'train'
 TransformerLM.n_heads = 8
 TransformerLM.n_layers = 8
 TransformerLM.vocab_size = 32000
+

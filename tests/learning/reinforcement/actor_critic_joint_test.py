@@ -53,7 +53,7 @@ class ActorCriticJointTest(absltest.TestCase):
         trainer1.run(2)
         self.assertEqual(trainer1.current_epoch, 2)
         self.assertEqual(trainer1._trainer.step, 2)
-        # Agent 2 starts where agent 1 stopped.
+        # RLTrainer 2 starts where agent 1 stopped.
         trainer2 = actor_critic_joint.AWRJoint(
             task,
             joint_model=joint_model,

@@ -17,18 +17,95 @@
 
 import functools
 
-from trax import data
+from trax import data, fastmath
 from trax import layers as tl
 from trax.fastmath import numpy as jnp
 from trax.fastmath import stop_gradient
-from trax.learning.supervised import loop as supervised
+from trax.learning.base import lr_schedules as lr
+from learning.base import trainer as supervised_trainer
 from trax.learning.reinforcement import actor_critic, distributions, rl_layers
-from trax.learning.reinforcement import training as rl_training
-from trax.learning.supervised import lr_schedules as lr
+from trax.learning.reinforcement import trainer as rl_training
+from trax.optimizers import base as optim_base
+
+
+def _normalize_optimizer(optimizer):
+    if isinstance(optimizer, optim_base.Optimizer):
+        return optimizer
+    return optimizer()
+
+
+class _LoopTrainer:
+    """Lightweight trainer facade built on :class:`trax.learning.trainer.Loop`."""
+
+    def __init__(
+        self,
+        model,
+        loss_fn,
+        optimizer,
+        lr_schedule,
+        inputs,
+        output_dir=None,
+        n_devices=None,
+        random_seed=None,
+        metrics=None,
+        init_checkpoint=None,
+        eval_steps=1,
+        eval_frequency=1,
+    ):
+        if callable(inputs):
+            inputs = inputs()
+        self._n_devices = n_devices or fastmath.local_device_count()
+        metrics_dict = metrics or {"loss": loss_fn}
+        names, metrics_layers = zip(*metrics_dict.items())
+        opt = _normalize_optimizer(optimizer)
+        train_task = supervised_trainer.TrainingTask(
+            inputs.train_stream(self._n_devices),
+            loss_layer=loss_fn,
+            optimizer=opt,
+            lr_schedule=lr_schedule,
+            n_steps_per_checkpoint=eval_frequency,
+        )
+        eval_task = supervised_trainer.EvaluationTask(
+            inputs.eval_stream(self._n_devices),
+            metrics_layers,
+            metric_names=names,
+            n_eval_batches=eval_steps,
+        )
+        model_train = model(mode="train")
+        eval_model = model(mode="eval")
+        if init_checkpoint:
+            model_train.init_from_file(init_checkpoint, weights_only=True)
+            eval_model.init_from_file(init_checkpoint, weights_only=True)
+        self._loop = supervised_trainer.Loop(
+            model_train,
+            train_task,
+            eval_model=eval_model,
+            eval_tasks=eval_task,
+            output_dir=output_dir,
+            n_devices=self._n_devices,
+            random_seed=random_seed,
+            eval_at=lambda _: False,
+        )
+
+    @property
+    def model_weights(self):
+        return self._loop.model.weights
+
+    @property
+    def step(self):
+        return self._loop.step
+
+    def train_epoch(self, n_steps: int, n_eval_steps: int):
+        self._loop.eval_tasks[0]._n_eval_batches = n_eval_steps  # pylint: disable=protected-access
+        self._loop.run(n_steps)
+        self._loop.run_evals()
+
+    def close(self):
+        return self._loop.close()
 
 
 # pylint: disable=g-long-lambda
-class ActorCriticJointAgent(rl_training.Agent):
+class ActorCriticJointTrainer(rl_training.RLTrainer):
     """Trains a joint policy-and-value model using actor-critic methods."""
 
     def __init__(
@@ -97,7 +174,7 @@ class ActorCriticJointAgent(rl_training.Agent):
         # This is the joint Trainer that will be used to train the policy model.
         # * inputs to the trainers come from self.batches_stream
         # * outputs are passed to self._joint_loss
-        self._trainer = supervised.LoopTrainer(
+        self._trainer = _LoopTrainer(
             model=self._joint_model,
             optimizer=self._optimizer,
             lr_schedule=self._lr_schedule,
@@ -221,7 +298,7 @@ class ActorCriticJointAgent(rl_training.Agent):
             )
 
 
-class PPOJoint(ActorCriticJointAgent):
+class PPOJoint(ActorCriticJointTrainer):
     """The Proximal Policy Optimization Algorithm aka PPO.
 
     Trains policy and value models using the PPO algortithm.
@@ -239,7 +316,7 @@ class PPOJoint(ActorCriticJointAgent):
         self._value_loss_coeff = value_loss_coeff
         self._entropy_coeff = entropy_coeff
         super().__init__(task, **kwargs)
-        self._trainer = supervised.LoopTrainer(
+        self._trainer = _LoopTrainer(
             model=self._joint_model,
             optimizer=self._optimizer,
             lr_schedule=self._lr_schedule,
@@ -529,7 +606,7 @@ class PPOJoint(ActorCriticJointAgent):
         return tl.Fn("PPOObjectiveMean", f)
 
 
-class A2CJoint(ActorCriticJointAgent):
+class A2CJoint(ActorCriticJointTrainer):
     """The A2C algorithm.
 
     Trains policy and value models using the A2C algortithm.
@@ -542,7 +619,7 @@ class A2CJoint(ActorCriticJointAgent):
         self._value_loss_coeff = value_loss_coeff
         self._entropy_coeff = entropy_coeff
         super().__init__(task, **kwargs)
-        self._trainer = supervised.LoopTrainer(
+        self._trainer = _LoopTrainer(
             model=self._joint_model,
             optimizer=self._optimizer,
             lr_schedule=self._lr_schedule,
@@ -723,7 +800,7 @@ class A2CJoint(ActorCriticJointAgent):
         return tl.Fn("A2CObjectiveMean", f, n_out=1)
 
 
-class AWRJoint(ActorCriticJointAgent):
+class AWRJoint(ActorCriticJointTrainer):
     """Trains a joint policy-and-value model using AWR."""
 
     # TODO(henrykm): value_loss_coeff looks like a common parameter

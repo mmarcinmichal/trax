@@ -22,7 +22,7 @@ Sample invocation:
 .. code-block:: bash
 
     TRAIN_BATCH_SIZE=32
-    python trax/rl_trainer.py \
+    python trax/trainer.py \
       --config_file=trax/reinforcement/configs/ppo_acrobot.gin \
       --train_batch_size=${TRAIN_BATCH_SIZE} \
       --output_dir=${HOME}/ppo_acrobot \
@@ -39,7 +39,7 @@ from absl import app, flags, logging
 from tests.fastmath.jax.config import config
 from trax import fastmath
 from trax.learning.reinforcement import task as rl_task
-from trax.learning.reinforcement import training as light_trainers
+from trax.learning.reinforcement import trainer as light_trainers
 from trax.tf import numpy as tf_np
 
 FLAGS = flags.FLAGS

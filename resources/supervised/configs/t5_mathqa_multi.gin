@@ -17,7 +17,7 @@ import trax.layers
 import trax.models
 import trax.optimizers
 import trax.learning.supervised.lr_schedules
-import trax.learning.supervised.trainer_lib
+import trax.learning.trainer
 import trax.models.research.bert
 import trax.layers.metrics
 
@@ -110,10 +110,10 @@ eval_additional_task/data.CreateMathQAInputs.dataset_path = %dataset_path
 eval_additional_task/data.CreateMathQAInputs.train = False
 eval_additional_task/data.CreateMathQAInputs.tolerance = 0.01
 eval_additional_task/data.CreateMathQAInputs.cumulative = False
-eval_additional_task/trax.supervised.training.EvalTask.labeled_data = @eval_additional_task/trax.data.make_additional_stream()
+eval_additional_task/trax.learning.trainer.EvaluationTask.labeled_data = @eval_additional_task/trax.data.make_additional_stream()
 # Explicitly pass the accuracy metric - we can pass multiple metrics if needs be
-eval_additional_task/trax.supervised.training.EvalTask.metrics = [@trax.layers.WeightedCategoryAccuracy(), @trax.layers.SequenceAccuracy()]
-eval_additional_task/trax.supervised.training.EvalTask.metric_names = ['Full program accuracy', 'Full program sequence accuracy']
+eval_additional_task/trax.learning.trainer.EvaluationTask.metrics = [@trax.layers.WeightedCategoryAccuracy(), @trax.layers.SequenceAccuracy()]
+eval_additional_task/trax.learning.trainer.EvaluationTask.metric_names = ['Full program accuracy', 'Full program sequence accuracy']
 
 train_rationale_task/data.CreateMathQAInputs.dataset_path = %dataset_path
 train_rationale_task/data.CreateMathQAInputs.train = True
@@ -123,22 +123,22 @@ train_rationale_task/data.CreateMathQAInputs.cumulative = False
 # Bear in mind that for an additional training task inputs aka labeled_data,
 # optimizer, loss_layer and lr_schedule are not defined a priori. The Loop
 # is interested in n_steps_per_permanent_checkpoint only for tasks[0]
-train_rationale_task/trax.supervised.training.TrainTask.labeled_data = @train_rationale_task/trax.data.make_additional_stream()
+train_rationale_task/trax.learning.trainer.TrainingTask.labeled_data = @train_rationale_task/trax.data.make_additional_stream()
 # In contrast to the optimizer passed to the trainer, in the case of task
 # we have to pass an instance of a class, not a class itself:
-train_rationale_task/trax.supervised.training.TrainTask.optimizer = @trax.optimizers.Adafactor()
-train_rationale_task/trax.supervised.training.TrainTask.loss_layer = @trax.layers.WeightedCategoryCrossEntropy()
-train_rationale_task/trax.supervised.training.TrainTask.lr_schedule = @trax.supervised.lr_schedules.multifactor()
+train_rationale_task/trax.learning.trainer.TrainingTask.optimizer = @trax.optimizers.Adafactor()
+train_rationale_task/trax.learning.trainer.TrainingTask.loss_layer = @trax.layers.WeightedCategoryCrossEntropy()
+train_rationale_task/trax.learning.trainer.TrainingTask.lr_schedule = @trax.learning.supervised.lr_schedules.multifactor()
 
 train_category_task/data.CreateMathQAInputs.dataset_path = %dataset_path
 train_category_task/data.CreateMathQAInputs.train = True
 train_category_task/data.CreateMathQAInputs.tolerance = 0.01
 train_category_task/data.CreateMathQAInputs.category = True
 train_category_task/data.CreateMathQAInputs.cumulative = False
-train_category_task/trax.supervised.training.TrainTask.labeled_data = @train_category_task/trax.data.make_additional_stream()
-train_category_task/trax.supervised.training.TrainTask.optimizer = @trax.optimizers.Adafactor()
-train_category_task/trax.supervised.training.TrainTask.loss_layer = @trax.layers.WeightedCategoryCrossEntropy()
-train_category_task/trax.supervised.training.TrainTask.lr_schedule = @trax.supervised.lr_schedules.multifactor()
+train_category_task/trax.learning.trainer.TrainingTask.labeled_data = @train_category_task/trax.data.make_additional_stream()
+train_category_task/trax.learning.trainer.TrainingTask.optimizer = @trax.optimizers.Adafactor()
+train_category_task/trax.learning.trainer.TrainingTask.loss_layer = @trax.layers.WeightedCategoryCrossEntropy()
+train_category_task/trax.learning.trainer.TrainingTask.lr_schedule = @trax.learning.supervised.lr_schedules.multifactor()
 
 data.PadToLength.len_map = {0: 512, 1: 512, 2: 512}
 data.PadToLength.pad_value = {0: 0, 1: 0, 2:0}
@@ -155,8 +155,8 @@ train.inputs = @trax.data.make_inputs
 train.model = @trax.models.ConfigurableTransformer
 train.steps = 200000
 train.checkpoint_highest = 'accuracy'
-train.additional_eval_tasks = [@eval_additional_task/trax.supervised.training.EvalTask(),]
-train.additional_train_tasks = [@train_rationale_task/trax.supervised.training.TrainTask(), @train_category_task/trax.supervised.training.TrainTask()]
+train.additional_eval_tasks = [@eval_additional_task/trax.learning.trainer.EvaluationTask(),]
+train.additional_train_tasks = [@train_rationale_task/trax.learning.trainer.TrainingTask(), @train_category_task/trax.learning.trainer.TrainingTask()]
 
 # Parameters for ConfigurableTransformer:
 # ==============================================================================
@@ -180,3 +180,4 @@ ConfigurableTransformer.loss_sparsity = %loss_sparsity
 # ==============================================================================
 multifactor.constant = 1e-3
 multifactor.factors = 'constant'
+

@@ -24,7 +24,7 @@ from absl.testing import absltest
 from trax import layers as tl
 from trax.data.loader.tf import base as dataset
 from trax.data.preprocessing import inputs as preprocessing
-from trax.learning.supervised import training
+from learning.base import trainer as training
 from trax.optimizers import adam
 
 
@@ -55,12 +55,12 @@ class MnistTest(absltest.TestCase):
         (cls_task, cls_eval_task) = _mnist_tasks(head=tl.Select([0], n_in=2))
         (train_batches_stream, eval_batches_stream) = _mnist_brightness_dataset()
         # Auxiliary brightness prediction task.
-        reg_task = training.TrainTask(
+        reg_task = training.TrainingTask(
             train_batches_stream,
             tl.Serial(tl.Select([1]), tl.L2Loss()),
             adam.Adam(0.001),
         )
-        reg_eval_task = training.EvalTask(
+        reg_eval_task = training.EvaluationTask(
             eval_batches_stream,
             [tl.Serial(tl.Select([1]), tl.L2Loss())],
             n_eval_batches=1,
@@ -159,12 +159,12 @@ def _mnist_tasks(head=None):
     if head is not None:
         loss = tl.Serial(head, loss)
         accuracy = tl.Serial(head, accuracy)
-    task = training.TrainTask(
+    task = training.TrainingTask(
         train_batches_stream,
         loss,
         adam.Adam(0.001),
     )
-    eval_task = training.EvalTask(
+    eval_task = training.EvaluationTask(
         eval_batches_stream,
         [loss, accuracy],
         n_eval_batches=10,

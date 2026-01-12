@@ -15,7 +15,7 @@
 import trax.data
 import trax.models
 import trax.optimizers
-import trax.learning.supervised.trainer_lib
+import trax.learning.trainer
 
 # Macros:
 # ==============================================================================
@@ -217,3 +217,4 @@ ReformerLM.n_layers = %n_layers
 ReformerLM.vocab_size = %vocab_size
 ReformerLM.pos_type = 'fixed-base'
 ReformerLM.pos_d_axial_embs= %pos_d_axial_embs
+

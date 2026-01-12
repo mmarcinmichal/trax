@@ -15,7 +15,7 @@
 import trax.data
 import trax.models
 import trax.optimizers
-import trax.learning.supervised.trainer_lib
+import trax.learning.trainer
 
 include 'c4_trax_data.gin'
 
@@ -167,3 +167,4 @@ Transformer2.encoder_attention_type = %enc_attn_type
 Transformer2.decoder_attention_type = %dec_attn_type
 Transformer2.pos_type = None
 Transformer2.attention_chunk_size = 0  # use 4 if it OOMs
+

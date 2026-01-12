@@ -15,7 +15,7 @@
 import trax.data
 import trax.models
 import trax.optimizers
-import trax.learning.supervised.trainer_lib
+import trax.learning.trainer
 
 n_symbols = 32
 length = 16
@@ -58,3 +58,4 @@ RNNLM.d_model = 128
 RNNLM.dropout = 0.1
 RNNLM.n_layers = 2
 RNNLM.vocab_size = %n_symbols
+

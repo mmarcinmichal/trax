@@ -15,7 +15,7 @@
 import trax.data
 import trax.models
 import trax.optimizers
-import trax.learning.supervised.trainer_lib
+import trax.learning.trainer
 
 import t5.data.preprocessors
 
@@ -105,3 +105,4 @@ Reformer.n_heads = 8
 Reformer.n_encoder_layers = 6
 Reformer.n_decoder_layers = 6
 Reformer.input_vocab_size = 8064
+

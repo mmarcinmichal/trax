@@ -27,29 +27,14 @@ from absl import app, flags, logging
 from jax.lib import xla_extension as xc
 
 from trax import fastmath
-from trax import layers as tl
-from trax import optimizers as trax_opt
-from trax.data.preprocessing import inputs as trax_inputs
-from trax.learning.supervised import lr_schedules as lr
-from trax.learning.supervised import training
-from trax.layers import base
+from learning.base import trainer as supervised_trainer
 from trax.tf import numpy as tf_np
-
-_DEFAULT_METRICS = {
-    "loss": tl.WeightedCategoryCrossEntropy(),
-    "accuracy": tl.WeightedCategoryAccuracy(),
-    "sequence_accuracy": tl.MaskedSequenceAccuracy(),
-    "neg_log_perplexity": tl.Serial(
-        tl.WeightedCategoryCrossEntropy(), tl.Negate()
-    ),
-    "weights_per_batch_per_core": tl.Serial(tl.Drop(), tl.Drop(), tl.Sum()),
-}
 
 FLAGS = flags.FLAGS
 Backend = fastmath.Backend
 
 
-# TODO(afrozm): Share between trainers.py and rl_trainer.py
+# TODO(afrozm): Share between trainers.py and trainer.py
 def _tf_setup_from_flags():
     """Processes TensorFlow-relevant flags."""
     if FLAGS.enable_eager_execution:
@@ -68,7 +53,7 @@ def _tf_setup_from_flags():
     tf_np.set_allow_float64(FLAGS.tf_allow_float64)
 
 
-# TODO(afrozm): Share between trainers.py and rl_trainer.py
+# TODO(afrozm): Share between trainers.py and trainer.py
 def _gin_parse_configs():
     """Initializes gin-controlled bindings."""
     # Imports for configurables
@@ -84,7 +69,7 @@ def _gin_parse_configs():
         configs.append("data_streams.data_dir='%s'" % FLAGS.data_dir)
     if FLAGS.model:
         configs.append(
-            "trax.supervised.training.train.model=@trax.models.%s"
+            "trax.learning.trainer.train.model=@trax.models.%s"
             % FLAGS.model
         )
     gin.parse_config_files_and_bindings(FLAGS.config_file, configs)
@@ -104,7 +89,7 @@ def _output_dir_or_default():
         dataset_name = "random"
     output_name = "{model_name}_{dataset_name}_{timestamp}".format(
         model_name=gin.query_parameter(
-            "trax.supervised.training.train.model"
+            "trax.learning.trainer.train.model"
         ).configurable.name,
         dataset_name=dataset_name,
         timestamp=datetime.datetime.now().strftime("%Y%m%d_%H%M"),
@@ -117,7 +102,7 @@ def _output_dir_or_default():
     return output_dir
 
 
-# TODO(afrozm): Share between trainers.py and rl_trainer.py
+# TODO(afrozm): Share between trainers.py and trainer.py
 def _jax_and_tf_configure_for_devices():  # pylint: disable=missing-function-docstring
     if FLAGS.use_tpu:
         jax.config.update("jax_platform_name", "tpu")
@@ -190,135 +175,9 @@ def _make_jax_gpu_cluster(host_id, server_ip, n_hosts, server_port=5005):
     jax.lib.xla_bridge.register_backend_factory("gpu", factory, priority=300)
 
 
-@gin.configurable(module="trax.supervised.training")
-def num_devices(value=None):
-    """Returns how many devices to use (if None, default, use all available)."""
-    return value
-
-
-@gin.configurable(module="trax.supervised.training")
-def train(
-    output_dir,
-    model=gin.REQUIRED,
-    loss_fn=tl.WeightedCategoryCrossEntropy(),
-    inputs=trax_inputs.batcher,
-    optimizer=trax_opt.Adafactor,
-    lr_schedule_fn=lr.multifactor,
-    steps=1000,
-    checkpoints_at=None,
-    permanent_checkpoints_at=None,
-    eval_steps=10,
-    eval_frequency=100,
-    permanent_checkpoint_frequency=None,
-    random_seed=None,
-    metrics=None,
-    checkpoint_highest=None,
-    checkpoint_lowest=None,
-    loss_chunk_size=0,
-    use_memory_efficient_trainer=False,
-    adasum=False,
-    init_checkpoint=None,
-    callbacks=None,
-    n_weights_shards=1,
-    additional_train_tasks=None,
-    additional_eval_tasks=None,
-    additional_eval_streams=None,
-):
-    base.N_WEIGHTS_SHARDS = n_weights_shards
-    if (
-        permanent_checkpoint_frequency is not None
-        and permanent_checkpoints_at is not None
-    ):
-        raise ValueError(
-            'Only one of ["permanent_checkpoint_frequency", '
-            '"permanent_checkpoints_at"] should be set.'
-        )
-
-    n_local_devices = num_devices() or fastmath.local_device_count()
-    # Prepare the training task.
-    # Inputs is either an Inputs instance or a function that returns it.
-    if callable(inputs):  # If we pass a function, e.g., through gin, call it.
-        inputs = inputs()
-    opt = optimizer if use_memory_efficient_trainer else optimizer()
-    train_task = training.TrainTask(
-        inputs.train_stream(n_local_devices),
-        loss_layer=loss_fn,
-        optimizer=opt,
-        lr_schedule=lr_schedule_fn(),
-        n_steps_per_checkpoint=eval_frequency,
-        n_steps_per_permanent_checkpoint=permanent_checkpoint_frequency,
-    )
-
-    if additional_train_tasks is None:
-        additional_train_tasks = []
-
-    # Prepare the evaluation.
-    metrics_dict = metrics if metrics is not None else _DEFAULT_METRICS
-    names, metrics_layers = zip(*metrics_dict.items())
-    eval_task = training.EvalTask(
-        inputs.eval_stream(n_local_devices),
-        metrics_layers,
-        metric_names=names,
-        n_eval_batches=eval_steps,
-    )
-
-    if additional_eval_tasks is None:
-        additional_eval_tasks = []
-
-    additional_eval_tasks_from_streams = []
-    if additional_eval_streams is not None:
-        for stream in additional_eval_streams:
-            additional_eval_tasks_from_streams.append(
-                training.EvalTask(
-                    stream.stream,
-                    metrics_layers,
-                    metric_names=names,
-                    n_eval_batches=eval_steps,
-                    export_prefix=stream.name,
-                )
-            )
-
-    checkpoint_at = None
-    if checkpoints_at is not None:
-        checkpoint_at = lambda step: step in checkpoints_at
-    permanent_checkpoint_at = None
-    if permanent_checkpoints_at is not None:
-        permanent_checkpoint_at = lambda step: step in permanent_checkpoints_at
-
-    model_train = model(mode="train")
-    model_predict_eval = model(mode="eval")
-    if init_checkpoint:
-        model_train.init_from_file(init_checkpoint, weights_only=True)
-        model_predict_eval.init_from_file(init_checkpoint, weights_only=True)
-    loop = training.Loop(
-        model_train,
-        [train_task] + additional_train_tasks,
-        eval_model=model_predict_eval,
-        eval_tasks=[eval_task]
-        + additional_eval_tasks
-        + additional_eval_tasks_from_streams,
-        output_dir=output_dir,
-        checkpoint_at=checkpoint_at,
-        checkpoint_low_metric=checkpoint_lowest,
-        checkpoint_high_metric=checkpoint_highest,
-        permanent_checkpoint_at=permanent_checkpoint_at,
-        n_devices=n_local_devices,
-        loss_chunk_size=loss_chunk_size,
-        use_memory_efficient_trainer=use_memory_efficient_trainer,
-        adasum=adasum,
-        random_seed=random_seed,
-        callbacks=callbacks,
-    )
-
-    steps_to_go = steps - loop.step
-    if steps_to_go <= 0:
-        logging.info(
-            "Stop training, already reached the total training steps %d", steps
-        )
-        return loop
-
-    loop.run(steps_to_go)
-    return loop
+# Re-export loop-based training helpers to avoid duplicate gin registries.
+num_devices = supervised_trainer.num_devices
+train = supervised_trainer.train
 
 
 def main(_):

@@ -1,17 +1,17 @@
-trax.supervised
-===============
+trax.learning.supervised
+========================
 
 decoding
 --------
 
-.. automodule:: trax.supervised.decoding
+.. automodule:: trax.learning.supervised.decoding
 
 lr\_schedules
 -------------
 
-.. automodule:: trax.supervised.lr_schedules
+.. automodule:: trax.learning.supervised.lr_schedules
 
 training
 --------
 
-.. automodule:: trax.supervised.training
+.. automodule:: trax.learning.trainer

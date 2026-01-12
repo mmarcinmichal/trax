@@ -16,7 +16,7 @@ import trax.data
 import trax.models
 import trax.optimizers
 import trax.learning.supervised.lr_schedules
-import trax.learning.supervised.trainer_lib
+import trax.learning.trainer
 
 # Parameters for the inputs pipeline:
 # ==============================================================================
@@ -82,3 +82,4 @@ TransformerEncoder.n_classes = 2
 TransformerEncoder.n_heads = 8
 TransformerEncoder.n_layers = 6
 TransformerEncoder.vocab_size = 8192
+

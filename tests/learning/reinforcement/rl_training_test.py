@@ -28,7 +28,7 @@ from trax import layers as tl
 from trax import models
 from trax import optimizers as opt
 from trax.learning.reinforcement import task as rl_task
-from trax.learning.reinforcement import training
+from trax.learning.reinforcement import trainer as training
 from trax.learning.supervised import lr_schedules
 from trax.utils import test_utils
 
@@ -115,7 +115,7 @@ class TrainingTest(absltest.TestCase):
         with tf.io.gfile.GFile(reinforcement_path, "wb") as f:
             pickle.dump(dictionary, f)
 
-        # Trainer 3 restores from a checkpoint with Agent/Loop step mistmatch,
+        # Trainer 3 restores from a checkpoint with RLTrainer/Loop step mistmatch,
         # should fail.
         def agent3_fn():
             return training.PolicyGradient(

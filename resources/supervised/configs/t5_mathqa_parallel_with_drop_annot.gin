@@ -17,7 +17,7 @@ import trax.layers
 import trax.models
 import trax.optimizers
 import trax.learning.supervised.lr_schedules
-import trax.learning.supervised.trainer_lib
+import trax.learning.trainer
 import trax.models.research.bert
 import trax.layers.metrics
 
@@ -223,10 +223,10 @@ eval_basic_task/data.CreateMathQAInputs.dataset_path = %dataset_path
 eval_basic_task/data.CreateMathQAInputs.train = False
 eval_basic_task/data.CreateMathQAInputs.tolerance = 0.01
 eval_basic_task/data.CreateMathQAInputs.cumulative = True
-eval_basic_task/trax.supervised.training.EvalTask.labeled_data = @eval_basic_task/trax.data.make_additional_stream()
+eval_basic_task/trax.learning.trainer.EvaluationTask.labeled_data = @eval_basic_task/trax.data.make_additional_stream()
 # Explicitly pass the accuracy metric - we can pass multiple metrics if needs be
-eval_basic_task/trax.supervised.training.EvalTask.metrics = [@trax.layers.WeightedCategoryAccuracy(), @trax.layers.SequenceAccuracy()]
-eval_basic_task/trax.supervised.training.EvalTask.metric_names = ['Single instruction accuracy', 'Single instruction sequence accuracy']
+eval_basic_task/trax.learning.trainer.EvaluationTask.metrics = [@trax.layers.WeightedCategoryAccuracy(), @trax.layers.SequenceAccuracy()]
+eval_basic_task/trax.learning.trainer.EvaluationTask.metric_names = ['Single instruction accuracy', 'Single instruction sequence accuracy']
 
 train_rationale_task/data.CreateMathQAInputs.dataset_path = %dataset_path
 train_rationale_task/data.CreateMathQAInputs.train = True
@@ -239,9 +239,9 @@ eval_rationale_task/data.CreateMathQAInputs.train = False
 eval_rationale_task/data.CreateMathQAInputs.tolerance = 0.01
 eval_rationale_task/data.CreateMathQAInputs.cumulative = False
 eval_rationale_task/data.CreateMathQAInputs.nlp_rationale = True
-eval_rationale_task/trax.supervised.training.EvalTask.labeled_data = @eval_rationale_task/trax.data.make_additional_stream()
-eval_rationale_task/trax.supervised.training.EvalTask.metrics = [@trax.layers.WeightedCategoryAccuracy(), @trax.layers.SequenceAccuracy()]
-eval_rationale_task/trax.supervised.training.EvalTask.metric_names = ['Rationale accuracy', 'Rationale sequence accuracy']
+eval_rationale_task/trax.learning.trainer.EvaluationTask.labeled_data = @eval_rationale_task/trax.data.make_additional_stream()
+eval_rationale_task/trax.learning.trainer.EvaluationTask.metrics = [@trax.layers.WeightedCategoryAccuracy(), @trax.layers.SequenceAccuracy()]
+eval_rationale_task/trax.learning.trainer.EvaluationTask.metric_names = ['Rationale accuracy', 'Rationale sequence accuracy']
 
 train_category_task/data.CreateMathQAInputs.dataset_path = %dataset_path
 train_category_task/data.CreateMathQAInputs.train = True
@@ -254,9 +254,9 @@ eval_category_task/data.CreateMathQAInputs.train = False
 eval_category_task/data.CreateMathQAInputs.tolerance = 0.01
 eval_category_task/data.CreateMathQAInputs.cumulative = False
 eval_category_task/data.CreateMathQAInputs.category = True
-eval_category_task/trax.supervised.training.EvalTask.labeled_data = @eval_category_task/trax.data.make_additional_stream()
-eval_category_task/trax.supervised.training.EvalTask.metrics = [@trax.layers.WeightedCategoryAccuracy(), @trax.layers.SequenceAccuracy()]
-eval_category_task/trax.supervised.training.EvalTask.metric_names = ['Category accuracy', 'Category sequence accuracy']
+eval_category_task/trax.learning.trainer.EvaluationTask.labeled_data = @eval_category_task/trax.data.make_additional_stream()
+eval_category_task/trax.learning.trainer.EvaluationTask.metrics = [@trax.layers.WeightedCategoryAccuracy(), @trax.layers.SequenceAccuracy()]
+eval_category_task/trax.learning.trainer.EvaluationTask.metric_names = ['Category accuracy', 'Category sequence accuracy']
 
 train_correct_answer_task/data.CreateMathQAInputs.dataset_path = %dataset_path
 train_correct_answer_task/data.CreateMathQAInputs.train = True
@@ -269,9 +269,9 @@ eval_correct_answer_task/data.CreateMathQAInputs.train = False
 eval_correct_answer_task/data.CreateMathQAInputs.tolerance = 0.01
 eval_correct_answer_task/data.CreateMathQAInputs.cumulative = False
 eval_correct_answer_task/data.CreateMathQAInputs.correct_answer = True
-eval_correct_answer_task/trax.supervised.training.EvalTask.labeled_data = @eval_correct_answer_task/trax.data.make_additional_stream()
-eval_correct_answer_task/trax.supervised.training.EvalTask.metrics = [@trax.layers.WeightedCategoryAccuracy(), @trax.layers.SequenceAccuracy()]
-eval_correct_answer_task/trax.supervised.training.EvalTask.metric_names = ['Correct answer accuracy', 'Correct answer sequence accuracy']
+eval_correct_answer_task/trax.learning.trainer.EvaluationTask.labeled_data = @eval_correct_answer_task/trax.data.make_additional_stream()
+eval_correct_answer_task/trax.learning.trainer.EvaluationTask.metrics = [@trax.layers.WeightedCategoryAccuracy(), @trax.layers.SequenceAccuracy()]
+eval_correct_answer_task/trax.learning.trainer.EvaluationTask.metric_names = ['Correct answer accuracy', 'Correct answer sequence accuracy']
 
 train_full_inference/data.CreateMathQAInputs.dataset_path = %dataset_path
 train_full_inference/data.CreateMathQAInputs.train = True
@@ -282,10 +282,10 @@ eval_full_inference/data.CreateMathQAInputs.dataset_path = %dataset_path
 eval_full_inference/data.CreateMathQAInputs.train = False
 eval_full_inference/data.CreateMathQAInputs.tolerance = 0.01
 eval_full_inference/data.CreateMathQAInputs.cumulative = False
-eval_full_inference/trax.supervised.training.EvalTask.labeled_data = @eval_full_inference/trax.data.make_additional_stream()
+eval_full_inference/trax.learning.trainer.EvaluationTask.labeled_data = @eval_full_inference/trax.data.make_additional_stream()
 # Explicitly pass the accuracy metric - we can pass multiple metrics if needs be
-eval_full_inference/trax.supervised.training.EvalTask.metrics = [@trax.layers.WeightedCategoryAccuracy(), @trax.layers.SequenceAccuracy()]
-eval_full_inference/trax.supervised.training.EvalTask.metric_names = ['Full program accuracy', 'Full program sequence accuracy']
+eval_full_inference/trax.learning.trainer.EvaluationTask.metrics = [@trax.layers.WeightedCategoryAccuracy(), @trax.layers.SequenceAccuracy()]
+eval_full_inference/trax.learning.trainer.EvaluationTask.metric_names = ['Full program accuracy', 'Full program sequence accuracy']
 
 # Parameters for Drop streams:
 # ==============================================================================
@@ -294,9 +294,9 @@ train_drop_task/data.CreateDropInputs.train = True
 train_drop_task/data.CreateDropInputs.mathqa_format = True
 eval_drop_task/data.CreateDropInputs.train = False
 eval_drop_task/data.CreateDropInputs.mathqa_format = True
-eval_drop_task/trax.supervised.training.EvalTask.labeled_data = @eval_drop_task/trax.data.make_additional_stream()
-eval_drop_task/trax.supervised.training.EvalTask.metrics = [@trax.layers.WeightedCategoryAccuracy(), @trax.layers.SequenceAccuracy()]
-eval_drop_task/trax.supervised.training.EvalTask.metric_names = ['Correct drop accuracy', 'Correct drop sequence accuracy']
+eval_drop_task/trax.learning.trainer.EvaluationTask.labeled_data = @eval_drop_task/trax.data.make_additional_stream()
+eval_drop_task/trax.learning.trainer.EvaluationTask.metrics = [@trax.layers.WeightedCategoryAccuracy(), @trax.layers.SequenceAccuracy()]
+eval_drop_task/trax.learning.trainer.EvaluationTask.metric_names = ['Correct drop accuracy', 'Correct drop sequence accuracy']
 
 # Parameters for annotated Drop streams:
 # ==============================================================================
@@ -305,9 +305,9 @@ train_drop_annot_task/data.CreateAnnotatedDropInputs.train = True
 train_drop_annot_task/data.CreateAnnotatedDropInputs.dataset_path = %dataset_path_drop
 eval_drop_annot_task/data.CreateAnnotatedDropInputs.train = False
 eval_drop_annot_task/data.CreateAnnotatedDropInputs.dataset_path = %dataset_path_drop
-eval_drop_annot_task/trax.supervised.training.EvalTask.labeled_data = @eval_drop_annot_task/trax.data.make_additional_stream()
-eval_drop_annot_task/trax.supervised.training.EvalTask.metrics = [@trax.layers.WeightedCategoryAccuracy(), @trax.layers.SequenceAccuracy()]
-eval_drop_annot_task/trax.supervised.training.EvalTask.metric_names = ['Correct drop annotated accuracy', 'Correct drop annotated sequence accuracy']
+eval_drop_annot_task/trax.learning.trainer.EvaluationTask.labeled_data = @eval_drop_annot_task/trax.data.make_additional_stream()
+eval_drop_annot_task/trax.learning.trainer.EvaluationTask.metrics = [@trax.layers.WeightedCategoryAccuracy(), @trax.layers.SequenceAccuracy()]
+eval_drop_annot_task/trax.learning.trainer.EvaluationTask.metric_names = ['Correct drop annotated accuracy', 'Correct drop annotated sequence accuracy']
 
 
 data.PadToLength.len_map = {0: 512, 1: 512, 2: 512}
@@ -327,13 +327,13 @@ train.steps = 200000
 train.checkpoint_highest = 'accuracy'
 train.additional_eval_tasks = [
   # MathQA eval tasks
-  @eval_basic_task/trax.supervised.training.EvalTask(),
-  @eval_correct_answer_task/trax.supervised.training.EvalTask(),
-  @eval_full_inference/trax.supervised.training.EvalTask(),
+  @eval_basic_task/trax.learning.trainer.EvaluationTask(),
+  @eval_correct_answer_task/trax.learning.trainer.EvaluationTask(),
+  @eval_full_inference/trax.learning.trainer.EvaluationTask(),
   # Drop eval task
-  @eval_drop_task/trax.supervised.training.EvalTask(),
+  @eval_drop_task/trax.learning.trainer.EvaluationTask(),
   # Drop annotated eval task
-  @eval_drop_annot_task/trax.supervised.training.EvalTask(),]
+  @eval_drop_annot_task/trax.learning.trainer.EvaluationTask(),]
 
 # Parameters for ConfigurableTransformer:
 # ==============================================================================
@@ -357,3 +357,4 @@ ConfigurableTransformer.loss_sparsity = %loss_sparsity
 # ==============================================================================
 multifactor.constant = 1e-3
 multifactor.factors = 'constant'
+

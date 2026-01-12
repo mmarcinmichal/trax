@@ -274,7 +274,7 @@ def GraphConvSparse(adj_csr, out_dim, activation=tl.Relu):
 
     return tl.Serial(
         tl.Fn("SparseAggregate", _aggregate, n_out=1),  # A_hat @ H
-        tl.Dense(out_dim),
+        tl.Dense(out_dim, use_bias=False),
         activation(),
     )
 

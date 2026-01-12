@@ -16,7 +16,7 @@ import trax.data
 import trax.models
 import trax.optimizers
 import trax.learning.supervised.lr_schedules
-import trax.learning.supervised.trainer_lib
+import trax.learning.trainer
 
 # Parameters for batcher:
 # ==============================================================================
@@ -47,3 +47,4 @@ train.model = @trax.models.MLP
 train.steps = 2000
 train.checkpoint_highest = 'accuracy'
 train.lr_schedule_fn = @lr_schedules.constant
+

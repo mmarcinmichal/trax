@@ -4,11 +4,12 @@ import numpy as np
 
 from absl import logging
 from layers import CrossEntropyLossWithLogSoftmax
+from utils import shapes
 
 import trax.fastmath as fastmath
 
 from trax import layers as tl
-from trax import optimizers, shapes
+from trax import optimizers
 
 # from trax.data.encoder import encoder as encoder
 # from trax.data.loader.tf import base as dataset

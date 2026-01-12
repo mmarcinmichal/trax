@@ -2,7 +2,7 @@
 """Orchestration utilities for supervised training loops.
 
 This module defines small single-responsibility helpers that encapsulate the
-training setup and runtime behaviors used by :mod:`trax.learning.supervised`.
+training setup and runtime behaviors used by :mod:`trax.learning.trainer`.
 The goal is to make the main training loop composition-friendly and keep the
 core step execution minimal.
 """

@@ -15,7 +15,7 @@
 import trax.data
 import trax.models.research.rezero
 import trax.optimizers
-import trax.learning.supervised.trainer_lib
+import trax.learning.trainer
 
 # Parameters for batcher:
 # ==============================================================================
@@ -72,3 +72,4 @@ ReZeroTransformer.n_heads = 8
 ReZeroTransformer.n_encoder_layers = 6
 ReZeroTransformer.n_decoder_layers = 6
 ReZeroTransformer.input_vocab_size = 33300
+

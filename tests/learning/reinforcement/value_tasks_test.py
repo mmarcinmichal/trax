@@ -29,7 +29,8 @@ from trax.learning.reinforcement import (
     value_tasks,
 )
 from trax.learning.reinforcement import task as rl_task
-from trax.learning.supervised import lr_schedules, training
+from learning.base import trainer as training
+from trax.learning.supervised import lr_schedules
 
 
 class ValueTasksTest(absltest.TestCase):

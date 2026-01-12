@@ -15,7 +15,7 @@
 import trax.data
 import trax.models
 import trax.optimizers
-import trax.learning.supervised.trainer_lib
+import trax.learning.trainer
 
 import t5.data.preprocessors
 
@@ -96,3 +96,4 @@ TransformerEncoder.n_classes = 2
 TransformerEncoder.n_heads = 8
 TransformerEncoder.n_layers = 6
 TransformerEncoder.vocab_size = 32000
+

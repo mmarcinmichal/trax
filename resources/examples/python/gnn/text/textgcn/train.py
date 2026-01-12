@@ -22,7 +22,7 @@ from trax.trainers import jax as trainers
 logging.set_verbosity(logging.INFO)
 
 PROJECT_ROOT = find_project_root(Path(__file__).resolve())
-GRAPH_NPZ = PROJECT_ROOT / "resources" / "data" / "gnn" / "20_newsgroups_bydate.npz"
+GRAPH_NPZ = PROJECT_ROOT / "resources" / "data" / "serialized" / "graphs" / "20_newsgroups_bydate.npz"
 
 
 def load_graph():
@@ -158,7 +158,7 @@ def main():
     eval_model = build_model(num_nodes, num_docs, num_classes, adj_csr, mode="eval")
     initialize_model(eval_model, example_batch)
 
-    base_rng = fastmath.random.get_prng(0)
+    base_rng = fastmath.random.get_prng(fastmath.random.randint(1, 200))
 
     # full-batch training – cały graf w jednym kroku
     train_gen = full_batch_generator(node_indices, labels_docs, train_mask_docs)

@@ -15,7 +15,7 @@
 import trax.data
 import trax.models
 import trax.optimizers
-import trax.learning.supervised.trainer_lib
+import trax.learning.trainer
 
 # Module trax.data:
 # ==============================================================================
@@ -44,16 +44,17 @@ TransformerLM.n_heads = 8
 TransformerLM.n_layers = 6
 TransformerLM.vocab_size = 32000
 
-# Module trax.supervised.lr_schedules:
+# Module trax.learning.supervised.lr_schedules:
 # ==============================================================================
 multifactor.constant = 0.1
 multifactor.factors = 'constant * linear_warmup * rsqrt_decay'
 multifactor.warmup_steps = 8000
 
-# Module trax.supervised.trainer_lib:
+# Module trax.learning.trainer:
 # ==============================================================================
 train.eval_frequency = 1000
 train.eval_steps = 10
 train.model = @trax.models.TransformerLM
 train.optimizer = @trax.optimizers.Adam
 train.steps = 100000
+

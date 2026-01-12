@@ -19,7 +19,7 @@ include 'reformer_copy.gin'
 import trax.data
 import trax.models
 import trax.optimizers
-import trax.learning.supervised.trainer_lib
+import trax.learning.trainer
 
 # Parameters for ConfigurableTerraformer:
 # ==============================================================================
@@ -44,3 +44,4 @@ ConfigurableTerraformer.pos_type  = 'fixed-base'
 # ==============================================================================
 train.inputs = @trax.data.simple_sequence_copy_inputs
 train.model = @trax.models.ConfigurableTerraformer
+

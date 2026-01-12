@@ -30,7 +30,7 @@ setup(
     ),
     author="Google Inc.",
     author_email="no-reply@google.com",
-    url="http://github.com/google/trax",
+    url="https://github.com/google/trax",
     license="Apache 2.0",
     packages=find_packages(),
     install_requires=[

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import trax.data
-import trax.learning.supervised.trainer_lib
+import trax.learning.trainer
 
 # Macros:
 # ==============================================================================
@@ -88,4 +88,5 @@ validation/data.Batch.batch_size = 64
 # Parameters for train:
 # ==============================================================================
 train.inputs = @trax.data.make_inputs
+
 

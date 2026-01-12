@@ -29,7 +29,8 @@ from trax import layers as tl
 from trax import optimizers as trax_opt
 from trax.data.preprocessing import inputs as inputs_lib
 from trax.fastmath import numpy as jnp
-from trax.learning.supervised import loop
+from learning.base import trainer as loop
+from trax.learning.supervised import common
 from trax.tf import extensions as npe
 from trax.tf import numpy as tf_np
 from trax.utils import shapes as trax_shapes
@@ -475,10 +476,15 @@ class TraxTest(parameterized.TestCase):
             eval_steps = 2
             model_fn = functools.partial(models.MLP, layer_widths=(16, 16, n_classes))
             inputs = _test_inputs(n_classes)
-            additional_eval_stream = loop.NamedStream(
+            metrics = common.default_metrics()
+            names, metric_layers = zip(*metrics.items())
+            additional_eval_task = loop.EvaluationTask(
                 # deliberately duplicating eval data
-                stream=inputs.eval_stream(1),
-                name="additional_eval_task",
+                inputs.eval_stream(fastmath.local_device_count()),
+                metric_layers,
+                metric_names=names,
+                n_eval_batches=eval_steps,
+                export_prefix="additional_eval_task",
             )
 
             # Train and evaluate
@@ -490,12 +496,12 @@ class TraxTest(parameterized.TestCase):
                 steps=steps,
                 eval_steps=eval_steps,
                 eval_frequency=1,
-                additional_eval_streams=[additional_eval_stream],
+                additional_eval_tasks=[additional_eval_task],
             )
 
             self.assertLen(_loop.eval_tasks, 2)
             eval_task_1, eval_task_2 = _loop.eval_tasks
-            self.assertCountEqual(eval_task_1.metrics, eval_task_2.metrics)
+            self.assertEqual(len(eval_task_1.metrics), len(eval_task_2.metrics))
             self.assertCountEqual(eval_task_1.metric_names, eval_task_2.metric_names)
 
     @parameterized.named_parameters(

@@ -24,18 +24,18 @@ import tensorflow as tf
 
 from . import advantages as rl_advantages
 from . import distributions, policy_tasks, value_tasks
-from . import training as rl_training
+from . import trainer as rl_training
 
-from trax import data, fastmath
+from trax import fastmath
 from trax import layers as tl
 from trax.fastmath import numpy as jnp
-from trax.learning.supervised import training
-from trax.learning.supervised import lr_schedules as lr
+from ..base import trainer as supervised_trainer
+from trax.learning.base import lr_schedules as lr
 from trax.optimizers import adam
 from trax.utils import shapes
 
 
-class ActorCriticAgent(rl_training.PolicyAgent):
+class ActorCriticTrainer(rl_training.PolicyTrainer):
     """Trains policy and value models using actor-critic methods.
 
     Attrs:
@@ -66,7 +66,7 @@ class ActorCriticAgent(rl_training.PolicyAgent):
         q_value_normalization=False,
         offline=False,
         **kwargs,
-    ):  # Arguments of PolicyAgent come here.
+    ):  # Arguments of PolicyTrainer come here.
         """Configures the actor-critic trainers.
 
         Args:
@@ -104,7 +104,7 @@ class ActorCriticAgent(rl_training.PolicyAgent):
               Allowed values: 'std', 'abs', `None`. If `None`, don't normalize.
           offline: Whether to train in offline mode. This matters for some
             algorithms, e.g. QWR.
-          **kwargs: Arguments for `PolicyAgent` superclass.
+          **kwargs: Arguments for `PolicyTrainer` superclass.
         """
         self._n_shared_layers = n_shared_layers
         self._value_batch_size = value_batch_size
@@ -113,7 +113,7 @@ class ActorCriticAgent(rl_training.PolicyAgent):
         self._value_eval_steps = value_eval_steps
 
         # The 2 below will be initalized in super.__init__ anyway, but are needed
-        # to construct value batches which are needed before PolicyAgent init
+        # to construct value batches which are needed before PolicyTrainer init
         # since policy input creation calls the value model -- hence this code.
         self._task = task
         self._max_slice_length = kwargs.get("max_slice_length", 1)
@@ -175,7 +175,7 @@ class ActorCriticAgent(rl_training.PolicyAgent):
                 tf.io.gfile.makedirs(value_output_dir)
         value_train_stream = self.value_batches_stream()
         value_sample_batch = next(self.value_batches_stream())
-        value_train_task = training.TrainTask(
+        value_train_task = supervised_trainer.TrainingTask(
             labeled_data=value_train_stream,
             loss_layer=tl.L2Loss(),
             optimizer=value_optimizer,
@@ -183,7 +183,7 @@ class ActorCriticAgent(rl_training.PolicyAgent):
             sample_batch=value_sample_batch,
             loss_name="value_loss",
         )
-        value_eval_task = training.EvalTask(
+        value_eval_task = supervised_trainer.EvaluationTask(
             labeled_data=self.value_batches_stream(),
             metrics=[tl.L2Loss(), self.value_mean],
             metric_names=["value_loss", "value_mean"],
@@ -193,7 +193,7 @@ class ActorCriticAgent(rl_training.PolicyAgent):
         value_checkpoint_at = lambda step: step % value_train_steps_per_epoch == 0
         value_eval_period = max(1, value_train_steps_per_epoch // max(1, value_evals_per_epoch))
         value_eval_at = lambda step: step % value_eval_period == 0
-        self._value_loop = training.Loop(
+        self._value_loop = supervised_trainer.Loop(
             model=value_model(mode="train"),
             tasks=value_train_task,
             eval_model=self._value_eval_model,
@@ -202,8 +202,6 @@ class ActorCriticAgent(rl_training.PolicyAgent):
             eval_at=value_eval_at,
             checkpoint_at=value_checkpoint_at,
         )
-        # Backward compatibility for tests expecting the legacy trainers.
-        self._value_trainer = self._value_loop
 
     @property
     def value_mean(self):
@@ -459,7 +457,7 @@ def _copy_model_weights_and_state(  # pylint: disable=invalid-name
         raise NotImplementedError("Copying optimizer slots is not supported for Loop.")
 
 
-class AdvantageBasedActorCriticAgent(ActorCriticAgent):
+class AdvantageBasedActorCriticTrainer(ActorCriticTrainer):
     """Base class for advantage-based actor-critic algorithms."""
 
     def __init__(
@@ -601,8 +599,8 @@ class AdvantageBasedActorCriticAgent(ActorCriticAgent):
 
 
 # TODO(pkozakowski): Rewrite all interleaved actor-critic algos to subclass
-# this, then rename to ActorCriticAgent and remove the other base classes.
-class LoopActorCriticAgent(rl_training.Agent):
+# this, then rename to ActorCriticTrainer and remove the other base classes.
+class LoopActorCriticTrainer(rl_training.RLTrainer):
     """Base class for actor-critic algorithms based on `Loop`."""
 
     on_policy = None
@@ -627,7 +625,7 @@ class LoopActorCriticAgent(rl_training.Agent):
         n_replay_epochs=1,
         **kwargs,
     ):
-        """Initializes LoopActorCriticAgent.
+        """Initializes LoopActorCriticTrainer.
 
         Args:
           task: `RLTask` instance to use.
@@ -656,7 +654,7 @@ class LoopActorCriticAgent(rl_training.Agent):
             better advantage estimation.
           n_replay_epochs: Number of epochs of trajectories to store in the replay
             buffer.
-          **kwargs: Keyword arguments forwarded to Agent.
+          **kwargs: Keyword arguments forwarded to RLTrainer.
         """
         super().__init__(task, **kwargs)
 
@@ -814,7 +812,7 @@ class LoopActorCriticAgent(rl_training.Agent):
             else:
                 return 0
 
-        self._loop = training.Loop(
+        self._loop = supervised_trainer.Loop(
             model=train_model,
             tasks=(policy_train_task, value_train_task),
             eval_model=eval_model,
@@ -826,10 +824,10 @@ class LoopActorCriticAgent(rl_training.Agent):
         )
 
         # Validate the restored checkpoints.
-        # TODO(pkozakowski): Move this to the base class once all Agents use Loop.
+        # TODO(pkozakowski): Move this to the base class once all trainers use Loop.
         if self._loop.step != self._epoch * self._n_train_steps_per_epoch:
             raise ValueError(
-                "The number of Loop steps must equal the number of Agent epochs "
+                "The number of Loop steps must equal the number of RLTrainer epochs "
                 "times the number of steps per epoch, got {}, {} and {}.".format(
                     self._loop.step, self._epoch, self._n_train_steps_per_epoch
                 )
@@ -868,7 +866,7 @@ class LoopActorCriticAgent(rl_training.Agent):
 ### Implementations of common actor-critic algorithms.
 
 
-class A2C(AdvantageBasedActorCriticAgent):
+class A2C(AdvantageBasedActorCriticTrainer):
     """Trains policy and value models using the A2C algorithm."""
 
     on_policy = True
@@ -914,7 +912,7 @@ class A2C(AdvantageBasedActorCriticAgent):
         return tl.Fn("A2CLoss", f)
 
 
-class PPO(AdvantageBasedActorCriticAgent):
+class PPO(AdvantageBasedActorCriticTrainer):
     """The Proximal Policy Optimization Algorithm aka PPO.
 
     Trains policy and value models using the PPO algorithm.
@@ -1066,7 +1064,7 @@ def AWRLoss(beta, w_max, thresholds):  # pylint: disable=invalid-name
     return tl.Fn("AWRLoss", f)
 
 
-class AWR(AdvantageBasedActorCriticAgent):
+class AWR(AdvantageBasedActorCriticTrainer):
     """Trains policy and value models using AWR."""
 
     on_policy = False
@@ -1086,7 +1084,7 @@ class AWR(AdvantageBasedActorCriticAgent):
         )  # pylint: disable=no-value-for-parameter
 
 
-class LoopAWR(LoopActorCriticAgent):
+class LoopAWR(LoopActorCriticTrainer):
     """Advantage Weighted Regression."""
 
     on_policy = False
@@ -1118,7 +1116,7 @@ def SamplingAWRLoss(
     return tl.Fn("SamplingAWRLoss", f)
 
 
-class SamplingAWR(AdvantageBasedActorCriticAgent):
+class SamplingAWR(AdvantageBasedActorCriticTrainer):
     """Trains policy and value models using Sampling AWR."""
 
     on_policy = False

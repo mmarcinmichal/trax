@@ -795,7 +795,7 @@ class EfficientAttentionBase(base.Layer):
             forward_unbatched = functools.partial(
                 self._incremental_forward_unbatched,
                 q_start=fastmath.stop_gradient(q_start),
-                q_len=fastmath.stop_gradient(seqlen),
+                q_len=seqlen,
                 rng=rng,
                 update_state=update_state,
             )
@@ -1706,7 +1706,7 @@ class SelfAttention(base.Layer):
             forward_unbatched = functools.partial(
                 self._incremental_forward_unbatched,
                 q_start=fastmath.stop_gradient(q_start),
-                q_len=fastmath.stop_gradient(seqlen),
+                q_len=seqlen,
                 rng=rng,
                 update_state=update_state,
             )
@@ -2667,7 +2667,7 @@ class LSHSelfAttention(base.Layer):
             forward_unbatched = functools.partial(
                 self._incremental_forward_unbatched,
                 q_start=fastmath.stop_gradient(q_start),
-                q_len=fastmath.stop_gradient(seqlen),
+                q_len=seqlen,
                 rng=rng,
                 update_state=update_state,
             )
@@ -3579,7 +3579,7 @@ class PureLSHSelfAttention(base.Layer):
             forward_unbatched = functools.partial(
                 self._incremental_forward_unbatched,
                 q_start=fastmath.stop_gradient(q_start),
-                q_len=fastmath.stop_gradient(seqlen),
+                q_len=seqlen,
                 rng=rng,
                 update_state=update_state,
             )

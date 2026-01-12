@@ -21,7 +21,7 @@ from . import (
     actor_critic,
     actor_critic_joint,
     serialization_utils,
-    training,
+    trainer,
 )
 
 
@@ -50,9 +50,9 @@ A2CJoint = configure_rl(actor_critic_joint.A2CJoint)
 AWRJoint = configure_rl(actor_critic_joint.AWRJoint)
 PPOJoint = configure_rl(actor_critic_joint.PPOJoint)
 
-PolicyGradient = configure_rl(training.PolicyGradient)
-ExpertIteration = configure_rl(training.ExpertIteration)
-DQN = configure_rl(training.DQN)
+PolicyGradient = configure_rl(trainer.PolicyGradient)
+ExpertIteration = configure_rl(trainer.ExpertIteration)
+DQN = configure_rl(trainer.DQN)
 
 TimeSeriesModel = gin.external_configurable(
     serialization_utils.TimeSeriesModel, module="trax.reinforcement"
