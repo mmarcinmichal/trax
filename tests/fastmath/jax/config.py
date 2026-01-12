@@ -99,7 +99,8 @@ class Config(object):
 
     def config_with_absl(self):
         # Run this before calling `app.run(main)` etc
-        from absl import app, flags as absl_flags
+        from absl import app
+        from absl import flags as absl_flags
 
         self.use_absl = True
         self.absl_flags = absl_flags
