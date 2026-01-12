@@ -8,10 +8,10 @@ light-weight graph attention layer.
 
 from jax import nn
 from jax.experimental import sparse
-from layers import LayerNorm
 
 from trax import layers as tl
 from trax.fastmath import numpy as jnp
+from trax.layers import LayerNorm
 from trax.layers import initializers as init
 
 
