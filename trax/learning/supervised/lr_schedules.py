@@ -6,7 +6,7 @@ Implementation lives in :mod:`trax.learning.training.lr_schedules`.
 
 import gin
 
-from learning.training.utils import lr_schedules as _base
+from trax.learning.training.utils import lr_schedules as _base
 
 constant = gin.external_configurable(
     _base.constant, module="trax.learning.supervised.lr_schedules"

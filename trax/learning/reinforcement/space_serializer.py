@@ -4,4 +4,4 @@
 Implementation lives in :mod:`trax.learning.training.space_serializer`.
 """
 
-from learning.training.utils.space_serializer import *  # noqa: F401,F403
+from trax.learning.training.utils.space_serializer import *  # noqa: F401,F403

@@ -6,6 +6,7 @@ import jax.numpy as jnp
 import numpy as np
 
 import trax.layers as tl
+import trax.layers.reversible as reversible_layer
 
 
 def _adasum_merge(a, b):
@@ -380,9 +381,6 @@ class ReversibleSerialTrainer:
 
         # Initialize the accelerated layer functions - JIT compiled versions
         if self._blocks is not None:
-            # Initialize reverse layers
-            shapes = (1, 8)  # Will be replaced by actual batch shapes
-
             # Create JIT-compiled forward and backward functions for each layer
             self._accelerated_layer_fns = []
             for layer in self._blocks:
@@ -759,9 +757,8 @@ class ReversibleSerialTrainer:
     def _run_backward_standard(self, loss, inputs_stack, rngs, step):
         """Run the backward pass in standard (non-reversible) mode."""
         # Compute gradients for all blocks
-        grad_fn = lambda weights, i: self._blocks[i].pure_fn(
-            inputs_stack[i], weights, self._blocks[i].state, rngs, True
-        )[0]
+        def grad_fn(weights, i):
+            return self._blocks[i].pure_fn(inputs_stack[i], weights, self._blocks[i].state, rngs, True)[0]
 
         # Process blocks in reverse order
         for i in range(len(self._blocks) - 1, -1, -1):
@@ -988,7 +985,7 @@ def extract_reversible_blocks(layer):
             and isinstance(sublayers[i + 1], tl.ReversibleHalfResidual)
         ):
             # Pair of ReversibleHalfResidual layers make a reversible block
-            blocks.append(tl.ReversibleResidual(sublayers[i], sublayers[i + 1]))
+            blocks.append(reversible_layer.ReversibleResidual(sublayers[i], sublayers[i + 1]))
             i += 2
         else:
             # Non-reversible layer - wrap it in a serial block

@@ -27,10 +27,10 @@ except ImportError:  # pragma: no cover
     torch = None
 
 from absl.testing import absltest
+from learning.training.engines import jax as trainers_jax
 
 from trax import fastmath, optimizers
 from trax import layers as tl
-from learning.training.engines import jax as trainers_jax
 
 
 def _flatten_l2_norms(tree) -> list[floating[Any]]:

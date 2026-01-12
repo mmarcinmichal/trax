@@ -32,10 +32,9 @@ import os
 import gin
 import numpy as np
 
-from learning.training.utils import serialization_utils
-
 from trax import layers as tl
 from trax.learning.supervised import decoding
+from trax.learning.training.utils import serialization_utils
 from trax.utils import shapes
 from trax.utils.board import base
 

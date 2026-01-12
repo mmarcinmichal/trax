@@ -22,7 +22,7 @@ import tensorflow as tf
 import tensorflow_datasets as tfds
 
 from tests.data.utils import (  # relative import
-    _TEST_CORPUS,
+    TEST_CORPUS,
     _load_dataset,
     _spm_path,
     _test_dataset_ints,
@@ -41,7 +41,7 @@ class TFDatasetTest(tf.test.TestCase):
     def test_TFDS_single_host_with_eval_holdout(self):
         train_ds_gen = ds.TFDS(
             "c4/en:2.3.0",
-            data_dir=_TEST_CORPUS,
+            data_dir=TEST_CORPUS,
             train=True,
             host_id=0,
             keys=("text",),
@@ -69,7 +69,7 @@ class TFDatasetTest(tf.test.TestCase):
 
         valid_ds_gen = ds.TFDS(
             "c4/en:2.3.0",
-            data_dir=_TEST_CORPUS,
+            data_dir=TEST_CORPUS,
             train=False,
             host_id=0,
             keys=("text",),
@@ -98,7 +98,7 @@ class TFDatasetTest(tf.test.TestCase):
     def test_TFDS_single_host_with_eval_holdout_no_valid_split(self):
         train_ds_gen = ds.TFDS(
             "para_crawl/ende",
-            data_dir=_TEST_CORPUS,
+            data_dir=TEST_CORPUS,
             train=True,
             host_id=0,
             keys=("en", "de"),
@@ -128,7 +128,7 @@ class TFDatasetTest(tf.test.TestCase):
         # crash because of eval_holdout_set.
         valid_ds_gen = ds.TFDS(
             "para_crawl/ende",
-            data_dir=_TEST_CORPUS,
+            data_dir=TEST_CORPUS,
             train=False,
             host_id=0,
             keys=("en", "de"),
@@ -215,7 +215,7 @@ class TFDatasetTest(tf.test.TestCase):
         def data_streams():
             return ds.data_streams(
                 "squad",
-                data_dir=_TEST_CORPUS,
+                data_dir=TEST_CORPUS,
                 input_name="inputs",
                 target_name="targets",
                 bare_preprocess_fn=ds.generic_text_dataset_preprocess_fn,

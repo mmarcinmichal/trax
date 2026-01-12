@@ -22,6 +22,7 @@ import jax
 import tensorflow.compat.v2 as tf
 
 from absl.testing import absltest, parameterized
+from learning.training import task, trainer
 
 from tests.fastmath.jax.config import config
 from trax import fastmath, models
@@ -29,7 +30,6 @@ from trax import layers as tl
 from trax import optimizers as trax_opt
 from trax.data.preprocessing import inputs as inputs_lib
 from trax.fastmath import numpy as jnp
-from learning.training import engines as loop
 from trax.learning.supervised import common
 from trax.tf import extensions as npe
 from trax.tf import numpy as tf_np
@@ -201,7 +201,7 @@ class TraxTest(parameterized.TestCase):
 
             # Train and evaluate
             output_dir = self.create_tempdir().full_path
-            _loop = loop.train(
+            _loop = trainer.train(
                 output_dir,
                 model=model_fn,
                 inputs=inputs,
@@ -261,7 +261,7 @@ class TraxTest(parameterized.TestCase):
 
             # Train and evaluate
             output_dir = self.create_tempdir().full_path
-            loop.train(
+            trainer.train(
                 output_dir,
                 model=model_fn,
                 inputs=inputs,
@@ -271,7 +271,7 @@ class TraxTest(parameterized.TestCase):
             )
 
             # Restart training
-            _loop = loop.train(
+            _loop = trainer.train(
                 output_dir,
                 model=model_fn,
                 inputs=inputs,
@@ -297,7 +297,7 @@ class TraxTest(parameterized.TestCase):
             output_dir = self.create_tempdir().full_path
 
             # Steps 1 -> 5
-            _loop = loop.train(
+            _loop = trainer.train(
                 output_dir,
                 model=model_fn,
                 inputs=inputs,
@@ -308,7 +308,7 @@ class TraxTest(parameterized.TestCase):
             )
 
             # Steps 6 -> 10
-            _loop = loop.train(
+            _loop = trainer.train(
                 output_dir,
                 model=model_fn,
                 inputs=inputs,
@@ -354,7 +354,7 @@ class TraxTest(parameterized.TestCase):
 
             # Train and evaluate
             output_dir = self.create_tempdir().full_path
-            loop.train(
+            trainer.train(
                 output_dir,
                 model=model_fn,
                 inputs=inputs,
@@ -364,7 +364,7 @@ class TraxTest(parameterized.TestCase):
             )
 
             # Restart training
-            _loop = loop.train(
+            _loop = trainer.train(
                 output_dir,
                 model=model_fn,
                 inputs=inputs,
@@ -401,7 +401,7 @@ class TraxTest(parameterized.TestCase):
 
             # Train and evaluate
             output_dir = self.create_tempdir().full_path
-            loop.train(
+            trainer.train(
                 output_dir,
                 model=model,
                 inputs=inputs,
@@ -447,7 +447,7 @@ class TraxTest(parameterized.TestCase):
 
             # Train and evaluate
             output_dir = self.create_tempdir().full_path
-            loop.train(
+            trainer.train(
                 output_dir,
                 model=model,
                 inputs=inputs,
@@ -478,7 +478,7 @@ class TraxTest(parameterized.TestCase):
             inputs = _test_inputs(n_classes)
             metrics = common.default_metrics()
             names, metric_layers = zip(*metrics.items())
-            additional_eval_task = loop.EvaluationTask(
+            additional_eval_task = task.EvaluationTask(
                 # deliberately duplicating eval data
                 inputs.eval_stream(fastmath.local_device_count()),
                 metric_layers,
@@ -489,7 +489,7 @@ class TraxTest(parameterized.TestCase):
 
             # Train and evaluate
             output_dir = self.create_tempdir().full_path
-            _loop = loop.train(
+            _loop = trainer.train(
                 output_dir,
                 model=model_fn,
                 inputs=inputs,
@@ -518,7 +518,7 @@ class TraxTest(parameterized.TestCase):
 
             # Train and evaluate
             output_dir = self.create_tempdir().full_path
-            state = loop.train(
+            state = trainer.train(
                 output_dir,
                 model=model_fn,
                 inputs=inputs,
@@ -540,19 +540,19 @@ class TraxTest(parameterized.TestCase):
 
 class EpochsTest(absltest.TestCase):
     def test_cuts_epoch_when_total_steps_reached(self):
-        epoch_steps = loop.epochs(
+        epoch_steps = trainer.epochs(
             total_steps=5, steps_to_skip=0, epoch_steps=[1, 2, 3]
         )
         self.assertEqual(list(epoch_steps), [1, 2, 2])
 
     def test_skips_full_epoch(self):
-        epoch_steps = loop.epochs(
+        epoch_steps = trainer.epochs(
             total_steps=4, steps_to_skip=2, epoch_steps=[2, 2]
         )
         self.assertEqual(list(epoch_steps), [2])
 
     def test_skips_part_of_epoch(self):
-        epoch_steps = loop.epochs(
+        epoch_steps = trainer.epochs(
             total_steps=4, steps_to_skip=1, epoch_steps=[2, 2]
         )
         self.assertEqual(list(epoch_steps), [1, 2])

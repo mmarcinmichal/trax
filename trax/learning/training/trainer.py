@@ -47,10 +47,6 @@ import psutil
 import tensorflow as tf
 
 from absl import logging
-from learning.training.engines import base as trainer_base
-from learning.training.task import EvaluationTask, TrainingTask
-from learning.training.utils import history as trax_history
-from learning.training.utils import orchestration
 
 import trax.utils.board as board
 
@@ -65,6 +61,11 @@ from trax.learning.supervised import common
 from trax.learning.supervised import lr_schedules as lr
 from trax.optimizers import base as optim_base
 from trax.utils import shapes
+
+from .engines import base as trainer_base
+from .task import EvaluationTask, TrainingTask
+from .utils import history as trax_history
+from .utils import orchestration
 
 _Evaluator = collections.namedtuple("_Evaluator", ["weights", "state", "metrics_fn"])
 _DEFAULT_METRICS = common.default_metrics()

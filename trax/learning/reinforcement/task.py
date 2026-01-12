@@ -22,12 +22,11 @@ import gin
 import gymnasium as gym
 import numpy as np
 
-from learning.training import engines as supervised_trainer
-
 import trax.utils.board as board
 
 from trax import fastmath
 from trax.learning.reinforcement import advantages
+from trax.learning.training import engines as supervised_trainer
 
 # TimeStepBatch stores a single step in the trajectory of an RL run, or
 # a sequence of timesteps (trajectory slice), or a batch of such sequences.

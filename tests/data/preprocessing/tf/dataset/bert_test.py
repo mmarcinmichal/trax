@@ -20,7 +20,7 @@ import numpy as np
 import tensorflow as tf
 
 from tests.data.utils import (  # relative import
-    _TEST_CORPUS,
+    TEST_CORPUS,
 )
 from trax.data.loader.tf.base import next_sentence_prediction_tf
 from trax.data.preprocessing.inputs import batcher  # noqa: F401
@@ -58,7 +58,7 @@ class InputsBertTest(tf.test.TestCase):
 
     def test_bert_next_sentence_prediction_inputs(self):
         stream = inputs_bert.BertNextSentencePredictionInputs(
-            "c4/en:2.3.0", data_dir=_TEST_CORPUS, train=False, shuffle_size=1
+            "c4/en:2.3.0", data_dir=TEST_CORPUS, train=False, shuffle_size=1
         )
         exp_sent1 = "The woman who died after falling from"
         exp_sent2 = "The woman who died after falling from"

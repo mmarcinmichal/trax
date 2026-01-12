@@ -25,9 +25,6 @@ import gin
 import numpy as np
 import tensorflow as tf
 
-from learning.training import engines as supervised_trainer
-from learning.training.utils import lr_schedules as lr
-
 import trax.utils.board as board
 
 from trax import fastmath, models
@@ -39,6 +36,8 @@ from trax.learning.reinforcement import (
     policy_tasks,
 )
 from trax.learning.reinforcement import task as rl_task
+from trax.learning.training import engines as supervised_trainer
+from trax.learning.training.utils import lr_schedules as lr
 from trax.optimizers import adam
 from trax.utils import shapes
 

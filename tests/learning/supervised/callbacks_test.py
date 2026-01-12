@@ -24,12 +24,12 @@ import gymnasium as gym
 import numpy as np
 
 from absl.testing import absltest, parameterized
+from learning.training import task, trainer
 
 from tests.layers import test_utils as tl_test_utils
 from trax import models
 from trax.data.preprocessing import inputs
 from trax.learning.reinforcement import serialization_utils, space_serializer
-from learning.training import engines
 from trax.learning.supervised import callbacks, lr_schedules
 from trax.utils import test_utils
 
@@ -87,7 +87,7 @@ def make_singleton_eval_task(observations, actions):
         while True:
             yield (observations, actions, observations, mask)
 
-    return engines.EvaluationTask(
+    return task.EvaluationTask(
         labeled_data=data(),
         metrics=[],
     )
@@ -140,7 +140,7 @@ class CallbacksTest(parameterized.TestCase):
         )
 
         output_dir = self.create_tempdir().full_path
-        engines.train(
+        trainer.train(
             output_dir=output_dir,
             model=serialized_model_fn,
             inputs=functools.partial(random_inputs, seq_len=4, batch_size=64),

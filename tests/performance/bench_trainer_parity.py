@@ -24,9 +24,10 @@ except ImportError as exc:  # pragma: no cover
         "PyTorch is required for the trainer parity benchmark. Install torch before running."
     ) from exc
 
+from learning.training.engines import jax as trainers_jax
+
 from trax import fastmath, optimizers
 from trax import layers as tl
-from learning.training.engines import jax as trainers_jax
 
 
 def _prepare_batch(

@@ -22,7 +22,7 @@ import tensorflow as tf
 import tensorflow_datasets as tfds
 
 from tests.data.utils import (  # relative import
-    _TEST_CORPUS,
+    TEST_CORPUS,
     _c4_dataset,
     _spm_path,
     _t5_gin_config,
@@ -128,7 +128,7 @@ class TFDatasetC4Test(tf.test.TestCase):
             # Just make sure this doesn't throw.
             result = ds.data_streams(
                 "c4",
-                data_dir=_TEST_CORPUS,
+                data_dir=TEST_CORPUS,
                 input_name="targets",
                 target_name="text",
                 preprocess_fn=c4_preprocess,
@@ -188,7 +188,7 @@ class TFDatasetC4Test(tf.test.TestCase):
             # Just make sure this doesn't throw.
             result = ds.data_streams(
                 "c4",
-                data_dir=_TEST_CORPUS,
+                data_dir=TEST_CORPUS,
                 input_name="inputs",
                 target_name="targets",
                 bare_preprocess_fn=c4_bare_preprocess_fn,

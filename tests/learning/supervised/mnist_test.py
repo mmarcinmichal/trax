@@ -20,11 +20,11 @@ import io
 from unittest import mock
 
 from absl.testing import absltest
+from learning.training import task, trainer
 
 from trax import layers as tl
 from trax.data.loader.tf import base as dataset
 from trax.data.preprocessing import inputs as preprocessing
-from learning.training import engines as training
 from trax.optimizers import adam
 
 
@@ -34,7 +34,7 @@ class MnistTest(absltest.TestCase):
         """Train MNIST model a bit, to compare to other implementations."""
         mnist_model = _build_model(two_heads=False)
         (task, eval_task) = _mnist_tasks()
-        training_session = training.Loop(
+        training_session = trainer.Loop(
             mnist_model,
             tasks=[task],
             eval_tasks=[eval_task],
@@ -55,18 +55,18 @@ class MnistTest(absltest.TestCase):
         (cls_task, cls_eval_task) = _mnist_tasks(head=tl.Select([0], n_in=2))
         (train_batches_stream, eval_batches_stream) = _mnist_brightness_dataset()
         # Auxiliary brightness prediction task.
-        reg_task = training.TrainingTask(
+        reg_task = task.TrainingTask(
             train_batches_stream,
             tl.Serial(tl.Select([1]), tl.L2Loss()),
             adam.Adam(0.001),
         )
-        reg_eval_task = training.EvaluationTask(
+        reg_eval_task = task.EvaluationTask(
             eval_batches_stream,
             [tl.Serial(tl.Select([1]), tl.L2Loss())],
             n_eval_batches=1,
             metric_names=["L2"],
         )
-        training_session = training.Loop(
+        training_session = trainer.Loop(
             mnist_model,
             tasks=[cls_task, reg_task],
             eval_tasks=[cls_eval_task, reg_eval_task],
@@ -159,18 +159,18 @@ def _mnist_tasks(head=None):
     if head is not None:
         loss = tl.Serial(head, loss)
         accuracy = tl.Serial(head, accuracy)
-    task = training.TrainingTask(
+    train_task = task.TrainingTask(
         train_batches_stream,
         loss,
         adam.Adam(0.001),
     )
-    eval_task = training.EvaluationTask(
+    eval_task = task.EvaluationTask(
         eval_batches_stream,
         [loss, accuracy],
         n_eval_batches=10,
         metric_names=["CrossEntropy", "WeightedCategoryAccuracy"],
     )
-    return (task, eval_task)
+    return train_task, eval_task
 
 
 def _read_metric(metric_name, stdout):

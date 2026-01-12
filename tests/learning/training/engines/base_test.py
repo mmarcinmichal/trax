@@ -20,7 +20,11 @@ import time
 import numpy as np
 
 from absl.testing import absltest
-from learning.training.engines.base import ReversibleSerialTrainer, TrainingEngine, extract_reversible_blocks
+from learning.training.engines.base import (
+    ReversibleSerialTrainer,
+    TrainingEngine,
+    extract_reversible_blocks,
+)
 
 from tests.fastmath.jax.config import config
 from trax import fastmath, optimizers

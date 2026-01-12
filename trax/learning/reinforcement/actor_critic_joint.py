@@ -17,15 +17,14 @@
 
 import functools
 
-from learning.training import engines as supervised_trainer
-from learning.training.utils import lr_schedules as lr
-
 from trax import data, fastmath
 from trax import layers as tl
 from trax.fastmath import numpy as jnp
 from trax.fastmath import stop_gradient
 from trax.learning.reinforcement import actor_critic, distributions, rl_layers
 from trax.learning.reinforcement import trainer as rl_training
+from trax.learning.training import engines as supervised_trainer
+from trax.learning.training.utils import lr_schedules as lr
 from trax.optimizers import base as optim_base
 
 

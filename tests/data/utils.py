@@ -13,12 +13,15 @@ from t5.data import preprocessors as t5_processors
 from trax.data.loader.tf import base as ds
 
 pkg_dir, _ = os.path.split(__file__)
-_TEST_VOCAB = os.path.normpath(os.path.join(pkg_dir, "../../resources/data/vocabs/test"))
-_CONFIG_DIR = os.path.normpath(
-    os.path.join(pkg_dir, "../../resources/learning/supervised/configs/")
+TEST_VOCAB = os.path.normpath(os.path.join(pkg_dir, "../../resources/data/vocabs/test"))
+CONFIG_DIR = os.path.normpath(
+    os.path.join(pkg_dir, "../../resources/learning/supervised/configs")
 )
-_TEST_CORPUS = os.path.normpath(
+TEST_CORPUS = os.path.normpath(
     os.path.join(pkg_dir, "../../resources/data/corpus/test")
+)
+TEST_MODELS = os.path.normpath(
+    os.path.join(pkg_dir, "../../resources/learning/supervised/models/test")
 )
 
 # _ProxyTest is required because py2 does not allow instantiating
@@ -52,7 +55,7 @@ def _test_dataset_ints(inp_lengths, tgt_lengths):
 
 
 def _load_dataset(name, split="train"):
-    return tfds.load(name=name, split=split, data_dir=_TEST_CORPUS, shuffle_files=False)
+    return tfds.load(name=name, split=split, data_dir=TEST_CORPUS, shuffle_files=False)
 
 
 def _c4_dataset(split="train"):
@@ -60,7 +63,7 @@ def _c4_dataset(split="train"):
 
 
 def _spm_path():
-    return os.path.join(_TEST_VOCAB, "sentencepiece.model")
+    return os.path.join(TEST_VOCAB, "sentencepiece.model")
 
 
 def _t5_gin_config():

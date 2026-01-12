@@ -25,9 +25,9 @@ import tensorflow.compat.v2 as tf
 
 from absl import app, flags, logging
 from jax.lib import xla_extension as xc
+from learning.training import engines as supervised_trainer
 
 from trax import fastmath
-from learning.training import engines as supervised_trainer
 from trax.tf import numpy as tf_np
 
 FLAGS = flags.FLAGS

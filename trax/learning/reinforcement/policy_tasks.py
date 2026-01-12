@@ -27,11 +27,10 @@ replaceable component. To implement a policy-based trainer using policy tasks:
 
 import numpy as np
 
-from learning.training.task import EvaluationTask, TrainingTask
-
 from trax import layers as tl
 from trax.fastmath import numpy as jnp
 from trax.learning.reinforcement import distributions
+from trax.learning.training.task import EvaluationTask, TrainingTask
 
 
 class PolicyTrainTask(TrainingTask):

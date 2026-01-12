@@ -24,8 +24,8 @@ import numpy as np
 from tensorflow.compat.v2 import test
 
 from tests.data.utils import (  # relative import
-    _CONFIG_DIR,
-    _TEST_CORPUS,
+    CONFIG_DIR,
+    TEST_MODELS,
 )
 from tests.fastmath.jax.config import config
 from trax import fastmath, models
@@ -186,7 +186,7 @@ class DecodingTest(test.TestCase):
             mode="predict",
         )
         shape11 = shapes.ShapeDtype((1, 1), dtype=np.int32)
-        model_path = os.path.join(_TEST_CORPUS, "transformerlm_copy.pkl.gz")
+        model_path = os.path.join(TEST_MODELS, "transformerlm_copy.pkl.gz")
         pred_model.init_from_file(
             model_path, weights_only=True, input_signature=(shape11, shape11)
         )
@@ -207,7 +207,7 @@ class DecodingTest(test.TestCase):
             vocab_size=13,
             mode="eval",
         )
-        model_path = os.path.join(_TEST_CORPUS, "transformerlm_copy.pkl.gz")
+        model_path = os.path.join(TEST_MODELS, "transformerlm_copy.pkl.gz")
         eval_model.init_from_file(model_path)
         inputs = np.array([[0, 3, 7, 5, 3, 2, 4, 0]], dtype=np.int32)
         s = decoding.autoregressive_sample(
@@ -227,7 +227,7 @@ class DecodingTest(test.TestCase):
             mode="predict",
         )
         shape11 = shapes.ShapeDtype((1, 1), dtype=np.int32)
-        model_path = os.path.join(_TEST_CORPUS, "transformerlm_copy.pkl.gz")
+        model_path = os.path.join(TEST_MODELS, "transformerlm_copy.pkl.gz")
         pred_model.init_from_file(
             model_path, weights_only=True, input_signature=(shape11, shape11)
         )
@@ -251,7 +251,7 @@ class DecodingTest(test.TestCase):
             mode="predict",
         )
         shape11 = shapes.ShapeDtype((1, 1), dtype=np.int32)
-        model_path = os.path.join(_TEST_CORPUS, "transformer_copy.pkl.gz")
+        model_path = os.path.join(TEST_MODELS, "transformer_copy.pkl.gz")
         pred_model.init_from_file(
             model_path, weights_only=True, input_signature=(shape11, shape11)
         )
@@ -304,7 +304,7 @@ class DecodingTest(test.TestCase):
         self.assertEqual(s.shape[1], 10)
 
     def test_autoregressive_sample_terraformer_lsh_attn_quality(self):
-        gin.add_config_file_search_path(_CONFIG_DIR)
+        gin.add_config_file_search_path(CONFIG_DIR)
         max_len = 32  # 32 is the max length we trained the checkpoint for.
         test_lengths = [8, 16, 32]
         vocab_size = 13
@@ -322,7 +322,7 @@ class DecodingTest(test.TestCase):
             shape1l = shapes.ShapeDtype((1, max_len), dtype=np.int32)
 
             model_path = os.path.join(
-                _TEST_CORPUS, "terraformer_copy_lsh_attn.pkl.gz"
+                TEST_MODELS, "terraformer_copy_lsh_attn.pkl.gz"
             )
             pred_model.init_from_file(
                 model_path, weights_only=True, input_signature=(shape1l, shape11)
@@ -425,7 +425,7 @@ class DecodingTest(test.TestCase):
         shape11 = shapes.ShapeDtype((1, 1), dtype=np.int32)
 
         model_path = os.path.join(
-            _TEST_CORPUS, "reformerlm_copy_lsh_attn.pkl.gz"
+            TEST_MODELS, "reformerlm_copy_lsh_attn.pkl.gz"
         )
         pred_model.init_from_file(
             model_path, weights_only=True, input_signature=shape11
@@ -488,7 +488,7 @@ class DecodingTest(test.TestCase):
         self.assertEqual(s.shape[1], 10)
 
     def test_autoregressive_sample_terraformer_pure_lsh_attn_quality(self):
-        gin.add_config_file_search_path(_CONFIG_DIR)
+        gin.add_config_file_search_path(CONFIG_DIR)
         max_len = 32  # 32 is the max length we trained the checkpoint for.
         test_lengths = [8, 16, 32]
         vocab_size = 13
@@ -508,7 +508,7 @@ class DecodingTest(test.TestCase):
             shape1l = shapes.ShapeDtype((1, max_len), dtype=np.int32)
 
             model_path = os.path.join(
-                _TEST_CORPUS, "terraformer_purelsh_copy.pkl.gz"
+                TEST_MODELS, "terraformer_purelsh_copy.pkl.gz"
             )
             pred_model.init_from_file(
                 model_path, weights_only=True, input_signature=(shape1l, shape11)

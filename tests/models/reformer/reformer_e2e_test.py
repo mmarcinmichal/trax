@@ -19,17 +19,19 @@ import os
 import gin
 
 from absl.testing import absltest
+from learning.training import trainer
 
 from trax.data.encoder import encoder as encoder
-from learning.training import engines as loop
 from trax.utils import test_utils
 
 pkg_dir, _ = os.path.split(__file__)
-_TESTDATA = os.path.normpath(os.path.join(pkg_dir, "../../../resources/data/testdata"))
+_TEST_VOCAB = os.path.normpath(os.path.join(pkg_dir, "../../resources/data/vocabs/test"))
 _CONFIG_DIR = os.path.normpath(
     os.path.join(pkg_dir, "../../../resources/supervised/configs")
 )
-
+_TEST_CORPUS = os.path.normpath(
+    os.path.join(pkg_dir, "../../resources/data/corpus/test")
+)
 
 class ReformerE2ETest(absltest.TestCase):
     def setUp(self):
@@ -46,13 +48,13 @@ class ReformerE2ETest(absltest.TestCase):
 
         tokenizer = encoder.SubwordTextEncoder(
             filename=os.path.join(
-                _TESTDATA, "vocab.translate_ende_wmt32k.32768.subwords"
+                _TEST_VOCAB, "vocab.translate_ende_wmt32k.32768.subwords"
             )
         )
 
         gin.parse_config_file(os.path.join(_CONFIG_DIR, "reformer_wmt_ende.gin"))
 
-        gin.bind_parameter("data_streams.data_dir", _TESTDATA)
+        gin.bind_parameter("data_streams.data_dir", _TEST_CORPUS)
         gin.bind_parameter("wmt_preprocess.tokenizer", tokenizer)
         gin.bind_parameter("batcher.batch_size_per_device", batch_size_per_device)
         gin.bind_parameter("train.steps", steps)
@@ -61,7 +63,7 @@ class ReformerE2ETest(absltest.TestCase):
         gin.bind_parameter("Reformer.d_ff", d_ff)
 
         output_dir = self.create_tempdir().full_path
-        _ = loop.train(output_dir=output_dir)
+        _ = trainer.train(output_dir=output_dir)
 
     def test_reformer_copy(self):
         batch_size_per_device = 2
@@ -72,7 +74,7 @@ class ReformerE2ETest(absltest.TestCase):
 
         gin.parse_config_file(os.path.join(_CONFIG_DIR, "reformer_copy.gin"))
 
-        gin.bind_parameter("data_streams.data_dir", _TESTDATA)
+        gin.bind_parameter("data_streams.data_dir", _TEST_CORPUS)
         gin.bind_parameter("batcher.batch_size_per_device", batch_size_per_device)
         gin.bind_parameter("train.steps", steps)
         gin.bind_parameter("ReformerLM.n_layers", n_layers)
@@ -80,7 +82,7 @@ class ReformerE2ETest(absltest.TestCase):
         gin.bind_parameter("ReformerLM.d_model", d_model)
 
         output_dir = self.create_tempdir().full_path
-        _ = loop.train(output_dir=output_dir)
+        _ = trainer.train(output_dir=output_dir)
 
 
 if __name__ == "__main__":
