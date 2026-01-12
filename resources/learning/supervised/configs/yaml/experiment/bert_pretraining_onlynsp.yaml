@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "bert_pretraining_onlynsp"
+  -
+    model: "bert_pretraining_onlynsp"
+  -
+    optim: "bert_pretraining_onlynsp"
+  -
+    schedule: "bert_pretraining_onlynsp"
+  -
+    train: "bert_pretraining_onlynsp"
+  -
+    ckpt: "bert_pretraining_onlynsp"
+  - "_self_"

@@ -1,0 +1,11 @@
+data:
+  batcher:
+    batch_size_per_device: 32
+    bucket_length: 32
+    buckets: null
+    data_streams: "@data.data_streams"
+    eval_batch_size: 32
+    variable_shapes: false
+  data_streams:
+    data_dir: null
+    dataset_name: "t2t_image_imagenet224"

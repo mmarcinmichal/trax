@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "c4_pretrain_16gb_adafactor"
+  -
+    model: "c4_pretrain_16gb_adafactor"
+  -
+    optim: "c4_pretrain_16gb_adafactor"
+  -
+    schedule: "c4_pretrain_16gb_adafactor"
+  -
+    train: "c4_pretrain_16gb_adafactor"
+  -
+    ckpt: "c4_pretrain_16gb_adafactor"
+  - "_self_"

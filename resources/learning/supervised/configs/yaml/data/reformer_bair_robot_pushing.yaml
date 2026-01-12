@@ -1,0 +1,12 @@
+data:
+  batcher:
+    batch_size_per_device: 1
+    data_streams: "@data_streams"
+    eval_batch_size: 8
+    max_eval_length: 24576
+  data_streams:
+    data_dir: null
+    dataset_name: "t2t_video_bair_robot_pushing"
+    input_name: "targets"
+    preprocess_fn: "@bair_robot_pushing_preprocess"
+    shuffle_buffer_size: 8

@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "hourglass_enwik8"
+  -
+    model: "hourglass_enwik8"
+  -
+    optim: "hourglass_enwik8"
+  -
+    schedule: "hourglass_enwik8"
+  -
+    train: "hourglass_enwik8"
+  -
+    ckpt: "hourglass_enwik8"
+  - "_self_"

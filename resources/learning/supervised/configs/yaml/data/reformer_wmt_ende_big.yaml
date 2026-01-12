@@ -1,0 +1,16 @@
+data:
+  batcher:
+    batch_size_per_device: 256
+    bucket_length: 32
+    buckets_include_inputs_in_length: true
+    data_streams: "@data_streams"
+    eval_batch_size: 64
+    id_to_mask: 0
+    max_eval_length: 512
+  data_streams:
+    data_dir: null
+    dataset_name: "wmt14_translate/de-en"
+    preprocess_fn: "@wmt_preprocess"
+  wmt_preprocess:
+    max_eval_length: 512
+    max_length: 256

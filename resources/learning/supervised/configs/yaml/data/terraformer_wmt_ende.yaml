@@ -1,0 +1,22 @@
+data:
+  batcher:
+    batch_size_per_device: 1
+    buckets:
+      -
+        - 513
+      -
+        - 64
+        - 1
+    buckets_include_inputs_in_length: true
+    data_streams: "@data.data_streams"
+    eval_batch_size: 1
+    id_to_mask: 0
+    max_eval_length: 512
+    strict_pad_on_len: true
+  data_streams:
+    data_dir: null
+    dataset_name: "t2t_wmt14_translate/de-en"
+    preprocess_fn: "@data.wmt_preprocess"
+  wmt_preprocess:
+    max_eval_length: 512
+    max_length: 512

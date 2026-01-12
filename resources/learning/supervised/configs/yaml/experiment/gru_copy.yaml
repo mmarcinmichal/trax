@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "gru_copy"
+  -
+    model: "gru_copy"
+  -
+    optim: "gru_copy"
+  -
+    schedule: "gru_copy"
+  -
+    train: "gru_copy"
+  -
+    ckpt: "gru_copy"
+  - "_self_"

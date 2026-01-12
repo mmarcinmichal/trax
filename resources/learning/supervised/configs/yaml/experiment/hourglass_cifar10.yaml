@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "hourglass_cifar10"
+  -
+    model: "hourglass_cifar10"
+  -
+    optim: "hourglass_cifar10"
+  -
+    schedule: "hourglass_cifar10"
+  -
+    train: "hourglass_cifar10"
+  -
+    ckpt: "hourglass_cifar10"
+  - "_self_"

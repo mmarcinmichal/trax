@@ -1,0 +1,10 @@
+data:
+  batcher:
+    batch_size_per_device: 1
+    data_streams: "@data.data_streams"
+    eval_batch_size: 8
+    max_eval_length: 65536
+  data_streams:
+    data_dir: null
+    dataset_name: "t2t_enwik8_l65k"
+    input_name: "targets"

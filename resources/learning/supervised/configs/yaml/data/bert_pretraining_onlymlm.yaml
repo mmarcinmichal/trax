@@ -1,0 +1,61 @@
+data:
+  Batch:
+    batch_size: 16
+  CreateBertInputs:
+    double_sentence: false
+    labeled: false
+  PadToLength:
+    len_map:
+      0: 512
+      1: 512
+      2: 512
+    pad_value:
+      0: 0
+      1: 0
+      2: 0
+  Tokenize:
+    keys:
+      - 0
+      - 1
+    vocab_dir: "trax/data/testdata/"
+    vocab_file: "bert_uncased_vocab.txt"
+    vocab_type: "bert-lowercase"
+  TruncateToLength:
+    len_map:
+      0:
+        - 512
+      1:
+        - 512
+      2:
+        - 512
+  eval:
+    data:
+      CorpusToRandomChunks:
+        dataset_name: "wiki40b"
+      TFDS:
+        train: false
+  make_inputs:
+    eval_stream:
+      - "@eval/data.CorpusToRandomChunks()"
+      - "@data.Tokenize()"
+      - "@data.CreateBertInputs()"
+      - "@data.Shuffle()"
+      - "@data.PadToLength()"
+      - "@data.TruncateToLength()"
+      - "@data.mask_random_tokens"
+      - "@data.Batch()"
+    train_stream:
+      - "@train/data.CorpusToRandomChunks()"
+      - "@data.Tokenize()"
+      - "@data.CreateBertInputs()"
+      - "@data.Shuffle()"
+      - "@data.PadToLength()"
+      - "@data.TruncateToLength()"
+      - "@data.mask_random_tokens"
+      - "@data.Batch()"
+  train:
+    data:
+      CorpusToRandomChunks:
+        dataset_name: "wiki40b"
+      TFDS:
+        train: true

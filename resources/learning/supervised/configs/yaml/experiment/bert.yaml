@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "bert"
+  -
+    model: "bert"
+  -
+    optim: "bert"
+  -
+    schedule: "bert"
+  -
+    train: "bert"
+  -
+    ckpt: "bert"
+  - "_self_"

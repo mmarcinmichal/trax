@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "bert_pretraining_onlymlm"
+  -
+    model: "bert_pretraining_onlymlm"
+  -
+    optim: "bert_pretraining_onlymlm"
+  -
+    schedule: "bert_pretraining_onlymlm"
+  -
+    train: "bert_pretraining_onlymlm"
+  -
+    ckpt: "bert_pretraining_onlymlm"
+  - "_self_"

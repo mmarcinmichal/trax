@@ -1,0 +1,5 @@
+schedule:
+  multifactor:
+    constant: 3e-05
+    factors: "constant * linear_warmup"
+    warmup_steps: 1000

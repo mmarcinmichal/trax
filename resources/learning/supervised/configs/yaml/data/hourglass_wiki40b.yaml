@@ -1,0 +1,48 @@
+data:
+  AddLossWeights:
+    id_to_mask: 0
+  Batch:
+    batch_size: 128
+  PadToLength:
+    len_map:
+      0: 2048
+    pad_value:
+      0: 0
+  TFDS:
+    dataset_name: "wiki40b/en"
+    keys:
+      - "text"
+    shuffle_train: false
+  generate_sequential_chunks:
+    max_length: 2048
+  make_inputs:
+    eval_stream:
+      - "@validation/data.TFDS()"
+      - "@data.SentencePieceTokenize()"
+      - "@data.generate_sequential_chunks()"
+      - "@data.FilterEmptyExamples()"
+      - "@data.PadToLength()"
+      - "@data.ConcatenateToLMInput()"
+      - "@data.AddLossWeights()"
+      - "@data.Shuffle()"
+      - "@validation/data.Batch()"
+    train_stream:
+      - "@training/data.TFDS()"
+      - "@data.SentencePieceTokenize()"
+      - "@data.generate_sequential_chunks()"
+      - "@data.FilterEmptyExamples()"
+      - "@data.PadToLength()"
+      - "@data.ConcatenateToLMInput()"
+      - "@data.AddLossWeights()"
+      - "@data.Shuffle()"
+      - "@data.Batch()"
+  training:
+    data:
+      TFDS:
+        train: true
+  validation:
+    data:
+      Batch:
+        batch_size: 8
+      TFDS:
+        train: false

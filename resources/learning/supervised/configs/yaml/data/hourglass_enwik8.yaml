@@ -1,0 +1,14 @@
+data:
+  batcher:
+    buckets:
+      -
+        - 2049
+      -
+        - 8
+    data_streams: "@data.data_streams"
+    id_to_mask: 0
+    max_eval_length: 2049
+  data_streams:
+    data_dir: null
+    dataset_name: "t2t_enwik8_l2k"
+    input_name: "targets"

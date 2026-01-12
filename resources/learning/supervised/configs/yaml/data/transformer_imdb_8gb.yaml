@@ -1,0 +1,67 @@
+data:
+  BucketByLength:
+    batch_sizes:
+      - 128
+      - 64
+      - 32
+      - 16
+      - 8
+      - 1
+      - 1
+      - 1
+    boundaries:
+      - 32
+      - 64
+      - 128
+      - 256
+      - 512
+      - 1024
+      - 2048
+    length_keys:
+      - 0
+  Tokenize:
+    keys:
+      - 0
+    vocab_file: "en_8k.subword"
+  data_streams:
+    data_dir: null
+    dataset_name: "t2t_sentiment_imdb"
+    input_name: "targets"
+  eval:
+    data:
+      FilterByLength:
+        length_keys:
+          - 0
+        max_length: 2048
+      TFDS:
+        dataset_name: "imdb_reviews"
+        keys:
+          - "text"
+          - "label"
+        train: false
+  make_inputs:
+    eval_stream:
+      - "@eval/data.TFDS()"
+      - "@data.Tokenize()"
+      - "@data.Shuffle()"
+      - "@eval/data.FilterByLength()"
+      - "@data.BucketByLength()"
+      - "@data.AddLossWeights()"
+    train_stream:
+      - "@train/data.TFDS()"
+      - "@data.Tokenize()"
+      - "@data.Shuffle()"
+      - "@train/data.FilterByLength()"
+      - "@data.BucketByLength()"
+      - "@data.AddLossWeights()"
+  train:
+    data:
+      FilterByLength:
+        length_keys:
+          - 0
+        max_length: 1024
+      TFDS:
+        dataset_name: "imdb_reviews"
+        keys:
+          - "text"
+          - "label"

@@ -1,0 +1,13 @@
+data:
+  batcher:
+    batch_size_per_device: 1
+    data_streams: "@data.data_streams"
+    eval_batch_size: 8
+    max_eval_length: 12288
+    variable_shapes: false
+  data_streams:
+    bare_preprocess_fn: "@data.downsampled_imagenet_flatten_bare_preprocess"
+    data_dir: null
+    dataset_name: "downsampled_imagenet/64x64"
+    input_name: "image"
+    target_name: "image"

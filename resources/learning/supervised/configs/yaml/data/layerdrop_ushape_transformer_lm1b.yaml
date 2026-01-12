@@ -1,0 +1,12 @@
+data:
+  batcher:
+    batch_size_per_device: 96
+    data_streams: "@data.data_streams"
+    eval_batch_size: 128
+    id_to_mask: 0
+    max_eval_length: 2048
+  data_streams:
+    data_dir: null
+    dataset_name: "t2t_languagemodel_lm1b32k"
+    input_name: "targets"
+    preprocess_fn: "@data.lm1b_preprocess"

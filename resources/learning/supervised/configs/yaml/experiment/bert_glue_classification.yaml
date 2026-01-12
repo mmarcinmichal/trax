@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "bert_glue_classification"
+  -
+    model: "bert_glue_classification"
+  -
+    optim: "bert_glue_classification"
+  -
+    schedule: "bert_glue_classification"
+  -
+    train: "bert_glue_classification"
+  -
+    ckpt: "bert_glue_classification"
+  - "_self_"

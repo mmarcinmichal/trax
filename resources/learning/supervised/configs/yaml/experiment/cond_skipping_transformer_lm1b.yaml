@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "cond_skipping_transformer_lm1b"
+  -
+    model: "cond_skipping_transformer_lm1b"
+  -
+    optim: "cond_skipping_transformer_lm1b"
+  -
+    schedule: "cond_skipping_transformer_lm1b"
+  -
+    train: "cond_skipping_transformer_lm1b"
+  -
+    ckpt: "cond_skipping_transformer_lm1b"
+  - "_self_"

@@ -1,0 +1,27 @@
+data:
+  Batch:
+    batch_size: 16
+  PadToLength:
+    len_map:
+      0: 512
+      1: 512
+      2: 512
+    pad_value:
+      0: 0
+      1: 0
+      2: 0
+  Tokenize:
+    keys:
+      - 0
+      - 1
+    vocab_dir: "trax/data/testdata/"
+    vocab_file: "bert_uncased_vocab.txt"
+    vocab_type: "bert-lowercase"
+  TruncateToLength:
+    len_map:
+      0:
+        - 512
+      1:
+        - 512
+      2:
+        - 512

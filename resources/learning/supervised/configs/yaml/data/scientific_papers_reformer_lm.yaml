@@ -1,0 +1,62 @@
+data:
+  AppendValue:
+    val:
+      0:
+        - 0
+      1:
+        - 1
+  Batch:
+    batch_size: 8
+  ConcatenateToLMInput:
+    pad_to_length: 16384
+  ConvertToUnicode:
+    keys:
+      - 0
+      - 1
+  Tokenize:
+    keys:
+      - 0
+      - 1
+    vocab_file: "gs://t5-data/vocabs/cc_all.32000/sentencepiece.model"
+    vocab_type: "sentencepiece"
+  TruncateToLength:
+    len_map:
+      0:
+        - 15359
+      1:
+        - 1023
+  eval:
+    data:
+      TFDS:
+        dataset_name: "scientific_papers/arxiv:1.1.1"
+        keys:
+          - "article"
+          - "abstract"
+        train: false
+  make_inputs:
+    eval_stream:
+      - "@eval/data.TFDS()"
+      - "@data.ConvertToUnicode()"
+      - "@data.Tokenize()"
+      - "@data.FilterEmptyExamples()"
+      - "@data.TruncateToLength()"
+      - "@data.AppendValue()"
+      - "@data.ConcatenateToLMInput()"
+      - "@data.Batch()"
+    train_stream:
+      - "@train/data.TFDS()"
+      - "@data.ConvertToUnicode()"
+      - "@data.Tokenize()"
+      - "@data.FilterEmptyExamples()"
+      - "@data.TruncateToLength()"
+      - "@data.AppendValue()"
+      - "@data.ConcatenateToLMInput()"
+      - "@data.Batch()"
+  train:
+    data:
+      TFDS:
+        dataset_name: "scientific_papers/arxiv:1.1.1"
+        keys:
+          - "article"
+          - "abstract"
+        train: true

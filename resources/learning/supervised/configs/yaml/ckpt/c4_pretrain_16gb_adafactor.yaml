@@ -1,0 +1,3 @@
+ckpt:
+  checkpoint_highest: "accuracy"
+  checkpoint_lowest: "loss"

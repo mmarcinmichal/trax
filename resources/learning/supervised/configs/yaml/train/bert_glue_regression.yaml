@@ -1,0 +1,10 @@
+train:
+  eval_frequency: 20
+  eval_steps: 10
+  inputs: "@data.make_inputs"
+  loss_fn: "@trax.layers.L2Loss()"
+  metrics:
+    loss: "@trax.layers.L2Loss()"
+  model: "@trax.models.BERT"
+  optimizer: "@trax.optimizers.Adam"
+  steps: 200000

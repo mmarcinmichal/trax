@@ -1,0 +1,10 @@
+data:
+  batcher:
+    batch_size_per_device: 1
+    data_streams: "@data_streams"
+    eval_batch_size: 8
+    max_eval_length: 12288
+  data_streams:
+    data_dir: null
+    dataset_name: "cifar10"
+    preprocess_fn: "@cifar10_augmentation_flatten_preprocess"

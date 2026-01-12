@@ -1,0 +1,3 @@
+model:
+  BERT:
+    init_checkpoint: "bert-base-uncased"

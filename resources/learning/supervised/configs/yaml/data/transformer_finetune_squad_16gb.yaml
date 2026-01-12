@@ -1,0 +1,73 @@
+data:
+  AddLossWeights:
+    id_to_mask: 0
+  AppendValue:
+    val:
+      0:
+        - 1
+      1:
+        - 1
+  Batch:
+    batch_size: 32
+  CountAndSkip:
+    name: "c4"
+  MLM:
+    max_length: 512
+    mean_noise_span_length: 3.0
+    noise_density: 0.15
+    vocab_size: 32000
+  PadToLength:
+    len_map:
+      0: 512
+      1: 256
+    pad_value:
+      0: 0
+      1: 0
+  TFDS:
+    dataset_name: "c4/en:2.3.0"
+    keys:
+      - "text"
+    shuffle_train: false
+  batcher:
+    buckets:
+      -
+        - 513
+      -
+        - 8
+        - 8
+    buckets_include_inputs_in_length: true
+    strict_pad_on_len: true
+  data_streams:
+    bare_preprocess_fn: "@data.generic_text_dataset_preprocess_fn"
+    dataset_name: "squad/plain_text:1.0.0"
+  make_inputs:
+    eval_stream:
+      - "@validation/data.TFDS()"
+      - "@data.SentencePieceTokenize()"
+      - "@data.MLM()"
+      - "@data.FilterEmptyExamples()"
+      - "@data.AppendValue()"
+      - "@data.PadToLength()"
+      - "@data.AddLossWeights()"
+      - "@validation/data.Batch()"
+    train_stream:
+      - "@training/data.TFDS()"
+      - "@data.CountAndSkip()"
+      - "@data.SentencePieceTokenize()"
+      - "@data.MLM()"
+      - "@data.FilterEmptyExamples()"
+      - "@data.AppendValue()"
+      - "@data.PadToLength()"
+      - "@data.AddLossWeights()"
+      - "@data.Shuffle()"
+      - "@data.Batch()"
+  training:
+    data:
+      TFDS:
+        train: true
+  validation:
+    data:
+      Batch:
+        batch_size: 64
+      TFDS:
+        train: false

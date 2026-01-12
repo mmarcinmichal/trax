@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "bert_pretraining"
+  -
+    model: "bert_pretraining"
+  -
+    optim: "bert_pretraining"
+  -
+    schedule: "bert_pretraining"
+  -
+    train: "bert_pretraining"
+  -
+    ckpt: "bert_pretraining"
+  - "_self_"
