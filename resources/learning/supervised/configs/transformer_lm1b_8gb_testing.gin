@@ -46,9 +46,9 @@ TransformerLM.vocab_size = 32000
 
 # Module trax.learning.supervised.lr_schedules:
 # ==============================================================================
-multifactor.constant = 0.1
-multifactor.factors = 'constant * linear_warmup * rsqrt_decay'
-multifactor.warmup_steps = 8000
+trax.learning.supervised.lr_schedules.multifactor.constant = 0.1
+trax.learning.supervised.lr_schedules.multifactor.factors = 'constant * linear_warmup * rsqrt_decay'
+trax.learning.supervised.lr_schedules.multifactor.warmup_steps = 8000
 
 # Module trax.learning.trainer:
 # ==============================================================================

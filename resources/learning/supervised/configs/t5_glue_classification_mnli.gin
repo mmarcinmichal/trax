@@ -119,7 +119,7 @@ Adafactor.multiply_by_parameter_scale = True
 
 # Parameters for multifactor:
 # ==============================================================================
-multifactor.constant = 1e-3
+trax.learning.supervised.lr_schedules.multifactor.constant = 1e-3
 # multifactor.factors = 'constant'
 Adam.weight_decay_rate = 0.0   # default is 1e-05
 multifactor.factors = 'constant * linear_warmup'

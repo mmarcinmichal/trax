@@ -41,9 +41,9 @@ data_streams.input_name = 'targets'
 # Parameters for multifactor:
 # ==============================================================================
 # 0.03125 ~= 1024^-0.5 = d_model^-0.5
-multifactor.constant = 0.03125
-multifactor.factors = 'constant * linear_warmup * rsqrt_decay'
-multifactor.warmup_steps = 8000
+trax.learning.supervised.lr_schedules.multifactor.constant = 0.03125
+trax.learning.supervised.lr_schedules.multifactor.factors = 'constant * linear_warmup * rsqrt_decay'
+trax.learning.supervised.lr_schedules.multifactor.warmup_steps = 8000
 
 # Parameters for Adam:
 # ==============================================================================
@@ -59,7 +59,6 @@ train.eval_steps = 64
 # train.model: see top
 train.optimizer = @trax.optimizers.Adam
 train.steps = 500000
-train.save_graphs = False
 train.checkpoints_at = \
     [1000, 5000, 10000, 20000, 40000, 60000, 80000,
      100000, 200000, 300000, 400000, 500000]

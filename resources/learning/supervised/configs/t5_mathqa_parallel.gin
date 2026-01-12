@@ -244,6 +244,6 @@ ConfigurableTransformer.loss_sparsity = %loss_sparsity
 
 # Parameters for multifactor:
 # ==============================================================================
-multifactor.constant = 1e-3
-multifactor.factors = 'constant'
+trax.learning.supervised.lr_schedules.multifactor.constant = 1e-3
+trax.learning.supervised.lr_schedules.multifactor.factors = 'constant'
 

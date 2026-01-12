@@ -58,9 +58,9 @@ addition_inputs.pad_to_multiple = 32
 
 # Parameters for multifactor:
 # ==============================================================================
-multifactor.constant = 0.05
-multifactor.factors = 'constant * linear_warmup * rsqrt_decay'
-multifactor.warmup_steps = 4000
+trax.learning.supervised.lr_schedules.multifactor.constant = 0.05
+trax.learning.supervised.lr_schedules.multifactor.factors = 'constant * linear_warmup * rsqrt_decay'
+trax.learning.supervised.lr_schedules.multifactor.warmup_steps = 4000
 
 # Parameters for LSHSelfAttention:
 # ==============================================================================

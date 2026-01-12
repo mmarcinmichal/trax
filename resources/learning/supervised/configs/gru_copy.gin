@@ -37,9 +37,9 @@ sequence_copy_inputs.reverse = False
 
 # Parameters for multifactor:
 # ==============================================================================
-multifactor.constant = 0.001
-multifactor.factors = 'constant * linear_warmup'
-multifactor.warmup_steps = 8000
+trax.learning.supervised.lr_schedules.multifactor.constant = 0.001
+trax.learning.supervised.lr_schedules.multifactor.factors = 'constant * linear_warmup'
+trax.learning.supervised.lr_schedules.multifactor.warmup_steps = 8000
 
 # Parameters for train:
 # ==============================================================================

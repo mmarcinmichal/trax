@@ -41,9 +41,9 @@ data_streams.preprocess_fn = @data.wmt_preprocess
 # Parameters for multifactor:
 # ==============================================================================
 # 0.044 ~= 512^-0.5 = d_model^-0.5
-multifactor.constant = 0.088
-multifactor.factors = 'constant * linear_warmup * rsqrt_decay'
-multifactor.warmup_steps = 8000
+trax.learning.supervised.lr_schedules.multifactor.constant = 0.088
+trax.learning.supervised.lr_schedules.multifactor.factors = 'constant * linear_warmup * rsqrt_decay'
+trax.learning.supervised.lr_schedules.multifactor.warmup_steps = 8000
 
 # Parameters for Adam:
 # ==============================================================================
@@ -63,7 +63,6 @@ train.eval_steps = 10
 train.model = @trax.models.ConfigurableTerraformer
 train.optimizer = @trax.optimizers.Adam
 train.steps = 1000000
-train.save_graphs = False
 train.checkpoints_at = [100000, 200000, 300000, 400000, 500000]
 
 # Parameters for SelfAttention:

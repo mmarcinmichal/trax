@@ -46,9 +46,9 @@ bair_robot_pushing_hparams.video_num_target_frames = 1
 # Parameters for multifactor:
 # ==============================================================================
 # 0.03125 ~= 1024^-0.5 = d_model^-0.5
-multifactor.constant = 0.03125
-multifactor.factors = 'constant * linear_warmup * rsqrt_decay'
-multifactor.warmup_steps = 2000
+trax.learning.supervised.lr_schedules.multifactor.constant = 0.03125
+trax.learning.supervised.lr_schedules.multifactor.factors = 'constant * linear_warmup * rsqrt_decay'
+trax.learning.supervised.lr_schedules.multifactor.warmup_steps = 2000
 
 # Parameters for Adam:
 # ==============================================================================
@@ -65,7 +65,6 @@ train.inputs = @trax.data.make_inputs
 # train.model: see top
 train.optimizer = @trax.optimizers.Adam
 train.steps = 100000
-train.save_graphs = False
 
 # Parameters for SelfAttention:
 # ==============================================================================

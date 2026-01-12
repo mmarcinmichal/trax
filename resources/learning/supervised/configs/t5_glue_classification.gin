@@ -157,7 +157,7 @@ Adafactor.multiply_by_parameter_scale = True
 
 # Parameters for multifactor:
 # ==============================================================================
-multifactor.constant = 1e-3
-multifactor.factors = 'constant * linear_warmup'
-multifactor.warmup_steps = 1000  # default is 400
+trax.learning.supervised.lr_schedules.multifactor.constant = 1e-3
+trax.learning.supervised.lr_schedules.multifactor.factors = 'constant * linear_warmup'
+trax.learning.supervised.lr_schedules.multifactor.warmup_steps = 1000  # default is 400
 

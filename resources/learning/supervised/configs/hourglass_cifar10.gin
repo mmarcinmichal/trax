@@ -38,10 +38,10 @@ data_streams.bare_preprocess_fn = \
     @data.downsampled_imagenet_flatten_bare_preprocess
 
 # Parameters for multifactor: # ================================================
-multifactor.constant = 1e-3
-multifactor.factors = 'constant * linear_warmup * cosine_decay'
-multifactor.warmup_steps = 5000
-multifactor.steps_per_cycle = %train_steps
+trax.learning.supervised.lr_schedules.multifactor.constant = 1e-3
+trax.learning.supervised.lr_schedules.multifactor.factors = 'constant * linear_warmup * cosine_decay'
+trax.learning.supervised.lr_schedules.multifactor.warmup_steps = 5000
+trax.learning.supervised.lr_schedules.multifactor.steps_per_cycle = %train_steps
 
 # Parameters for Adam:
 # ==============================================================================

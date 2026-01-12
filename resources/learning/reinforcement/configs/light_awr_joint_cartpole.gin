@@ -30,8 +30,8 @@ MLP.out_activation = True
 
 # Parameters for multifactor:
 # ==============================================================================
-multifactor.constant = 0.01
-multifactor.factors = 'constant'
+trax.learning.supervised.lr_schedules.multifactor.constant = 0.01
+trax.learning.supervised.lr_schedules.multifactor.factors = 'constant'
 
 # Parameters for RLTask:
 # ==============================================================================

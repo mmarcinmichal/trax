@@ -51,7 +51,7 @@ BERT.init_checkpoint = 'bert-base-uncased'
 
 # Parameters for multifactor:
 # ==============================================================================
-multifactor.constant = 3e-5
-multifactor.factors = 'constant * linear_warmup'
-multifactor.warmup_steps = 1000
+trax.learning.supervised.lr_schedules.multifactor.constant = 3e-5
+trax.learning.supervised.lr_schedules.multifactor.factors = 'constant * linear_warmup'
+trax.learning.supervised.lr_schedules.multifactor.warmup_steps = 1000
 

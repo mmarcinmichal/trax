@@ -46,9 +46,9 @@ data.Batch.batch_size = 32  # On one 2x2, 8 chips, batch_size 4 per chip for 32.
 
 # Parameters for multifactor:
 # ==============================================================================
-multifactor.constant = 1.0
-multifactor.factors = 'constant * rsqrt_decay'
-multifactor.warmup_steps = 10000
+trax.learning.supervised.lr_schedules.multifactor.constant = 1.0
+trax.learning.supervised.lr_schedules.multifactor.factors = 'constant * rsqrt_decay'
+trax.learning.supervised.lr_schedules.multifactor.warmup_steps = 10000
 
 # Parameters for Adafactor:
 # ==============================================================================

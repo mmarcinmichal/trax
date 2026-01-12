@@ -19,18 +19,18 @@ import os
 import gin
 
 from absl.testing import absltest
-from learning.training import trainer
 
 from trax.data.encoder import encoder as encoder
+from trax.learning.training import trainer
 from trax.utils import test_utils
 
 pkg_dir, _ = os.path.split(__file__)
-_TEST_VOCAB = os.path.normpath(os.path.join(pkg_dir, "../../resources/data/vocabs/test"))
+_TEST_VOCAB = os.path.normpath(os.path.join(pkg_dir, "../../../resources/data/vocabs/test"))
 _CONFIG_DIR = os.path.normpath(
-    os.path.join(pkg_dir, "../../../resources/supervised/configs")
+    os.path.join(pkg_dir, "../../../resources/learning/supervised/configs")
 )
 _TEST_CORPUS = os.path.normpath(
-    os.path.join(pkg_dir, "../../resources/data/corpus/test")
+    os.path.join(pkg_dir, "../../../resources/data/corpus/test")
 )
 
 class ReformerE2ETest(absltest.TestCase):

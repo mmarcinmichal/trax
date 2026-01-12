@@ -220,7 +220,7 @@ def PositionalEncoder(
         )
     elif pos_type == "sin-cos":
         positional_encoding = tl.SinCosPositionalEncoding(mode=mode)
-    elif pos_type == "fixed-training":
+    elif pos_type in ("fixed-training", "fixed-base"):
         positional_encoding = tl.FixedBasePositionalEncoding(mode=mode)
     elif pos_type == "infinite":
         positional_encoding = tl.InfinitePositionalEncoding(affine=False)
@@ -230,8 +230,7 @@ def PositionalEncoder(
         positional_encoding = tl.TimeBinPositionalEncoding()
     elif pos_type == "no":
         positional_encoding = tl.Serial()  # no positional encoding at all
-    else:  # TODO(lukaszkaiser): name this type and check for the correct name
-        assert pos_d_axial_embs is not None
+    elif pos_type == "axial":
         positional_encoding = tl.AxialPositionalEncoding(
             shape=pos_axial_shape,
             d_embs=pos_d_axial_embs,
@@ -239,7 +238,8 @@ def PositionalEncoder(
             dropout=dropout,
             mode=mode,
         )
-
+    else:
+        raise ValueError("Wrong positional encoding type")
     return positional_encoding
 
 

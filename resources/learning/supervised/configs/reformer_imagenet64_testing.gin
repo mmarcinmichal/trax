@@ -41,10 +41,10 @@ data_streams.input_name = 'targets'
 
 # Parameters for multifactor:
 # ==============================================================================
-multifactor.constant = 0.00035
-multifactor.factors = 'constant * linear_warmup * cosine_decay'
-multifactor.warmup_steps = 8000
-multifactor.steps_per_cycle = 50000
+trax.learning.supervised.lr_schedules.multifactor.constant = 0.00035
+trax.learning.supervised.lr_schedules.multifactor.factors = 'constant * linear_warmup * cosine_decay'
+trax.learning.supervised.lr_schedules.multifactor.warmup_steps = 8000
+trax.learning.supervised.lr_schedules.multifactor.steps_per_cycle = 50000
 
 
 # Parameters for Adam:
@@ -61,7 +61,6 @@ train.eval_steps = 64
 # train.model: see top
 train.optimizer = @trax.optimizers.Adam
 train.steps = 50000
-train.save_graphs = False
 
 # Parameters for LSHSelfAttention:
 # ==============================================================================

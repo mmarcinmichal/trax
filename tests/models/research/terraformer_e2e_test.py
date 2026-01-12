@@ -22,14 +22,16 @@ import gin
 from absl.testing import absltest
 
 from trax.data.encoder import encoder as encoder
-from learning.training import engines as loop
+from trax.learning.training import trainer as loop
 from trax.utils import test_utils
 
 pkg_dir, _ = os.path.split(__file__)
-_TESTDATA = os.path.normpath(os.path.join(pkg_dir, "../../../resources/data/testdata"))
+_TEST_VOCAB = os.path.normpath(os.path.join(pkg_dir, "../../../resources/data/vocabs/test"))
 _CONFIG_DIR = os.path.normpath(
-    os.path.join(pkg_dir, "../../../resources/supervised/configs")
+    os.path.join(pkg_dir, "../../../resources/learning/supervised/configs")
 )
+_TEST_CORPUS = os.path.normpath(
+    os.path.join(pkg_dir, "../../../resources/data/corpus/test"))
 
 
 class TerraformerE2ETest(absltest.TestCase):
@@ -47,13 +49,13 @@ class TerraformerE2ETest(absltest.TestCase):
 
         tokenizer = encoder.SubwordTextEncoder(
             filename=os.path.join(
-                _TESTDATA, "vocab.translate_ende_wmt32k.32768.subwords"
+                _TEST_VOCAB, "vocab.translate_ende_wmt32k.32768.subwords"
             )
         )
 
         gin.parse_config_file(os.path.join(_CONFIG_DIR, "terraformer_wmt_ende.gin"))
 
-        gin.bind_parameter("data_streams.data_dir", _TESTDATA)
+        gin.bind_parameter("data_streams.data_dir", _TEST_CORPUS)
         gin.bind_parameter("wmt_preprocess.tokenizer", tokenizer)
         gin.bind_parameter("wmt_preprocess.max_length", 20)
         gin.bind_parameter("wmt_preprocess.max_eval_length", 25)

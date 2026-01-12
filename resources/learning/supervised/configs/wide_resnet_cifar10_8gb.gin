@@ -35,9 +35,9 @@ data_streams.preprocess_fn = @data.cifar10_augmentation_preprocess
 
 # Parameters for multifactor:
 # ==============================================================================
-multifactor.factors = 'constant * linear_warmup'
-multifactor.constant = 0.5
-multifactor.warmup_steps = 400
+trax.learning.supervised.lr_schedules.multifactor.factors = 'constant * linear_warmup'
+trax.learning.supervised.lr_schedules.multifactor.constant = 0.5
+trax.learning.supervised.lr_schedules.multifactor.warmup_steps = 400
 
 # Parameters for Momentum:
 # ==============================================================================
