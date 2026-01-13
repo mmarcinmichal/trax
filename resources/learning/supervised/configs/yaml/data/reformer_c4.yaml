@@ -1,21 +1,21 @@
 data:
   batcher:
+    _target_: "trax.data.batcher"
+    data_streams: "${data.data_streams}"
     batch_size_per_device: 8
-    buckets:
-      -
-        - 1025
-      -
-        - 8
-        - 1
-    data_streams: "@data_streams"
     eval_batch_size: 8
     max_eval_length: 1024
-  c4_preprocess:
-    max_target_length: 1024
-    tokenization: "spc"
+    buckets: "([1025], [8, 1])"
   data_streams:
+    _target_: "trax.data.data_streams"
+    _partial_: true
     data_dir: null
     dataset_name: "c4"
     input_name: "targets"
-    preprocess_fn: "@c4_preprocess"
     target_name: "text"
+    preprocess_fn: "${data.c4_preprocess}"
+  c4_preprocess:
+    _target_: "trax.data.c4_preprocess"
+    _partial_: true
+    max_target_length: 1024
+    tokenization: "spc"

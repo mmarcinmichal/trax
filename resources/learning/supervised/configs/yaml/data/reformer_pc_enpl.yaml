@@ -1,15 +1,52 @@
 data:
   batcher:
+    _target_: "trax.data.batcher"
+    data_streams: "${data.data_streams}"
     batch_size_per_device: 256
-    bucket_length: 32
-    buckets_include_inputs_in_length: true
-    data_streams: "@data.data_streams"
     eval_batch_size: 64
     max_eval_length: 512
+    bucket_length: 32
+    buckets_include_inputs_in_length: true
   data_streams:
-    bare_preprocess_fn: "@data.generic_text_dataset_preprocess_fn"
+    _target_: "trax.data.data_streams"
+    _partial_: true
     data_dir: null
-    dataset_name: "para_crawl/enpl_plain_text"
     eval_holdout_size: 0.1
+    dataset_name: "para_crawl/enpl_plain_text"
+    bare_preprocess_fn: "${data.generic_text_dataset_preprocess_fn}"
     input_name: "inputs"
     target_name: "targets"
+  filter_dataset_on_len:
+    _target_: "trax.data.filter_dataset_on_len"
+    _partial_: true
+    len_map:
+      inputs: "(1, 512)"
+      targets: "(1, 512)"
+    filter_on_eval: true
+  truncate_dataset_on_len:
+    _target_: "trax.data.truncate_dataset_on_len"
+    _partial_: true
+    len_map:
+      inputs: 512
+      targets: 512
+    truncate_on_eval: true
+  generic_text_dataset_preprocess_fn:
+    _target_: "trax.data.generic_text_dataset_preprocess_fn"
+    _partial_: true
+    text_preprocess_fns:
+      - "${data.rekey.get_t5_preprocessor_by_name}"
+    token_preprocess_fns:
+      - "${data.add_eos_to_output_features}"
+      - "${data.truncate_dataset_on_len}"
+      - "${data.filter_dataset_on_len}"
+  rekey:
+    get_t5_preprocessor_by_name:
+      _target_: "trax.data.get_t5_preprocessor_by_name"
+      name: "rekey"
+      fn_kwargs:
+        key_map:
+          inputs: "en"
+          targets: "pl"
+  add_eos_to_output_features:
+    _target_: "trax.data.add_eos_to_output_features"
+    _partial_: true

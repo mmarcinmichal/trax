@@ -1,0 +1,6 @@
+schedule:
+  multifactor:
+    _target_: "trax.learning.supervised.lr_schedules.multifactor"
+    constant: 1.0
+    factors: "constant * linear_warmup * rsqrt_decay"
+    warmup_steps: 8000

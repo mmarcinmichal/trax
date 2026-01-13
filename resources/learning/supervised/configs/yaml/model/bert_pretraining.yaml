@@ -1,0 +1,8 @@
+model:
+  BERT:
+    _target_: "trax.models.BERT"
+    head: "${model.BERTPretrainingHead}"
+  BERTPretrainingHead:
+    _target_: "trax.models.research.bert.BERTPretrainingHead"
+    _partial_: true
+    n_classes: 2

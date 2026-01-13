@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "terraformer_purelsh_copy"
+  -
+    model: "terraformer_purelsh_copy"
+  -
+    optim: "terraformer_purelsh_copy"
+  -
+    schedule: "terraformer_purelsh_copy"
+  -
+    train: "terraformer_purelsh_copy"
+  -
+    ckpt: "terraformer_purelsh_copy"
+  - "_self_"

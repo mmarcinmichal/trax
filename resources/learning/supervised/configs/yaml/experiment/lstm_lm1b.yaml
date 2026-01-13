@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "lstm_lm1b"
+  -
+    model: "lstm_lm1b"
+  -
+    optim: "lstm_lm1b"
+  -
+    schedule: "lstm_lm1b"
+  -
+    train: "lstm_lm1b"
+  -
+    ckpt: "lstm_lm1b"
+  - "_self_"

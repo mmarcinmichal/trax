@@ -1,4 +1,4 @@
 data:
-  data_streams:
-    data_dir: null
-    dataset_name: "copy"
+  simple_sequence_copy_inputs:
+    _target_: "trax.data.simple_sequence_copy_inputs"
+    _partial_: true

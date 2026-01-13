@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "scientific_papers_reformer_lm"
+  -
+    model: "scientific_papers_reformer_lm"
+  -
+    optim: "scientific_papers_reformer_lm"
+  -
+    schedule: "scientific_papers_reformer_lm"
+  -
+    train: "scientific_papers_reformer_lm"
+  -
+    ckpt: "scientific_papers_reformer_lm"
+  - "_self_"

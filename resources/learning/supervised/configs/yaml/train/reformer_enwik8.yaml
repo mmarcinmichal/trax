@@ -1,0 +1,7 @@
+train:
+  train:
+    eval_frequency: 500
+    eval_steps: 8
+    model: "${model.ReformerLM}"
+    optimizer: "${optim.Adam}"
+    steps: 100000

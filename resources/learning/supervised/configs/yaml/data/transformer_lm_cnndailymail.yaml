@@ -1,13 +1,21 @@
 data:
   batcher:
+    _target_: "trax.data.batcher"
+    data_streams: "${data.data_streams}"
     batch_size_per_device: 2
-    bucket_length: 512
-    buckets_include_inputs_in_length: true
-    data_streams: "@data.data_streams"
     eval_batch_size: 8
-    id_to_mask: 0
+    bucket_length: 512
     max_eval_length: 4096
+    buckets_include_inputs_in_length: true
+    id_to_mask: 0
   data_streams:
+    _target_: "trax.data.data_streams"
+    _partial_: true
     data_dir: null
     dataset_name: "t2t_summarize_cnn_dailymail32k"
-    preprocess_fn: "@data.wmt_concat_preprocess"
+    preprocess_fn: "${data.wmt_concat_preprocess}"
+  wmt_concat_preprocess:
+    _target_: "trax.data.wmt_concat_preprocess"
+    _partial_: true
+    max_length: 2047
+    max_eval_length: 4095

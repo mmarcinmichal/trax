@@ -1,0 +1,46 @@
+model:
+  SelfAttention:
+    _target_: "trax.layers.SelfAttention"
+    attention_dropout: 0.2
+    chunk_len: 128
+    n_chunks_before: 1
+    n_chunks_after: 0
+  LSHSelfAttention:
+    _target_: "trax.layers.LSHSelfAttention"
+    _partial_: true
+    attention_dropout: 0.2
+    n_chunks_after: 0
+    n_parallel_heads: 1
+    predict_drop_len: 256
+    predict_mem_len: 16384
+    chunk_len: 256
+    n_buckets: 128
+    n_chunks_before: 1
+    n_hashes: 2
+  encoder:
+    LSHSelfAttention:
+      _target_: "trax.layers.LSHSelfAttention"
+      _partial_: true
+      n_chunks_after: 1
+  ConfigurableTerraformer:
+    _target_: "trax.models.ConfigurableTerraformer"
+    _partial_: true
+    d_model: 512
+    d_ff: 2048
+    dropout: 0.1
+    ff_activation: "${model.Relu}"
+    ff_dropout: 0.1
+    max_len: 512
+    n_heads: 8
+    n_encoder_layers: 6
+    n_decoder_layers: 6
+    input_vocab_size: 33300
+    d_attention_key: 64
+    d_attention_value: 64
+    encoder_attention_type: "${model.encoder.LSHSelfAttention}"
+    encoder_decoder_attention_type: "${model.LSHSelfAttention}"
+    pos_axial_shape: "(32, 16)"
+    pos_d_axial_embs: "(256, 256)"
+  Relu:
+    _target_: "trax.layers.Relu"
+    _partial_: true

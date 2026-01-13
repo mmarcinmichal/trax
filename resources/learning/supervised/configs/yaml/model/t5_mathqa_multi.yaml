@@ -1,0 +1,35 @@
+model:
+  MultiplicativeModularCausalAttention:
+    _target_: "trax.layers.MultiplicativeModularCausalAttention"
+    sparsity: 16
+  MultiplicativeConvCausalAttention:
+    _target_: "trax.layers.MultiplicativeConvCausalAttention"
+    sparsity: 16
+    length_kernel_size: 3
+  ConfigurableTransformer:
+    _target_: "trax.models.ConfigurableTransformer"
+    _partial_: true
+    d_model: 1024
+    d_ff: 4096
+    dropout: 0.1
+    ff_dropout: 0.1
+    ff_chunk_size: 0
+    ff_sparsity: 0
+    max_len: "max_length"
+    n_heads: 16
+    n_encoder_layers: 24
+    n_decoder_layers: 24
+    input_vocab_size: 32000
+    encoder_attention_type: "${model.Attention}"
+    encoder_decoder_attention_type: "${model.CausalAttention}"
+    loss_sparsity: 0
+  enc_attn_type:
+    _target_: "trax.models.enc_attn_type"
+  dec_attn_type:
+    _target_: "trax.models.dec_attn_type"
+  Attention:
+    _target_: "trax.layers.Attention"
+    _partial_: true
+  CausalAttention:
+    _target_: "trax.layers.CausalAttention"
+    _partial_: true

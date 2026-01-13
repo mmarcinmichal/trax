@@ -1,7 +1,283 @@
 data:
-  Batch:
-    batch_size: 4
+  Tokenize:
+    _target_: "trax.data.Tokenize"
+    keys:
+      - 0
+      - 1
+    vocab_file: "en_32k.subword"
+  make_inputs:
+    _target_: "trax.data.make_inputs"
+    _partial_: true
+    eval_stream:
+      - "${data.eval.CreateMathQAInputs}"
+      - "${data.Tokenize}"
+      - "${data.Shuffle}"
+      - "${data.PadToLength}"
+      - "${data.TruncateToLength}"
+      - "${data.Batch}"
+    train_stream: "${data.make_parallel_stream}"
+  train_full_inference:
+    make_additional_stream:
+      _target_: "trax.data.make_additional_stream"
+      _partial_: true
+      stream:
+        - "${data.train_full_inference.CreateMathQAInputs}"
+        - "${data.Tokenize}"
+        - "${data.Shuffle}"
+        - "${data.PadToLength}"
+        - "${data.TruncateToLength}"
+        - "${data.Batch}"
+    CreateMathQAInputs:
+      _target_: "trax.data.CreateMathQAInputs"
+      dataset_path: "path_to_the_dataset"
+      train: true
+      tolerance: 0.01
+      cumulative: false
+  eval_full_inference:
+    make_additional_stream:
+      _target_: "trax.data.make_additional_stream"
+      stream:
+        - "${data.eval_full_inference.CreateMathQAInputs}"
+        - "${data.Tokenize}"
+        - "${data.Shuffle}"
+        - "${data.PadToLength}"
+        - "${data.TruncateToLength}"
+        - "${data.Batch}"
+    CreateMathQAInputs:
+      _target_: "trax.data.CreateMathQAInputs"
+      dataset_path: "path_to_the_dataset"
+      train: false
+      tolerance: 0.01
+      cumulative: false
+  train_basic_task:
+    make_additional_stream:
+      _target_: "trax.data.make_additional_stream"
+      _partial_: true
+      stream:
+        - "${data.train_basic_task.CreateMathQAInputs}"
+        - "${data.Tokenize}"
+        - "${data.Shuffle}"
+        - "${data.PadToLength}"
+        - "${data.TruncateToLength}"
+        - "${data.Batch}"
+    CreateMathQAInputs:
+      _target_: "trax.data.CreateMathQAInputs"
+      dataset_path: "path_to_the_dataset"
+      train: true
+      tolerance: 0.01
+      cumulative: true
+  eval_basic_task:
+    make_additional_stream:
+      _target_: "trax.data.make_additional_stream"
+      stream:
+        - "${data.eval_basic_task.CreateMathQAInputs}"
+        - "${data.Tokenize}"
+        - "${data.Shuffle}"
+        - "${data.PadToLength}"
+        - "${data.TruncateToLength}"
+        - "${data.Batch}"
+    CreateMathQAInputs:
+      _target_: "trax.data.CreateMathQAInputs"
+      dataset_path: "path_to_the_dataset"
+      train: false
+      tolerance: 0.01
+      cumulative: true
+  train_rationale_task:
+    make_additional_stream:
+      _target_: "trax.data.make_additional_stream"
+      stream:
+        - "${data.train_rationale_task.CreateMathQAInputs}"
+        - "${data.Tokenize}"
+        - "${data.Shuffle}"
+        - "${data.PadToLength}"
+        - "${data.TruncateToLength}"
+        - "${data.Batch}"
+    CreateMathQAInputs:
+      _target_: "trax.data.CreateMathQAInputs"
+      dataset_path: "path_to_the_dataset"
+      train: true
+      tolerance: 0.01
+      cumulative: false
+      nlp_rationale: true
+  eval_rationale_task:
+    make_additional_stream:
+      _target_: "trax.data.make_additional_stream"
+      stream:
+        - "${data.eval_rationale_task.CreateMathQAInputs}"
+        - "${data.Tokenize}"
+        - "${data.Shuffle}"
+        - "${data.PadToLength}"
+        - "${data.TruncateToLength}"
+        - "${data.Batch}"
+    CreateMathQAInputs:
+      _target_: "trax.data.CreateMathQAInputs"
+      dataset_path: "path_to_the_dataset"
+      train: false
+      tolerance: 0.01
+      cumulative: false
+      nlp_rationale: true
+    EvaluationTask:
+      _target_: "trax.learning.trainer.EvaluationTask"
+      labeled_data: "${data.eval_rationale_task.make_additional_stream}"
+      metrics:
+        - "${train.WeightedCategoryAccuracy}"
+        - "${train.SequenceAccuracy}"
+      metric_names:
+        - "Rationale accuracy"
+        - "Rationale sequence accuracy"
+  train_category_task:
+    make_additional_stream:
+      _target_: "trax.data.make_additional_stream"
+      stream:
+        - "${data.train_category_task.CreateMathQAInputs}"
+        - "${data.Tokenize}"
+        - "${data.Shuffle}"
+        - "${data.PadToLength}"
+        - "${data.TruncateToLength}"
+        - "${data.Batch}"
+    CreateMathQAInputs:
+      _target_: "trax.data.CreateMathQAInputs"
+      dataset_path: "path_to_the_dataset"
+      train: true
+      tolerance: 0.01
+      cumulative: false
+      category: true
+  eval_category_task:
+    make_additional_stream:
+      _target_: "trax.data.make_additional_stream"
+      stream:
+        - "${data.eval_category_task.CreateMathQAInputs}"
+        - "${data.Tokenize}"
+        - "${data.Shuffle}"
+        - "${data.PadToLength}"
+        - "${data.TruncateToLength}"
+        - "${data.Batch}"
+    CreateMathQAInputs:
+      _target_: "trax.data.CreateMathQAInputs"
+      dataset_path: "path_to_the_dataset"
+      train: false
+      tolerance: 0.01
+      cumulative: false
+      category: true
+    EvaluationTask:
+      _target_: "trax.learning.trainer.EvaluationTask"
+      labeled_data: "${data.eval_category_task.make_additional_stream}"
+      metrics:
+        - "${train.WeightedCategoryAccuracy}"
+        - "${train.SequenceAccuracy}"
+      metric_names:
+        - "Category accuracy"
+        - "Category sequence accuracy"
+  train_correct_answer_task:
+    make_additional_stream:
+      _target_: "trax.data.make_additional_stream"
+      _partial_: true
+      stream:
+        - "${data.train_correct_answer_task.CreateMathQAInputs}"
+        - "${data.Tokenize}"
+        - "${data.Shuffle}"
+        - "${data.PadToLength}"
+        - "${data.TruncateToLength}"
+        - "${data.Batch}"
+    CreateMathQAInputs:
+      _target_: "trax.data.CreateMathQAInputs"
+      dataset_path: "path_to_the_dataset"
+      train: true
+      tolerance: 0.01
+      cumulative: false
+      correct_answer: true
+  eval_correct_answer_task:
+    make_additional_stream:
+      _target_: "trax.data.make_additional_stream"
+      stream:
+        - "${data.eval_correct_answer_task.CreateMathQAInputs}"
+        - "${data.Tokenize}"
+        - "${data.Shuffle}"
+        - "${data.PadToLength}"
+        - "${data.TruncateToLength}"
+        - "${data.Batch}"
+    CreateMathQAInputs:
+      _target_: "trax.data.CreateMathQAInputs"
+      dataset_path: "path_to_the_dataset"
+      train: false
+      tolerance: 0.01
+      cumulative: false
+      correct_answer: true
+  train_drop_task:
+    make_additional_stream:
+      _target_: "trax.data.make_additional_stream"
+      _partial_: true
+      stream:
+        - "${data.train_drop_task.CreateDropInputs}"
+        - "${data.Tokenize}"
+        - "${data.Shuffle}"
+        - "${data.PadToLength}"
+        - "${data.TruncateToLength}"
+        - "${data.Batch}"
+    CreateDropInputs:
+      _target_: "trax.data.CreateDropInputs"
+      train: true
+      mathqa_format: true
+  eval_drop_task:
+    make_additional_stream:
+      _target_: "trax.data.make_additional_stream"
+      stream:
+        - "${data.eval_drop_task.CreateDropInputs}"
+        - "${data.Tokenize}"
+        - "${data.Shuffle}"
+        - "${data.PadToLength}"
+        - "${data.TruncateToLength}"
+        - "${data.Batch}"
+    CreateDropInputs:
+      _target_: "trax.data.CreateDropInputs"
+      train: false
+      mathqa_format: true
+  train_drop_annot_task:
+    make_additional_stream:
+      _target_: "trax.data.make_additional_stream"
+      _partial_: true
+      stream:
+        - "${data.train_drop_annot_task.CreateAnnotatedDropInputs}"
+        - "${data.Tokenize}"
+        - "${data.Shuffle}"
+        - "${data.PadToLength}"
+        - "${data.TruncateToLength}"
+        - "${data.Batch}"
+    CreateAnnotatedDropInputs:
+      _target_: "trax.data.CreateAnnotatedDropInputs"
+      train: true
+      dataset_path: "path_to_the_dataset"
+  eval_drop_annot_task:
+    make_additional_stream:
+      _target_: "trax.data.make_additional_stream"
+      stream:
+        - "${data.eval_drop_annot_task.CreateAnnotatedDropInputs}"
+        - "${data.Tokenize}"
+        - "${data.Shuffle}"
+        - "${data.PadToLength}"
+        - "${data.TruncateToLength}"
+        - "${data.Batch}"
+    CreateAnnotatedDropInputs:
+      _target_: "trax.data.CreateAnnotatedDropInputs"
+      train: false
+      dataset_path: "path_to_the_dataset"
+  make_parallel_stream:
+    _target_: "trax.data.make_parallel_stream"
+    streams:
+      - "${data.train_basic_task.make_additional_stream}"
+      - "${data.train_full_inference.make_additional_stream}"
+      - "${data.train_correct_answer_task.make_additional_stream}"
+      - "${data.train_drop_task.make_additional_stream}"
+      - "${data.train_drop_annot_task.make_additional_stream}"
+  eval:
+    CreateMathQAInputs:
+      _target_: "trax.data.CreateMathQAInputs"
+      dataset_path: "path_to_the_dataset"
+      train: false
+      tolerance: 0.01
+      cumulative: true
   PadToLength:
+    _target_: "trax.data.PadToLength"
     len_map:
       0: 512
       1: 512
@@ -10,164 +286,14 @@ data:
       0: 0
       1: 0
       2: 0
-  Tokenize:
-    keys:
-      - 0
-      - 1
-    vocab_file: "en_32k.subword"
   TruncateToLength:
+    _target_: "trax.data.TruncateToLength"
     len_map:
-      0:
-        - 256
-      1:
-        - 256
-      2:
-        - 256
-  c4_bare_preprocess_fn:
-    sequence_length:
-      inputs: 512
-      targets: 512
-  data_streams:
-    bare_preprocess_fn: "@trax.data.c4_bare_preprocess_fn"
-    data_dir: null
-    dataset_name: "c4/en:2.3.0"
-    input_name: "inputs"
-    target_name: "targets"
-  denoise:
-    inputs_fn: "@preprocessors.noise_span_to_unique_sentinel"
-    noise_density: 0.15
-    noise_mask_fn: "@preprocessors.random_spans_noise_mask"
-    targets_fn: "@preprocessors.nonnoise_span_to_unique_sentinel"
-  eval:
-    data:
-      CreateMathQAInputs:
-        cumulative: true
-        dataset_path: "path_to_the_dataset"
-        tolerance: 0.01
-        train: false
-  eval_basic_task:
-    data:
-      CreateMathQAInputs:
-        cumulative: true
-        dataset_path: "path_to_the_dataset"
-        tolerance: 0.01
-        train: false
-  eval_category_task:
-    data:
-      CreateMathQAInputs:
-        category: true
-        cumulative: false
-        dataset_path: "path_to_the_dataset"
-        tolerance: 0.01
-        train: false
-  eval_correct_answer_task:
-    data:
-      CreateMathQAInputs:
-        correct_answer: true
-        cumulative: false
-        dataset_path: "path_to_the_dataset"
-        tolerance: 0.01
-        train: false
-  eval_drop_annot_task:
-    data:
-      CreateAnnotatedDropInputs:
-        dataset_path: "path_to_the_dataset"
-        train: false
-  eval_drop_task:
-    data:
-      CreateDropInputs:
-        mathqa_format: true
-        train: false
-  eval_full_inference:
-    data:
-      CreateMathQAInputs:
-        cumulative: false
-        dataset_path: "path_to_the_dataset"
-        tolerance: 0.01
-        train: false
-  eval_rationale_task:
-    data:
-      CreateMathQAInputs:
-        cumulative: false
-        dataset_path: "path_to_the_dataset"
-        nlp_rationale: true
-        tolerance: 0.01
-        train: false
-  make_inputs:
-    eval_stream:
-      - "@eval/data.CreateMathQAInputs()"
-      - "@data.Tokenize()"
-      - "@data.Shuffle()"
-      - "@data.PadToLength()"
-      - "@data.TruncateToLength()"
-      - "@data.Batch()"
-    train_stream: "@make_parallel_stream()"
-  random_spans_helper:
-    extra_tokens_per_span_inputs: 1
-    extra_tokens_per_span_targets: 1
-    inputs_length: 512
-    mean_noise_span_length: 3.0
-    noise_density: 0.15
-  reduce_concat_tokens:
-    batch_size: 128
-    feature_key: "targets"
-  select_random_chunk:
-    feature_key: "targets"
-    max_length: 512
-  split_tokens:
-    feature_key: "targets"
-    max_tokens_per_segment: "@preprocessors.random_spans_tokens_length()"
-    min_tokens_per_segment: null
-  train_basic_task:
-    data:
-      CreateMathQAInputs:
-        cumulative: true
-        dataset_path: "path_to_the_dataset"
-        tolerance: 0.01
-        train: true
-  train_category_task:
-    data:
-      CreateMathQAInputs:
-        category: true
-        cumulative: false
-        dataset_path: "path_to_the_dataset"
-        tolerance: 0.01
-        train: true
-  train_correct_answer_task:
-    data:
-      CreateMathQAInputs:
-        correct_answer: true
-        cumulative: false
-        dataset_path: "path_to_the_dataset"
-        tolerance: 0.01
-        train: true
-  train_drop_annot_task:
-    data:
-      CreateAnnotatedDropInputs:
-        dataset_path: "path_to_the_dataset"
-        train: true
-  train_drop_task:
-    data:
-      CreateDropInputs:
-        mathqa_format: true
-        train: true
-  train_full_inference:
-    data:
-      CreateMathQAInputs:
-        cumulative: false
-        dataset_path: "path_to_the_dataset"
-        tolerance: 0.01
-        train: true
-  train_rationale_task:
-    data:
-      CreateMathQAInputs:
-        cumulative: false
-        dataset_path: "path_to_the_dataset"
-        nlp_rationale: true
-        tolerance: 0.01
-        train: true
-  unsupervised:
-    preprocessors:
-      - "@preprocessors.select_random_chunk"
-      - "@preprocessors.split_tokens"
-      - "@preprocessors.denoise"
+      0: "(256,)"
+      1: "(256,)"
+      2: "(256,)"
+  Batch:
+    _target_: "trax.data.Batch"
+    batch_size: 4
+  Shuffle:
+    _target_: "trax.data.Shuffle"

@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "reformer_imagenet64"
+  -
+    model: "reformer_imagenet64"
+  -
+    optim: "reformer_imagenet64"
+  -
+    schedule: "reformer_imagenet64"
+  -
+    train: "reformer_imagenet64"
+  -
+    ckpt: "reformer_imagenet64"
+  - "_self_"

@@ -1,0 +1,17 @@
+model:
+  data_streams:
+    _target_: "trax.models.data_streams"
+    data_dir: null
+    dataset_name: "t2t_sentiment_imdb"
+    input_name: "targets"
+  TransformerEncoder:
+    _target_: "trax.models.TransformerEncoder"
+    _partial_: true
+    d_model: 512
+    d_ff: 2048
+    dropout: 0.1
+    max_len: 2048
+    n_classes: 2
+    n_heads: 8
+    n_layers: 6
+    vocab_size: 8192

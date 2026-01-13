@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "hourglass_wiki40b"
+  -
+    model: "hourglass_wiki40b"
+  -
+    optim: "hourglass_wiki40b"
+  -
+    schedule: "hourglass_wiki40b"
+  -
+    train: "hourglass_wiki40b"
+  -
+    ckpt: "hourglass_wiki40b"
+  - "_self_"

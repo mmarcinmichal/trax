@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "transformer_lm_wmt_ende_8gb"
+  -
+    model: "transformer_lm_wmt_ende_8gb"
+  -
+    optim: "transformer_lm_wmt_ende_8gb"
+  -
+    schedule: "transformer_lm_wmt_ende_8gb"
+  -
+    train: "transformer_lm_wmt_ende_8gb"
+  -
+    ckpt: "transformer_lm_wmt_ende_8gb"
+  - "_self_"

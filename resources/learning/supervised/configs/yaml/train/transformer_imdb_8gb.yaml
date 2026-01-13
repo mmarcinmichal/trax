@@ -1,0 +1,8 @@
+train:
+  train:
+    eval_frequency: 500
+    eval_steps: 20
+    model: "${model.TransformerEncoder}"
+    steps: 10000
+    inputs: "${data.make_inputs}"
+    lr_schedule_fn: "${schedule.warmup_and_rsqrt_decay}"

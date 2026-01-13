@@ -1,0 +1,22 @@
+model:
+  ConfigurableTerraformer:
+    _target_: "trax.models.ConfigurableTerraformer"
+    _partial_: true
+    d_model: 256
+    d_ff: 512
+    dropout: 0.05
+    max_len: "max_len"
+    n_heads: 4
+    n_encoder_layers: 3
+    n_decoder_layers: 3
+    ff_use_sru: 0
+    d_attention_key: 64
+    d_attention_value: 64
+    encoder_attention_type: "${model.LSHSelfAttention}"
+    encoder_decoder_attention_type: "${model.LSHSelfAttention}"
+    n_decoder_attention_layers: 1
+    input_vocab_size: "vocab_size"
+    pos_type: "fixed-base"
+  LSHSelfAttention:
+    _target_: "trax.layers.LSHSelfAttention"
+    _partial_: true

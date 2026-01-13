@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "reformer_c4"
+  -
+    model: "reformer_c4"
+  -
+    optim: "reformer_c4"
+  -
+    schedule: "reformer_c4"
+  -
+    train: "reformer_c4"
+  -
+    ckpt: "reformer_c4"
+  - "_self_"

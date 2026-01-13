@@ -1,37 +1,36 @@
 data:
   c4_bare_preprocess_fn:
+    _target_: "trax.data.c4_bare_preprocess_fn"
+    _partial_: true
     sequence_length:
       inputs: 512
       targets: 512
-  data_streams:
-    bare_preprocess_fn: "@trax.data.c4_bare_preprocess_fn"
-    data_dir: null
-    dataset_name: "c4/en:2.3.0"
-    input_name: "inputs"
-    target_name: "targets"
-  denoise:
-    inputs_fn: "@preprocessors.noise_span_to_unique_sentinel"
-    noise_density: 0.15
-    noise_mask_fn: "@preprocessors.random_spans_noise_mask"
-    targets_fn: "@preprocessors.nonnoise_span_to_unique_sentinel"
-  random_spans_helper:
-    extra_tokens_per_span_inputs: 1
-    extra_tokens_per_span_targets: 1
-    inputs_length: 512
-    mean_noise_span_length: 3.0
-    noise_density: 0.15
-  reduce_concat_tokens:
-    batch_size: 128
-    feature_key: "targets"
   select_random_chunk:
+    _target_: "t5.data.preprocessors.select_random_chunk"
+    _partial_: true
     feature_key: "targets"
     max_length: 512
   split_tokens:
+    _target_: "t5.data.preprocessors.split_tokens"
+    _partial_: true
     feature_key: "targets"
-    max_tokens_per_segment: "@preprocessors.random_spans_tokens_length()"
+    max_tokens_per_segment: "${data.random_spans_tokens_length}"
     min_tokens_per_segment: null
-  unsupervised:
-    preprocessors:
-      - "@preprocessors.select_random_chunk"
-      - "@preprocessors.split_tokens"
-      - "@preprocessors.denoise"
+  denoise:
+    _target_: "t5.data.preprocessors.denoise"
+    _partial_: true
+    inputs_fn: "${data.noise_span_to_unique_sentinel}"
+    noise_density: 0.15
+    noise_mask_fn: "${data.random_spans_noise_mask}"
+    targets_fn: "${data.nonnoise_span_to_unique_sentinel}"
+  random_spans_tokens_length:
+    _target_: "t5.data.preprocessors.random_spans_tokens_length"
+  noise_span_to_unique_sentinel:
+    _target_: "t5.data.preprocessors.noise_span_to_unique_sentinel"
+    _partial_: true
+  random_spans_noise_mask:
+    _target_: "t5.data.preprocessors.random_spans_noise_mask"
+    _partial_: true
+  nonnoise_span_to_unique_sentinel:
+    _target_: "t5.data.preprocessors.nonnoise_span_to_unique_sentinel"
+    _partial_: true

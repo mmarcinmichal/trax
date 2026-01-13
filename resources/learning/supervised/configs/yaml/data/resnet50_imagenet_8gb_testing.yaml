@@ -1,10 +1,16 @@
 data:
   batcher:
+    _target_: "trax.data.batcher"
+    data_streams: "${data.data_streams}"
     batch_size_per_device: 32
-    data_streams: "@data.data_streams"
     eval_batch_size: 32
     variable_shapes: false
   data_streams:
+    _target_: "trax.data.data_streams"
+    _partial_: true
     data_dir: null
     dataset_name: "t2t_image_imagenet224"
-    preprocess_fn: "@data.squeeze_targets_preprocess"
+    preprocess_fn: "${data.squeeze_targets_preprocess}"
+  squeeze_targets_preprocess:
+    _target_: "trax.data.squeeze_targets_preprocess"
+    _partial_: true

@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "transformer_imdb_8gb"
+  -
+    model: "transformer_imdb_8gb"
+  -
+    optim: "transformer_imdb_8gb"
+  -
+    schedule: "transformer_imdb_8gb"
+  -
+    train: "transformer_imdb_8gb"
+  -
+    ckpt: "transformer_imdb_8gb"
+  - "_self_"

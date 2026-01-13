@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "t5_mathqa"
+  -
+    model: "t5_mathqa"
+  -
+    optim: "t5_mathqa"
+  -
+    schedule: "t5_mathqa"
+  -
+    train: "t5_mathqa"
+  -
+    ckpt: "t5_mathqa"
+  - "_self_"

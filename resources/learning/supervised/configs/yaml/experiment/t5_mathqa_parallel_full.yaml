@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "t5_mathqa_parallel_full"
+  -
+    model: "t5_mathqa_parallel_full"
+  -
+    optim: "t5_mathqa_parallel_full"
+  -
+    schedule: "t5_mathqa_parallel_full"
+  -
+    train: "t5_mathqa_parallel_full"
+  -
+    ckpt: "t5_mathqa_parallel_full"
+  - "_self_"

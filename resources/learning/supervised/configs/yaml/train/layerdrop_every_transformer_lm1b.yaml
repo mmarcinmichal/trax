@@ -1,0 +1,7 @@
+train:
+  train:
+    eval_frequency: 1000
+    eval_steps: 10
+    model: "${model.EveryOtherLayerDropTransformerLM}"
+    optimizer: "${optim.SM3}"
+    steps: 500000

@@ -1,6 +1,7 @@
 ckpt:
-  checkpoint_lowest: "loss"
-  permanent_checkpoints_at:
-    - 50000
-    - 100000
-    - 125000
+  ckpt:
+    permanent_checkpoints_at:
+      - 50000
+      - 100000
+      - 125000
+    checkpoint_lowest: "loss"

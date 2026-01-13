@@ -1,0 +1,47 @@
+model:
+  PureLSHSelfAttentionWrapper:
+    _target_: "trax.layers.PureLSHSelfAttentionWrapper"
+    _partial_: true
+    pure_lsh_implementation: "${model.PureLSHSelfAttention}"
+    rotary_position_emb: true
+    bias: true
+    num_weights: 2
+    weights_format: "model"
+  PureLSHSelfAttention:
+    _target_: "trax.layers.PureLSHSelfAttention"
+    _partial_: true
+    chunk_len: 256
+    n_buckets: null
+    n_chunks_after: 0
+    n_chunks_before: 1
+    n_hashes: 2
+  SelfAttention:
+    _target_: "trax.layers.SelfAttention"
+    chunk_len: 512
+    n_chunks_after: 0
+    n_chunks_before: 1
+  HourglassLM:
+    _target_: "trax.models.HourglassLM"
+    _partial_: true
+    d_model: 768
+    d_ff: 3072
+    dropout: 0.0
+    ff_activation: "${model.FastGelu}"
+    n_heads: 8
+    vanilla_layers: "(3, 3)"
+    hierarchy: "12@3"
+    vocab_size: 256
+    vanilla_attn_type: "${model.PureLSHSelfAttentionWrapper}"
+    downsampling_fn: "${model.LinearPooling}"
+    upsampling_fn: "${model.LinearUpsampling}"
+  vanilla_attn_type:
+    _target_: "trax.models.vanilla_attn_type"
+  FastGelu:
+    _target_: "trax.layers.FastGelu"
+    _partial_: true
+  LinearPooling:
+    _target_: "trax.layers.LinearPooling"
+    _partial_: true
+  LinearUpsampling:
+    _target_: "trax.layers.LinearUpsampling"
+    _partial_: true

@@ -1,7 +1,59 @@
 data:
-  Batch:
-    batch_size: 4
+  Tokenize:
+    _target_: "trax.data.Tokenize"
+    keys:
+      - 0
+      - 1
+    vocab_file: "en_32k.subword"
+  make_inputs:
+    _target_: "trax.data.make_inputs"
+    _partial_: true
+    train_stream:
+      - "${data.train.CreateMathQAInputs}"
+      - "${data.Tokenize}"
+      - "${data.Shuffle}"
+      - "${data.PadToLength}"
+      - "${data.TruncateToLength}"
+      - "${data.Batch}"
+    eval_stream:
+      - "${data.eval.CreateMathQAInputs}"
+      - "${data.Tokenize}"
+      - "${data.Shuffle}"
+      - "${data.PadToLength}"
+      - "${data.TruncateToLength}"
+      - "${data.Batch}"
+  make_additional_stream:
+    _target_: "trax.data.make_additional_stream"
+    stream:
+      - "${data.eval_additional_task.CreateMathQAInputs}"
+      - "${data.Tokenize}"
+      - "${data.Shuffle}"
+      - "${data.PadToLength}"
+      - "${data.TruncateToLength}"
+      - "${data.Batch}"
+  train:
+    CreateMathQAInputs:
+      _target_: "trax.data.CreateMathQAInputs"
+      dataset_path: "path_to_the_dataset"
+      train: true
+      tolerance: 0.01
+      cumulative: true
+  eval:
+    CreateMathQAInputs:
+      _target_: "trax.data.CreateMathQAInputs"
+      dataset_path: "path_to_the_dataset"
+      train: false
+      tolerance: 0.01
+      cumulative: true
+  eval_additional_task:
+    CreateMathQAInputs:
+      _target_: "trax.data.CreateMathQAInputs"
+      dataset_path: "path_to_the_dataset"
+      train: false
+      tolerance: 0.01
+      cumulative: false
   PadToLength:
+    _target_: "trax.data.PadToLength"
     len_map:
       0: 512
       1: 512
@@ -10,88 +62,14 @@ data:
       0: 0
       1: 0
       2: 0
-  Tokenize:
-    keys:
-      - 0
-      - 1
-    vocab_file: "en_32k.subword"
   TruncateToLength:
+    _target_: "trax.data.TruncateToLength"
     len_map:
-      0:
-        - 256
-      1:
-        - 256
-      2:
-        - 256
-  c4_bare_preprocess_fn:
-    sequence_length:
-      inputs: 512
-      targets: 512
-  data_streams:
-    bare_preprocess_fn: "@trax.data.c4_bare_preprocess_fn"
-    data_dir: null
-    dataset_name: "c4/en:2.3.0"
-    input_name: "inputs"
-    target_name: "targets"
-  denoise:
-    inputs_fn: "@preprocessors.noise_span_to_unique_sentinel"
-    noise_density: 0.15
-    noise_mask_fn: "@preprocessors.random_spans_noise_mask"
-    targets_fn: "@preprocessors.nonnoise_span_to_unique_sentinel"
-  eval:
-    data:
-      CreateMathQAInputs:
-        cumulative: true
-        dataset_path: "path_to_the_dataset"
-        tolerance: 0.01
-        train: false
-  eval_additional_task:
-    data:
-      CreateMathQAInputs:
-        cumulative: false
-        dataset_path: "path_to_the_dataset"
-        tolerance: 0.01
-        train: false
-  make_inputs:
-    eval_stream:
-      - "@eval/data.CreateMathQAInputs()"
-      - "@data.Tokenize()"
-      - "@data.Shuffle()"
-      - "@data.PadToLength()"
-      - "@data.TruncateToLength()"
-      - "@data.Batch()"
-    train_stream:
-      - "@train/data.CreateMathQAInputs()"
-      - "@data.Tokenize()"
-      - "@data.Shuffle()"
-      - "@data.PadToLength()"
-      - "@data.TruncateToLength()"
-      - "@data.Batch()"
-  random_spans_helper:
-    extra_tokens_per_span_inputs: 1
-    extra_tokens_per_span_targets: 1
-    inputs_length: 512
-    mean_noise_span_length: 3.0
-    noise_density: 0.15
-  reduce_concat_tokens:
-    batch_size: 128
-    feature_key: "targets"
-  select_random_chunk:
-    feature_key: "targets"
-    max_length: 512
-  split_tokens:
-    feature_key: "targets"
-    max_tokens_per_segment: "@preprocessors.random_spans_tokens_length()"
-    min_tokens_per_segment: null
-  train:
-    data:
-      CreateMathQAInputs:
-        cumulative: true
-        dataset_path: "path_to_the_dataset"
-        tolerance: 0.01
-        train: true
-  unsupervised:
-    preprocessors:
-      - "@preprocessors.select_random_chunk"
-      - "@preprocessors.split_tokens"
-      - "@preprocessors.denoise"
+      0: "(256,)"
+      1: "(256,)"
+      2: "(256,)"
+  Batch:
+    _target_: "trax.data.Batch"
+    batch_size: 4
+  Shuffle:
+    _target_: "trax.data.Shuffle"

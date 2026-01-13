@@ -1,61 +1,52 @@
 data:
-  Batch:
-    batch_size: 16
-  CreateBertInputs:
-    double_sentence: false
-    labeled: false
-  PadToLength:
-    len_map:
-      0: 512
-      1: 512
-      2: 512
-    pad_value:
-      0: 0
-      1: 0
-      2: 0
-  Tokenize:
-    keys:
-      - 0
-      - 1
-    vocab_dir: "trax/data/testdata/"
-    vocab_file: "bert_uncased_vocab.txt"
-    vocab_type: "bert-lowercase"
-  TruncateToLength:
-    len_map:
-      0:
-        - 512
-      1:
-        - 512
-      2:
-        - 512
-  eval:
-    data:
-      CorpusToRandomChunks:
-        dataset_name: "wiki40b"
-      TFDS:
-        train: false
   make_inputs:
-    eval_stream:
-      - "@eval/data.CorpusToRandomChunks()"
-      - "@data.Tokenize()"
-      - "@data.CreateBertInputs()"
-      - "@data.Shuffle()"
-      - "@data.PadToLength()"
-      - "@data.TruncateToLength()"
-      - "@data.mask_random_tokens"
-      - "@data.Batch()"
+    _target_: "trax.data.make_inputs"
     train_stream:
-      - "@train/data.CorpusToRandomChunks()"
-      - "@data.Tokenize()"
-      - "@data.CreateBertInputs()"
-      - "@data.Shuffle()"
-      - "@data.PadToLength()"
-      - "@data.TruncateToLength()"
-      - "@data.mask_random_tokens"
-      - "@data.Batch()"
+      - "${data.train.CorpusToRandomChunks}"
+      - "${data.Tokenize}"
+      - "${data.CreateBertInputs}"
+      - "${data.Shuffle}"
+      - "${data.PadToLength}"
+      - "${data.TruncateToLength}"
+      - "${data.mask_random_tokens}"
+      - "${data.Batch}"
+    eval_stream:
+      - "${data.eval.CorpusToRandomChunks}"
+      - "${data.Tokenize}"
+      - "${data.CreateBertInputs}"
+      - "${data.Shuffle}"
+      - "${data.PadToLength}"
+      - "${data.TruncateToLength}"
+      - "${data.mask_random_tokens}"
+      - "${data.Batch}"
   train:
-    data:
-      CorpusToRandomChunks:
-        dataset_name: "wiki40b"
-      TFDS:
-        train: true
+    CorpusToRandomChunks:
+      _target_: "trax.data.CorpusToRandomChunks"
+      dataset_name: "wiki40b"
+    TFDS:
+      _target_: "trax.data.TFDS"
+      train: true
+  eval:
+    CorpusToRandomChunks:
+      _target_: "trax.data.CorpusToRandomChunks"
+      dataset_name: "wiki40b"
+    TFDS:
+      _target_: "trax.data.TFDS"
+      train: false
+  CreateBertInputs:
+    _target_: "trax.data.CreateBertInputs"
+    labeled: false
+    double_sentence: false
+  Tokenize:
+    _target_: "trax.data.Tokenize"
+  Shuffle:
+    _target_: "trax.data.Shuffle"
+  PadToLength:
+    _target_: "trax.data.PadToLength"
+  TruncateToLength:
+    _target_: "trax.data.TruncateToLength"
+  mask_random_tokens:
+    _target_: "trax.data.mask_random_tokens"
+    _partial_: true
+  Batch:
+    _target_: "trax.data.Batch"

@@ -1,0 +1,7 @@
+train:
+  train:
+    eval_frequency: 2000
+    eval_steps: 305
+    model: "${model.HourglassLM}"
+    optimizer: "${optim.Adam}"
+    steps: 263000

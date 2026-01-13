@@ -1,0 +1,19 @@
+model:
+  HourglassLM:
+    _target_: "trax.models.HourglassLM"
+    _partial_: true
+    d_ff: 2048
+    d_model: 512
+    dropout: 0.2
+    vanilla_layers: "(5,5)"
+    hierarchy: "24@3"
+    n_heads: 8
+    vocab_size: 256
+    attention_upsampling_fn: "${model.NaiveUpsampling}"
+    ff_activation: "${model.FastGelu}"
+  NaiveUpsampling:
+    _target_: "trax.layers.NaiveUpsampling"
+    _partial_: true
+  FastGelu:
+    _target_: "trax.layers.FastGelu"
+    _partial_: true

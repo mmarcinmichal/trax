@@ -1,0 +1,9 @@
+model:
+  ResidualShuffleExchange:
+    _target_: "trax.models.ResidualShuffleExchange"
+    _partial_: true
+    vocab_size: 5
+    d_model: 192
+    dropout: 0.1
+    input_dropout: 0.05
+    n_blocks: 2

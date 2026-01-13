@@ -1,0 +1,7 @@
+train:
+  train:
+    eval_frequency: 100
+    eval_steps: 10
+    model: "${model.WideResnet}"
+    optimizer: "${optim.Momentum}"
+    steps: 10000

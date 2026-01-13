@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "transformer_big_lm1b_8gb"
+  -
+    model: "transformer_big_lm1b_8gb"
+  -
+    optim: "transformer_big_lm1b_8gb"
+  -
+    schedule: "transformer_big_lm1b_8gb"
+  -
+    train: "transformer_big_lm1b_8gb"
+  -
+    ckpt: "transformer_big_lm1b_8gb"
+  - "_self_"

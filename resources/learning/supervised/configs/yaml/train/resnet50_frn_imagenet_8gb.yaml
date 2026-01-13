@@ -1,0 +1,7 @@
+train:
+  train:
+    eval_frequency: 2000
+    eval_steps: 20
+    model: "${model.Resnet50}"
+    optimizer: "${optim.Momentum}"
+    steps: 300000

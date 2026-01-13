@@ -1,0 +1,102 @@
+model:
+  data_streams:
+    _target_: "trax.models.data_streams"
+    data_dir: null
+    dataset_name: "addition"
+  sequence_copy_inputs:
+    _target_: "trax.models.sequence_copy_inputs"
+    vocab_size: 13
+    batch_size: 128
+    train_length: 64
+    eval_min_length: 128
+    eval_max_length: 160
+    reverse: false
+    pad_to_multiple: 32
+  Adafactor:
+    _target_: "trax.models.Adafactor"
+    weight_decay_rate: 0.0
+  LSHSelfAttention:
+    _target_: "trax.layers.LSHSelfAttention"
+    attention_dropout: 0.0
+    chunk_len: 16
+    n_chunks_after: 0
+    n_chunks_before: 1
+    n_hashes: 2
+    n_parallel_heads: 1
+    max_length_for_buckets: 1024
+  MixedLSHSelfAttention:
+    _target_: "trax.layers.MixedLSHSelfAttention"
+    _partial_: true
+    attention_dropout: 0.2
+    chunk_len: 32
+    n_buckets: null
+    n_chunks_after: 0
+    n_chunks_before: 1
+    n_hashes: 2
+    n_parallel_heads: 1
+    predict_drop_len: 1024
+    predict_mem_len: 1024
+    std_length: null
+    max_length_for_buckets: 1024
+  encoder:
+    MixedLSHSelfAttention:
+      _target_: "trax.layers.MixedLSHSelfAttention"
+      _partial_: true
+      n_chunks_after: 1
+    PureLSHSelfAttentionWrapper:
+      _target_: "trax.layers.PureLSHSelfAttentionWrapper"
+      pure_lsh_implementation: "${model.encoder.MixedLSHSelfAttention}"
+  PureLSHSelfAttentionWrapper:
+    _target_: "trax.layers.PureLSHSelfAttentionWrapper"
+    pure_lsh_implementation: "${model.MixedLSHSelfAttention}"
+    weights_format: "sparse"
+    num_weights: 2
+  ReformerLM:
+    _target_: "trax.models.ReformerLM"
+    d_model: 256
+    d_ff: 512
+    dropout: 0.2
+    max_len: 2048
+    n_heads: 4
+    n_layers: 4
+    ff_use_sru: 1
+    attention_type: "${model.CausalAttention}"
+    vocab_size: 13
+    pos_type: "fixed-base"
+  ConfigurableTransformerLM:
+    _target_: "trax.models.ConfigurableTransformerLM"
+    _partial_: true
+    d_model: 256
+    d_ff: 512
+    dropout: 0.2
+    max_len: 2048
+    n_heads: 4
+    n_layers: 4
+    ff_use_sru: 1
+    attention_type: "${model.CausalAttention}"
+    vocab_size: 13
+    pos_type: null
+    pos_start_from_zero_prob: 0.05
+    pos_max_offset_to_add: 300
+  ConfigurableTerraformer:
+    _target_: "trax.models.ConfigurableTerraformer"
+    d_model: 256
+    d_ff: 512
+    dropout: 0.3
+    max_len: 2048
+    n_heads: 4
+    n_encoder_layers: 12
+    n_decoder_layers: 4
+    ff_use_sru: 1
+    encoder_attention_type: "${model.Attention}"
+    encoder_decoder_attention_type: "${model.CausalAttention}"
+    input_vocab_size: 13
+    pos_type: null
+    pos_start_from_zero_prob: 0.95
+    pos_max_offset_to_add: 300
+  CausalAttention:
+    _target_: "trax.layers.CausalAttention"
+    _partial_: true
+  Attention:
+    _target_: "trax.layers.Attention"
+    _partial_: true

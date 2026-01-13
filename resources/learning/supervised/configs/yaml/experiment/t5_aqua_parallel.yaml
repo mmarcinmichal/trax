@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "t5_aqua_parallel"
+  -
+    model: "t5_aqua_parallel"
+  -
+    optim: "t5_aqua_parallel"
+  -
+    schedule: "t5_aqua_parallel"
+  -
+    train: "t5_aqua_parallel"
+  -
+    ckpt: "t5_aqua_parallel"
+  - "_self_"

@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "reformer_pc_enpl"
+  -
+    model: "reformer_pc_enpl"
+  -
+    optim: "reformer_pc_enpl"
+  -
+    schedule: "reformer_pc_enpl"
+  -
+    train: "reformer_pc_enpl"
+  -
+    ckpt: "reformer_pc_enpl"
+  - "_self_"

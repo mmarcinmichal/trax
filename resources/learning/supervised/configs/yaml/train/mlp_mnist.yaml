@@ -1,0 +1,8 @@
+train:
+  train:
+    optimizer: "${optim.Adam}"
+    eval_frequency: 200
+    eval_steps: 10
+    model: "${model.MLP}"
+    steps: 2000
+    lr_schedule_fn: "${schedule.constant}"

@@ -1,0 +1,6 @@
+model:
+  Resnet50:
+    _target_: "trax.models.Resnet50"
+    _partial_: true
+    d_hidden: 64
+    n_output_classes: 1001

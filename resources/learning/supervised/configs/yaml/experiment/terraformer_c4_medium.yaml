@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "terraformer_c4_medium"
+  -
+    model: "terraformer_c4_medium"
+  -
+    optim: "terraformer_c4_medium"
+  -
+    schedule: "terraformer_c4_medium"
+  -
+    train: "terraformer_c4_medium"
+  -
+    ckpt: "terraformer_c4_medium"
+  - "_self_"

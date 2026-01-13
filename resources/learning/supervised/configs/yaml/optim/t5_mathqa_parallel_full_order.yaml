@@ -1,0 +1,4 @@
+optim:
+  Adafactor:
+    _target_: "trax.optimizers.Adafactor"
+    _partial_: true

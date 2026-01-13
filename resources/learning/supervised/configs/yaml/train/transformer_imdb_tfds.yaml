@@ -1,0 +1,6 @@
+train:
+  train:
+    eval_frequency: 100
+    eval_steps: 10
+    model: "${model.TransformerEncoder}"
+    steps: 10000

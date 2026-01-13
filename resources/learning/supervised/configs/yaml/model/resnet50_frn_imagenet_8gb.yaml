@@ -1,0 +1,15 @@
+model:
+  FilterResponseNorm:
+    _target_: "trax.layers.FilterResponseNorm"
+    _partial_: true
+    learn_epsilon: false
+  Resnet50:
+    _target_: "trax.models.Resnet50"
+    _partial_: true
+    d_hidden: 64
+    n_output_classes: 1001
+    norm: "${model.FilterResponseNorm}"
+    non_linearity: "${model.ThresholdedLinearUnit}"
+  ThresholdedLinearUnit:
+    _target_: "trax.layers.ThresholdedLinearUnit"
+    _partial_: true

@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "rse_addition"
+  -
+    model: "rse_addition"
+  -
+    optim: "rse_addition"
+  -
+    schedule: "rse_addition"
+  -
+    train: "rse_addition"
+  -
+    ckpt: "rse_addition"
+  - "_self_"

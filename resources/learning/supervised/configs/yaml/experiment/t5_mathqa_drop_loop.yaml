@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "t5_mathqa_drop_loop"
+  -
+    model: "t5_mathqa_drop_loop"
+  -
+    optim: "t5_mathqa_drop_loop"
+  -
+    schedule: "t5_mathqa_drop_loop"
+  -
+    train: "t5_mathqa_drop_loop"
+  -
+    ckpt: "t5_mathqa_drop_loop"
+  - "_self_"

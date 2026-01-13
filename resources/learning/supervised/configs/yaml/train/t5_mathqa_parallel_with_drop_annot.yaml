@@ -1,0 +1,68 @@
+train:
+  eval_basic_task:
+    EvaluationTask:
+      _target_: "trax.learning.trainer.EvaluationTask"
+      labeled_data: "${data.eval_basic_task.make_additional_stream}"
+      metrics:
+        - "${train.WeightedCategoryAccuracy}"
+        - "${train.SequenceAccuracy}"
+      metric_names:
+        - "Single instruction accuracy"
+        - "Single instruction sequence accuracy"
+  eval_correct_answer_task:
+    EvaluationTask:
+      _target_: "trax.learning.trainer.EvaluationTask"
+      labeled_data: "${data.eval_correct_answer_task.make_additional_stream}"
+      metrics:
+        - "${train.WeightedCategoryAccuracy}"
+        - "${train.SequenceAccuracy}"
+      metric_names:
+        - "Correct answer accuracy"
+        - "Correct answer sequence accuracy"
+  eval_full_inference:
+    EvaluationTask:
+      _target_: "trax.learning.trainer.EvaluationTask"
+      labeled_data: "${data.eval_full_inference.make_additional_stream}"
+      metrics:
+        - "${train.WeightedCategoryAccuracy}"
+        - "${train.SequenceAccuracy}"
+      metric_names:
+        - "Full program accuracy"
+        - "Full program sequence accuracy"
+  eval_drop_task:
+    EvaluationTask:
+      _target_: "trax.learning.trainer.EvaluationTask"
+      labeled_data: "${data.eval_drop_task.make_additional_stream}"
+      metrics:
+        - "${train.WeightedCategoryAccuracy}"
+        - "${train.SequenceAccuracy}"
+      metric_names:
+        - "Correct drop accuracy"
+        - "Correct drop sequence accuracy"
+  eval_drop_annot_task:
+    EvaluationTask:
+      _target_: "trax.learning.trainer.EvaluationTask"
+      labeled_data: "${data.eval_drop_annot_task.make_additional_stream}"
+      metrics:
+        - "${train.WeightedCategoryAccuracy}"
+        - "${train.SequenceAccuracy}"
+      metric_names:
+        - "Correct drop annotated accuracy"
+        - "Correct drop annotated sequence accuracy"
+  WeightedCategoryAccuracy:
+    _target_: "trax.layers.WeightedCategoryAccuracy"
+  SequenceAccuracy:
+    _target_: "trax.layers.SequenceAccuracy"
+  train:
+    optimizer: "${optim.Adafactor}"
+    eval_frequency: 20
+    eval_steps: 10
+    inputs: "${data.make_inputs}"
+    model: "${model.ConfigurableTransformer}"
+    steps: 200000
+    additional_eval_tasks:
+      - "${train.eval_basic_task.EvaluationTask}"
+      - "${train.eval_correct_answer_task.EvaluationTask}"
+      - "${train.eval_full_inference.EvaluationTask}"
+      - "${train.eval_drop_task.EvaluationTask}"
+      - "${train.eval_drop_annot_task.EvaluationTask}"

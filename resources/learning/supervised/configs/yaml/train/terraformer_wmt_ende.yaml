@@ -1,0 +1,7 @@
+train:
+  train:
+    eval_frequency: 1000
+    eval_steps: 10
+    model: "${model.ConfigurableTerraformer}"
+    optimizer: "${optim.Adam}"
+    steps: 1000000

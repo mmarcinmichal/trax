@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "reformer_imagenet64_testing"
+  -
+    model: "reformer_imagenet64_testing"
+  -
+    optim: "reformer_imagenet64_testing"
+  -
+    schedule: "reformer_imagenet64_testing"
+  -
+    train: "reformer_imagenet64_testing"
+  -
+    ckpt: "reformer_imagenet64_testing"
+  - "_self_"

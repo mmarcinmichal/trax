@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "mlp_mnist"
+  -
+    model: "mlp_mnist"
+  -
+    optim: "mlp_mnist"
+  -
+    schedule: "mlp_mnist"
+  -
+    train: "mlp_mnist"
+  -
+    ckpt: "mlp_mnist"
+  - "_self_"

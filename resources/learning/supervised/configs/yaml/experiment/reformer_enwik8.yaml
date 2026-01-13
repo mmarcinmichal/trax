@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "reformer_enwik8"
+  -
+    model: "reformer_enwik8"
+  -
+    optim: "reformer_enwik8"
+  -
+    schedule: "reformer_enwik8"
+  -
+    train: "reformer_enwik8"
+  -
+    ckpt: "reformer_enwik8"
+  - "_self_"

@@ -1,7 +1,17 @@
 data:
-  Batch:
-    batch_size: 4
+  make_inputs:
+    _target_: "trax.data.make_inputs"
+    _partial_: true
+    train_stream: "${data.T5GlueTrainStream}"
+    eval_stream: "${data.T5GlueEvalStream}"
+  T5GlueTrainStream:
+    _target_: "trax.data.T5GlueTrainStream"
+    benchmark: "mnli"
+  T5GlueEvalStream:
+    _target_: "trax.data.T5GlueEvalStream"
+    benchmark: "mnli"
   PadToLength:
+    _target_: "trax.data.PadToLength"
     len_map:
       0: 512
       1: 512
@@ -10,57 +20,12 @@ data:
       0: 0
       1: 0
       2: 0
-  T5GlueEvalStream:
-    benchmark: "mnli"
-  T5GlueEvalTasks:
-    benchmark_list:
-      - "mnli_e2"
-  T5GlueTrainStream:
-    benchmark: "mnli"
   TruncateToLength:
+    _target_: "trax.data.TruncateToLength"
     len_map:
-      0:
-        - 256
-      1:
-        - 256
-      2:
-        - 256
-  c4_bare_preprocess_fn:
-    sequence_length:
-      inputs: 512
-      targets: 512
-  data_streams:
-    bare_preprocess_fn: "@trax.data.c4_bare_preprocess_fn"
-    data_dir: null
-    dataset_name: "c4/en:2.3.0"
-    input_name: "inputs"
-    target_name: "targets"
-  denoise:
-    inputs_fn: "@preprocessors.noise_span_to_unique_sentinel"
-    noise_density: 0.15
-    noise_mask_fn: "@preprocessors.random_spans_noise_mask"
-    targets_fn: "@preprocessors.nonnoise_span_to_unique_sentinel"
-  make_inputs:
-    eval_stream: "@data.T5GlueEvalStream()"
-    train_stream: "@data.T5GlueTrainStream()"
-  random_spans_helper:
-    extra_tokens_per_span_inputs: 1
-    extra_tokens_per_span_targets: 1
-    inputs_length: 512
-    mean_noise_span_length: 3.0
-    noise_density: 0.15
-  reduce_concat_tokens:
-    batch_size: 128
-    feature_key: "targets"
-  select_random_chunk:
-    feature_key: "targets"
-    max_length: 512
-  split_tokens:
-    feature_key: "targets"
-    max_tokens_per_segment: "@preprocessors.random_spans_tokens_length()"
-    min_tokens_per_segment: null
-  unsupervised:
-    preprocessors:
-      - "@preprocessors.select_random_chunk"
-      - "@preprocessors.split_tokens"
-      - "@preprocessors.denoise"
+      0: "(256,)"
+      1: "(256,)"
+      2: "(256,)"
+  Batch:
+    _target_: "trax.data.Batch"
+    batch_size: 4

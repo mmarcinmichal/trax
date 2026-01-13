@@ -1,0 +1,7 @@
+train:
+  train:
+    eval_frequency: 200
+    eval_steps: 2
+    model: "${model.TransformerLM}"
+    optimizer: "${optim.Adafactor}"
+    steps: 20000

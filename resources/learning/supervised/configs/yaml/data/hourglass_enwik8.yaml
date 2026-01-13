@@ -1,14 +1,13 @@
 data:
   batcher:
-    buckets:
-      -
-        - 2049
-      -
-        - 8
-    data_streams: "@data.data_streams"
-    id_to_mask: 0
+    _target_: "trax.data.batcher"
+    data_streams: "${data.data_streams}"
     max_eval_length: 2049
+    buckets: "([2049], [8])"
+    id_to_mask: 0
   data_streams:
+    _target_: "trax.data.data_streams"
+    _partial_: true
     data_dir: null
     dataset_name: "t2t_enwik8_l2k"
     input_name: "targets"

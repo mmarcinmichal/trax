@@ -1,0 +1,7 @@
+model:
+  WideResnet:
+    _target_: "trax.models.WideResnet"
+    _partial_: true
+    widen_factor: 10
+    n_blocks: 4
+    n_output_classes: 10

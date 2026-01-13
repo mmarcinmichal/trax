@@ -28,6 +28,20 @@ flags.DEFINE_multi_string(
     "config_file", None, "Configuration file with parameters (.gin)."
 )
 flags.DEFINE_multi_string("config", None, "Configuration parameters (gin string).")
+flags.DEFINE_bool(
+    "use_hydra", False, "Whether to use Hydra YAML configs instead of gin."
+)
+flags.DEFINE_string(
+    "hydra_config_dir",
+    None,
+    "Path to Hydra config directory (defaults to resources/learning/supervised/configs/yaml).",
+)
+flags.DEFINE_string(
+    "hydra_config_name", "config", "Hydra config name to compose."
+)
+flags.DEFINE_multi_string(
+    "hydra_overrides", None, "Overrides to apply when composing Hydra configs."
+)
 
 # TPU Flags
 flags.DEFINE_bool("use_tpu", False, "Whether we're running on TPU.")

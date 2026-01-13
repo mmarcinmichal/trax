@@ -1,0 +1,19 @@
+model:
+  HourglassLM:
+    _target_: "trax.models.HourglassLM"
+    _partial_: true
+    d_model: 512
+    d_ff: 2048
+    vanilla_layers: "(1, 1)"
+    hierarchy: "8@3"
+    dropout: 0.0
+    n_heads: 8
+    vocab_size: 256
+    attention_downsampling_fn: "${model.LinearPooling}"
+    attention_upsampling_fn: "${model.LinearUpsampling}"
+  LinearPooling:
+    _target_: "trax.layers.LinearPooling"
+    _partial_: true
+  LinearUpsampling:
+    _target_: "trax.layers.LinearUpsampling"
+    _partial_: true

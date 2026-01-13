@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "t5_drop"
+  -
+    model: "t5_drop"
+  -
+    optim: "t5_drop"
+  -
+    schedule: "t5_drop"
+  -
+    train: "t5_drop"
+  -
+    ckpt: "t5_drop"
+  - "_self_"

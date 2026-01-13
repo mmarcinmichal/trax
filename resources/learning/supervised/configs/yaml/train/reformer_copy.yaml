@@ -1,0 +1,8 @@
+train:
+  train:
+    inputs: "${data.sequence_copy_inputs}"
+    eval_frequency: 100
+    eval_steps: 10
+    optimizer: "${optim.Adam}"
+    steps: 100000
+    model: "${model.ReformerLM}"

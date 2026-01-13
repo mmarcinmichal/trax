@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "reformer_wmt_ende_big"
+  -
+    model: "reformer_wmt_ende_big"
+  -
+    optim: "reformer_wmt_ende_big"
+  -
+    schedule: "reformer_wmt_ende_big"
+  -
+    train: "reformer_wmt_ende_big"
+  -
+    ckpt: "reformer_wmt_ende_big"
+  - "_self_"

@@ -1,12 +1,20 @@
 data:
   batcher:
+    _target_: "trax.data.batcher"
+    data_streams: "${data.data_streams}"
     batch_size_per_device: 32
-    data_streams: "@data.data_streams"
     eval_batch_size: 64
-    id_to_mask: 0
     max_eval_length: 512
+    id_to_mask: 0
   data_streams:
+    _target_: "trax.data.data_streams"
+    _partial_: true
     data_dir: null
     dataset_name: "t2t_languagemodel_lm1b32k"
     input_name: "targets"
-    preprocess_fn: "@data.lm1b_preprocess"
+    preprocess_fn: "${data.lm1b_preprocess}"
+  lm1b_preprocess:
+    _target_: "trax.data.lm1b_preprocess"
+    _partial_: true
+    max_target_length: 512
+    max_eval_target_length: 512

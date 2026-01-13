@@ -1,10 +1,16 @@
 data:
   batcher:
+    _target_: "trax.data.batcher"
+    data_streams: "${data.data_streams}"
     batch_size_per_device: 1
-    data_streams: "@data_streams"
     eval_batch_size: 8
     max_eval_length: 12288
   data_streams:
+    _target_: "trax.data.data_streams"
+    _partial_: true
     data_dir: null
     dataset_name: "cifar10"
-    preprocess_fn: "@cifar10_augmentation_flatten_preprocess"
+    preprocess_fn: "${data.cifar10_augmentation_flatten_preprocess}"
+  cifar10_augmentation_flatten_preprocess:
+    _target_: "trax.data.cifar10_augmentation_flatten_preprocess"
+    _partial_: true

@@ -1,10 +1,7 @@
 train:
-  eval_frequency: 20
-  eval_steps: 10
-  inputs: "@data.make_inputs"
-  loss_fn: "@trax.layers.L2Loss()"
-  metrics:
-    loss: "@trax.layers.L2Loss()"
-  model: "@trax.models.BERT"
-  optimizer: "@trax.optimizers.Adam"
-  steps: 200000
+  L2Loss:
+    _target_: "trax.layers.L2Loss"
+  train:
+    loss_fn: "${train.L2Loss}"
+    metrics:
+      loss: "${train.L2Loss}"

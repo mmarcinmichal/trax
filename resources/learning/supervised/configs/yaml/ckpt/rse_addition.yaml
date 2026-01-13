@@ -1,0 +1,3 @@
+ckpt:
+  ckpt:
+    checkpoint_highest: "sequence_accuracy"

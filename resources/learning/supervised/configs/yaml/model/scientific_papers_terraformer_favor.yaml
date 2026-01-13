@@ -1,0 +1,30 @@
+model:
+  ConfigurableTerraformer:
+    _target_: "trax.models.ConfigurableTerraformer"
+    _partial_: true
+    d_model: 1024
+    d_ff: 4096
+    dropout: 0.2
+    ff_activation: "${model.Relu}"
+    ff_dropout: 0.1
+    ff_chunk_size: 0
+    max_len: 16384
+    n_heads: 8
+    n_encoder_layers: 8
+    n_decoder_layers: 8
+    input_vocab_size: 32000
+    d_attention_key: 128
+    d_attention_value: 128
+    encoder_attention_type: "${model.Favor}"
+    encoder_decoder_attention_type: "${model.CausalFavor}"
+    pos_type: "fixed-base"
+    pos_d_axial_embs: "(512, 512)"
+  Relu:
+    _target_: "trax.layers.Relu"
+    _partial_: true
+  Favor:
+    _target_: "trax.layers.Favor"
+    _partial_: true
+  CausalFavor:
+    _target_: "trax.layers.CausalFavor"
+    _partial_: true

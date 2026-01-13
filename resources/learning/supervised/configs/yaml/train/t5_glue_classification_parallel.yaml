@@ -1,0 +1,20 @@
+train:
+  T5GlueEvalTasks:
+    _target_: "trax.data.T5GlueEvalTasks"
+    benchmark_list:
+      - "cola"
+      - "sst2"
+      - "mrpc"
+      - "qqp"
+      - "mnli"
+      - "qnli"
+      - "rte"
+      - "wnli"
+  train:
+    optimizer: "${optim.Adafactor}"
+    eval_frequency: 500
+    eval_steps: 10
+    inputs: "${data.make_inputs}"
+    model: "${model.ConfigurableTransformer}"
+    steps: 1000000
+    additional_eval_tasks: "${train.T5GlueEvalTasks}"

@@ -1,0 +1,4 @@
+ckpt:
+  ckpt:
+    checkpoint_highest: "neg_log_perplexity"
+    checkpoint_lowest: "loss"

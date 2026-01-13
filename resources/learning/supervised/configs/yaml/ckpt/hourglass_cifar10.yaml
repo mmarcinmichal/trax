@@ -1,3 +1,4 @@
 ckpt:
-  checkpoints_at:
-    - 100000
+  ckpt:
+    checkpoints_at:
+      - 100000

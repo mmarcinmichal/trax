@@ -1,0 +1,3 @@
+train:
+  train:
+    inputs: "${data.make_inputs}"

@@ -1,0 +1,8 @@
+train:
+  train:
+    inputs: "${data.addition_inputs}"
+    eval_frequency: 1000
+    eval_steps: 50
+    optimizer: "${optim.Adam}"
+    steps: 300000
+    model: "${model.ConfigurableTransformerLM}"

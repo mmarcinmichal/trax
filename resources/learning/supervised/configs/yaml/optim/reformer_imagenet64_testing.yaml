@@ -1,0 +1,8 @@
+optim:
+  Adam:
+    _target_: "trax.optimizers.Adam"
+    _partial_: true
+    weight_decay_rate: 0.0
+    b1: 0.9
+    b2: 0.98
+    eps: 1e-09

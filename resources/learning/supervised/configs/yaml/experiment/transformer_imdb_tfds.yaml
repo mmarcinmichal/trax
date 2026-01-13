@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "transformer_imdb_tfds"
+  -
+    model: "transformer_imdb_tfds"
+  -
+    optim: "transformer_imdb_tfds"
+  -
+    schedule: "transformer_imdb_tfds"
+  -
+    train: "transformer_imdb_tfds"
+  -
+    ckpt: "transformer_imdb_tfds"
+  - "_self_"

@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "wide_resnet_cifar10_8gb"
+  -
+    model: "wide_resnet_cifar10_8gb"
+  -
+    optim: "wide_resnet_cifar10_8gb"
+  -
+    schedule: "wide_resnet_cifar10_8gb"
+  -
+    train: "wide_resnet_cifar10_8gb"
+  -
+    ckpt: "wide_resnet_cifar10_8gb"
+  - "_self_"

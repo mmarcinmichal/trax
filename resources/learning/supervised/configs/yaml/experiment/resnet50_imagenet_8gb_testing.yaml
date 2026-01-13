@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "resnet50_imagenet_8gb_testing"
+  -
+    model: "resnet50_imagenet_8gb_testing"
+  -
+    optim: "resnet50_imagenet_8gb_testing"
+  -
+    schedule: "resnet50_imagenet_8gb_testing"
+  -
+    train: "resnet50_imagenet_8gb_testing"
+  -
+    ckpt: "resnet50_imagenet_8gb_testing"
+  - "_self_"

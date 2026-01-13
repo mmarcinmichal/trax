@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "lstm_seq2seq_wmt_ende"
+  -
+    model: "lstm_seq2seq_wmt_ende"
+  -
+    optim: "lstm_seq2seq_wmt_ende"
+  -
+    schedule: "lstm_seq2seq_wmt_ende"
+  -
+    train: "lstm_seq2seq_wmt_ende"
+  -
+    ckpt: "lstm_seq2seq_wmt_ende"
+  - "_self_"

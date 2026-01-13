@@ -1,0 +1,54 @@
+train:
+  EvaluationTask:
+    _target_: "trax.learning.trainer.EvaluationTask"
+    export_prefix: "len128"
+  eval_len256_task:
+    EvaluationTask:
+      _target_: "trax.learning.trainer.EvaluationTask"
+      labeled_data: "${data.eval_len256.addition_input_stream}"
+      metrics:
+        - "${train.WeightedCategoryCrossEntropy}"
+        - "${train.WeightedCategoryAccuracy}"
+        - "${train.MaskedSequenceAccuracy}"
+        -
+          _target_: "trax.layers.Serial"
+          _args_:
+            - "${train.WeightedCategoryCrossEntropy}"
+            -
+              _target_: "trax.layers.Negate"
+        -
+          _target_: "trax.layers.Serial"
+          _args_:
+            -
+              _target_: "trax.layers.Drop"
+            -
+              _target_: "trax.layers.Drop"
+            -
+              _target_: "trax.layers.Sum"
+      metric_names:
+        - "loss"
+        - "accuracy"
+        - "sequence_accuracy"
+        - "neg_log_perplexity"
+        - "weights_per_batch_per_core"
+      n_eval_batches: 50
+      export_prefix: "len256"
+  WeightedCategoryCrossEntropy:
+    _target_: "trax.layers.WeightedCategoryCrossEntropy"
+    label_smoothing: 0.01
+  WeightedCategoryAccuracy:
+    _target_: "trax.layers.WeightedCategoryAccuracy"
+  MaskedSequenceAccuracy:
+    _target_: "trax.layers.MaskedSequenceAccuracy"
+  Serial:
+    _target_: "trax.layers.Serial"
+  train:
+    inputs: "${data.addition_inputs}"
+    eval_frequency: 1000
+    eval_steps: 50
+    optimizer: "${optim.Adam}"
+    loss_fn: "${train.WeightedCategoryCrossEntropy}"
+    steps: 100000
+    model: "${model.ResidualShuffleExchange}"
+    additional_eval_tasks:
+      - "${train.eval_len256_task.EvaluationTask}"

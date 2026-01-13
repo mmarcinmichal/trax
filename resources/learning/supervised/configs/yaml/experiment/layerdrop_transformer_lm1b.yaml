@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "layerdrop_transformer_lm1b"
+  -
+    model: "layerdrop_transformer_lm1b"
+  -
+    optim: "layerdrop_transformer_lm1b"
+  -
+    schedule: "layerdrop_transformer_lm1b"
+  -
+    train: "layerdrop_transformer_lm1b"
+  -
+    ckpt: "layerdrop_transformer_lm1b"
+  - "_self_"

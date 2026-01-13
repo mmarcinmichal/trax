@@ -1,0 +1,12 @@
+model:
+  Transformer:
+    _target_: "trax.models.Transformer"
+    _partial_: true
+    d_model: 512
+    d_ff: 2048
+    dropout: 0.1
+    max_len: 2048
+    n_heads: 8
+    n_encoder_layers: 6
+    n_decoder_layers: 6
+    input_vocab_size: 33300

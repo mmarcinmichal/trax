@@ -91,6 +91,7 @@ from trax.data.debugger import data_pipeline as debug_data_pipeline
 from trax.fastmath import numpy as jnp
 from trax.utils import shapes
 
+logging.set_verbosity(logging.INFO)
 
 def Serial(*fns):  # pylint: disable=invalid-name
     """Combines generator functions into one that runs them serially."""
@@ -103,7 +104,6 @@ def Serial(*fns):  # pylint: disable=invalid-name
     return composed_fns
 
 
-# TODO(jonni): Rename to Blend/Merge/Mix/Interleave/...?
 def Parallel(  # pylint: disable=invalid-name
     fns=None,
     counters=None,
@@ -316,7 +316,8 @@ def FilterByLength(
 
     assert max_length is not None or min_length is not None
     length_keys = length_keys or [0, 1]
-    length_fn = lambda x: _length_fn(x, length_axis, length_keys)
+    def length_fn(x):
+        return length_fn_(x, length_axis, length_keys)
 
     def filtered(gen):
         for example in gen:
@@ -361,7 +362,6 @@ def TruncateToLength(len_map=None):  # pylint: disable=invalid-name
                             example[key] = np.resize(example[key], max_len)
                 output = tuple(example)
             else:
-                output = None
                 raise ValueError(f"Unknown example type: {example}")
             yield output
 
@@ -440,7 +440,8 @@ def BucketByLength(
     """Returns a function for bucketing inputs, see `bucket_by_length`."""
     length_keys = length_keys or [0, 1]
     # In all cases so far, we use a length function of the following form.
-    length_fn = lambda x: _length_fn(x, length_axis, length_keys)
+    def length_fn(x):
+        return length_fn_(x, length_axis, length_keys)
     return lambda g: bucket_by_length(  # pylint: disable=g-long-lambda
         g, length_fn, boundaries, batch_sizes, strict_pad_on_len
     )
@@ -468,7 +469,7 @@ def MLM(
 
 @gin.configurable(module="trax.data")
 def PrefixLM(input_length=128, output_length=512):  # pylint:disable=invalid-name
-    """Chunks examples so as to make inputs/outputs of specified lenghts."""
+    """Chunks examples to make inputs/outputs of specified lengths."""
 
     def _f(generator):
         for example in generator:
@@ -536,7 +537,6 @@ def ConcatenateToLMInput(pad_to_length=None):  # pylint: disable=invalid-name
                 # Make x into (x, x)
                 output = (example, example)
             else:
-                output = None
                 raise ValueError(f"Unknown input to ConcatenateToLMInput: {example}")
             yield output
 
@@ -651,7 +651,7 @@ def Prefetch(n_prefetch=2):  # pylint: disable=invalid-name
 
     def prefetch(generator):
         in_q, out_q = mp.Queue(), mp.Queue()
-        p = mp.Process(target=_generator_process, args=(generator, in_q, out_q))
+        p = mp.Process(target=generator_process, args=(generator, in_q, out_q))
         for _ in range(n_prefetch):
             in_q.put(None)
         p.start()
@@ -727,6 +727,208 @@ def Log(n_steps_per_example=1, only_shapes=True):  # pylint: disable=invalid-nam
     return log
 
 
+@gin.configurable(module="trax.data")
+def ConvertToUnicode(keys=None):  # pylint: disable=invalid-name
+    """Converts to Unicode UTF-8 elements of an example.
+
+    Useful for when TFDS outputs byte arrays. All the errors of the conversion
+    are ignored.
+
+    Args:
+      keys: tuple/list of example dimensions to convert.
+
+    Returns:
+      Function converting chosen elements of an example to UTF-8.
+    """
+
+    @debug_data_pipeline.debug_pipeline
+    def _convert_to_unicode_str(stream):
+        for example in stream:
+            if isinstance(example, (list, tuple)):
+                new_example = []
+                for i, x in enumerate(example):
+                    if keys is None or i in keys:
+                        new_example.append(to_unicode(x))
+                    else:
+                        new_example.append(x)
+                output = tuple(new_example)
+                yield output
+            elif isinstance(example, dict):
+                new_example = {}
+                for k in example:
+                    if keys is None or k in keys:
+                        new_example[k] = to_unicode(example[k])
+                    else:
+                        new_example[k] = example[k]
+                yield new_example
+            else:
+                output = to_unicode(example)
+                yield output
+
+    return _convert_to_unicode_str
+
+
+@gin.configurable(module="trax.data")
+def ClassificationVector(vocab_size=8192):  # pylint: disable=invalid-name
+    """Returns a function to convert token sequences to one-hot vectors."""
+    return lambda g: classification_vector(g, vocab_size=vocab_size)
+
+
+#
+# Generator based pure functions
+#
+def batch(generator, batch_size):
+    """Batch and pad generator as in tf.data.Dataset.padded_batch."""
+    if batch_size <= 0:
+        raise ValueError(f"Batch size must be positive, but is {batch_size}.")
+    buf = []
+    i = 0
+    for example in generator:
+        buf.append(example)  # Examples are tuples of tensors.
+        if len(buf) == batch_size:
+            # buf is a list of tuples, e.g., [(in1, tgt1), (in2, tgt2), (in3, tgt3)]
+            # batch is a tuple of arrays: ([in1, in2, in3], [tgt1, tgt2, tgt3])
+            try:
+                batched_example = tuple(
+                    pad_to_max_dims([np.asarray(tensor) for tensor in x])
+                    for x in zip(*buf)
+                )
+            except ValueError as e:
+                for j in range(len(buf)):
+                    logging.error(
+                        "Batch[%d][%d] input shape: %r output shape: %r",
+                        i,
+                        j,
+                        buf[j][0].shape,
+                        buf[j][1].shape,
+                    )
+                for j in range(len(buf)):
+                    logging.error("Batch[%d][%d] input: %r", i, j, buf[j][0])
+                    logging.error("Batch[%d][%d] output: %r", i, j, buf[j][1])
+                raise e
+            i += 1
+            yield batched_example
+            buf = []
+
+
+def bucket_by_length(
+    generator, length_fn, boundaries, batch_sizes, strict_pad_on_len=False
+):
+    """Bucket by length, like tf.data.experimental.bucket_by_sequence_length.
+
+    This function draws examples from the provided `generator` and puts an
+    example into a bucket depending on `l = length_fn(example)`. Which bucket
+    is used depends on between which `boundaries` is l. When a bucket reaches
+    its batch size, as specified by `batch_sizes`, generates a batch of
+    padded examples from this bucket.
+
+    Args:
+      generator: python generator to draw data from.
+      length_fn: a function taking the example and returning the length.
+      boundaries: a list of bucket boundaries.
+      batch_sizes: a list of batch sizes.
+      strict_pad_on_len: bool; if true we pad on the length dimension, dim[0]
+        strictly as a multiple of boundary.
+
+    Yields:
+      An input batch, which comes from one of the buckets.
+    """
+    buckets = [[] for _ in range(len(batch_sizes))]
+    boundaries = boundaries + [math.inf]  # Max boundary is unlimited.
+    for example in generator:
+        length = length_fn(example)
+        # `bucket_idx` will always be < len(boundaries), since boundaries is right
+        # padded by `math.inf`.
+        bucket_idx = min([i for i, b in enumerate(boundaries) if length <= b])
+        buckets[bucket_idx].append(example)
+        if len(buckets[bucket_idx]) == batch_sizes[bucket_idx]:
+            batched = zip(*buckets[bucket_idx])
+            boundary = boundaries[bucket_idx]
+            boundary = None if boundary == math.inf else boundary
+            padded_batch = tuple(
+                pad_to_max_dims(x, boundary, strict_pad_on_len) for x in batched
+            )
+            yield padded_batch
+            buckets[bucket_idx] = []
+
+
+@debug_data_pipeline.debug_pipeline
+def add_loss_weights(generator, id_to_mask=None):
+    """Add weights to inputs without weights and masks by id if requested.
+
+    The generator stream is augmented in the following way:
+
+    - If the stream consists of pairs `(inputs, targets)`, a loss mask is added
+      that is creates as a tensor of ones of the same shape as targets.
+    - If `id_to_mask` is not `None`, and the stream (after the previous point)
+      has triples `(inputs, targets, weights)`, the weights are multiplied by a
+      0/1 mask that is 0 iff targets is equal to `id_to_mask` (1 otherwise).
+
+    Args:
+      generator: Stream of tuples.
+      id_to_mask: If not None, int-valued id that represents padding, as opposed
+          to true target IDs.
+
+    Yields:
+      Examples from the augmented stream.
+    """
+    for example in generator:
+        if len(example) > 3 or len(example) < 2:
+            assert id_to_mask is None, "Cannot automatically mask this stream."
+            yield example
+        else:
+            if len(example) == 2:
+                weights = np.ones_like(example[1]).astype(np.float32)
+            else:
+                weights = example[2].astype(np.float32)
+            mask = 1.0 - np.equal(example[1], id_to_mask).astype(np.float32)
+            weights *= mask
+            output = (example[0], example[1], weights)
+            yield output
+
+
+data_counters = {}  # Used by {load,save}_data_counters and count_and_skip
+
+
+def count_and_skip(generator, name):
+    """Count the number of items in the generator, skip already counted ones.
+
+    This function counts the number of processed examples and puts it into
+    the global variable `counters`. This variable can be saved and restored,
+    and if restored, this function will skip examples until the restored counter
+    is reached. When the data generator is deterministic, this allows to restore
+    the data reading process from a checkpoint.
+
+    Args:
+      generator: generator for examples in the dataset.
+      name: string, a unique id that we use to count the examples
+
+    Yields:
+      The examples from generator but first skip the number specified in the
+      global variable counters[name] and next increment this variable every
+      time a new example appears.
+    """
+    global data_counters
+    local_counter = 0
+    for example in generator:
+        local_counter += 1
+        # This check must be inside the loop due to asynchronous initializations.
+        if name not in data_counters:
+            data_counters[name] = 0
+        if local_counter > data_counters[name]:
+            data_counters[name] += 1
+            yield example
+
+
+def generator_process(generator, in_q, out_q):
+    for example in generator:
+        in_q.get()
+        out_q.put(example)
+
+
+#
+# Helper functions
+#
 def shuffle(samples, queue_size):
     """Shuffles a sample stream using a random-out next-in queue of given size.
 
@@ -767,40 +969,6 @@ def shuffle(samples, queue_size):
     np.random.shuffle(queue)
     for sample in queue:
         yield sample
-
-
-def batch(generator, batch_size):
-    """Batch and pad generator as in tf.data.Dataset.padded_batch."""
-    if batch_size <= 0:
-        raise ValueError(f"Batch size must be positive, but is {batch_size}.")
-    buf = []
-    i = 0
-    for example in generator:
-        buf.append(example)  # Examples are tuples of tensors.
-        if len(buf) == batch_size:
-            # buf is a list of tuples, e.g., [(in1, tgt1), (in2, tgt2), (in3, tgt3)]
-            # batch is a tuple of arrays: ([in1, in2, in3], [tgt1, tgt2, tgt3])
-            try:
-                batched_example = tuple(
-                    pad_to_max_dims([np.asarray(tensor) for tensor in x])
-                    for x in zip(*buf)
-                )
-            except ValueError as e:
-                for j in range(len(buf)):
-                    logging.error(
-                        "Batch[%d][%d] input shape: %r output shape: %r",
-                        i,
-                        j,
-                        buf[j][0].shape,
-                        buf[j][1].shape,
-                    )
-                for j in range(len(buf)):
-                    logging.error("Batch[%d][%d] input: %r", i, j, buf[j][0])
-                    logging.error("Batch[%d][%d] output: %r", i, j, buf[j][1])
-                raise e
-            i += 1
-            yield batched_example
-            buf = []
 
 
 def pad_tf_tensors(tensors, boundary=None, strict_pad_on_len=False):
@@ -1154,82 +1322,6 @@ def pad_to_max_dims(tensors, boundary=None, strict_pad_on_len=False):
         )
 
 
-def bucket_by_length(
-    generator, length_fn, boundaries, batch_sizes, strict_pad_on_len=False
-):
-    """Bucket by length, like tf.data.experimental.bucket_by_sequence_length.
-
-    This function draws examples from the provided `generator` and puts an
-    example into a bucket depending on `l = length_fn(example)`. Which bucket
-    is used depends on between which `boundaries` is l. When a bucket reaches
-    its batch size, as specified by `batch_sizes`, generates a batch of
-    padded examples from this bucket.
-
-    Args:
-      generator: python generator to draw data from.
-      length_fn: a function taking the example and returning the length.
-      boundaries: a list of bucket boundaries.
-      batch_sizes: a list of batch sizes.
-      strict_pad_on_len: bool; if true we pad on the length dimension, dim[0]
-        strictly as a multiple of boundary.
-
-    Yields:
-      An input batch, which comes from one of the buckets.
-    """
-    buckets = [[] for _ in range(len(batch_sizes))]
-    boundaries = boundaries + [math.inf]  # Max boundary is unlimited.
-    for example in generator:
-        length = length_fn(example)
-        # `bucket_idx` will always be < len(boundaries), since boundaries is right
-        # padded by `math.inf`.
-        bucket_idx = min([i for i, b in enumerate(boundaries) if length <= b])
-        buckets[bucket_idx].append(example)
-        if len(buckets[bucket_idx]) == batch_sizes[bucket_idx]:
-            batched = zip(*buckets[bucket_idx])
-            boundary = boundaries[bucket_idx]
-            boundary = None if boundary == math.inf else boundary
-            padded_batch = tuple(
-                pad_to_max_dims(x, boundary, strict_pad_on_len) for x in batched
-            )
-            yield padded_batch
-            buckets[bucket_idx] = []
-
-
-@debug_data_pipeline.debug_pipeline
-def add_loss_weights(generator, id_to_mask=None):
-    """Add weights to inputs without weights and masks by id if requested.
-
-    The generator stream is augmented in the following way:
-
-    - If the stream consists of pairs `(inputs, targets)`, a loss mask is added
-      that is creates as a tensor of ones of the same shape as targets.
-    - If `id_to_mask` is not `None`, and the stream (after the previous point)
-      has triples `(inputs, targets, weights)`, the weights are multiplied by a
-      0/1 mask that is 0 iff targets is equal to `id_to_mask` (1 otherwise).
-
-    Args:
-      generator: Stream of tuples.
-      id_to_mask: If not None, int-valued id that represents padding, as opposed
-          to true target IDs.
-
-    Yields:
-      Examples from the augmented stream.
-    """
-    for example in generator:
-        if len(example) > 3 or len(example) < 2:
-            assert id_to_mask is None, "Cannot automatically mask this stream."
-            yield example
-        else:
-            if len(example) == 2:
-                weights = np.ones_like(example[1]).astype(np.float32)
-            else:
-                weights = example[2].astype(np.float32)
-            mask = 1.0 - np.equal(example[1], id_to_mask).astype(np.float32)
-            weights *= mask
-            output = (example[0], example[1], weights)
-            yield output
-
-
 @gin.configurable(module="trax.data")
 def generate_random_noise_mask(
     noise_density=0.15, mean_noise_span_length=3.0, seed1=None, seed2=None
@@ -1361,7 +1453,49 @@ def addition_input_stream(
     return batches(max_length, min_length)
 
 
-# This is a straightforward translation of T5's random_spans_noise_mask.
+@gin.configurable(module="trax.data")
+def make_additional_stream(stream=gin.REQUIRED):
+    """Create a stream mostly for use in gin configs for additional tasks."""
+    return Serial(stream)()
+
+
+@gin.configurable(module="trax.data")
+def make_parallel_stream(streams=gin.REQUIRED, counters=None):
+    """Create a parallel stream for use in gin configs for additional tasks."""
+    return Parallel(streams, counters=counters)()
+
+
+@debug_data_pipeline.debug_pipeline
+def classification_vector(generator, vocab_size=8192):
+    """Convert token sequences to classification vectors.
+
+    The generator stream is transformed by replacing token sequences with
+    vectors where each position contains the token ID if that token appears
+    in the text, otherwise 0.
+
+    Args:
+      generator: Stream of tuples where the first element is a token sequence.
+      vocab_size: Size of the vocabulary (defines length of the vector).
+
+    Yields:
+      Examples with token sequences converted to classification vectors.
+    """
+    for example in generator:
+        tokens = example[0]
+
+        # Create a zero vector of vocab_size length
+        class_vector = np.zeros(vocab_size, dtype=np.int32)
+
+        # Set token ID at positions corresponding to tokens
+        for token_id in tokens:
+            if 0 <= token_id < vocab_size:  # Ensure token_id is in valid range
+                class_vector[token_id] = token_id
+
+        # Create output tuple with the classification vector replacing tokens
+        output = (class_vector,) + example[1:]
+        yield output
+
+
 def random_spans_noise_mask(
     length,
     noise_density=0.15,
@@ -1371,6 +1505,7 @@ def random_spans_noise_mask(
     example=None,
 ):
     """Computes span corruption masks given input parameters."""
+    """ This is a straightforward translation of T5's random_spans_noise_mask."""
     # Passing this in case if we want to use for debugging/logging
     del example
     orig_length = length
@@ -1417,6 +1552,11 @@ def random_spans_noise_mask(
     is_noise = np.equal(span_num % 2, 1)
     return is_noise[:orig_length]
 
+def to_unicode(s):
+    # Errors of the casting are ignored (e.g. sequences not allowed by UTF-8),
+    # in order not to stay with incomplete examples (with empty values).
+    return str(s, encoding="utf-8", errors="ignore")
+
 
 def lower_endian_to_number(l, base):
     """Helper function: convert a list of digits in the given training to a number."""
@@ -1436,39 +1576,6 @@ def random_number_lower_endian(length, base):
         return [np.random.randint(base)]
     prefix = [np.random.randint(base) for _ in range(length - 1)]
     return prefix + [np.random.randint(base - 1) + 1]  # Last digit is not 0.
-
-
-data_counters = {}  # Used by {load,save}_data_counters and count_and_skip
-
-
-def count_and_skip(generator, name):
-    """Count the number of items in the generator, skip already counted ones.
-
-    This function counts the number of processed examples and puts it into
-    the global variable `counters`. This variable can be saved and restored,
-    and if restored, this function will skip examples until the restored counter
-    is reached. When the data generator is deterministic, this allows to restore
-    the data reading process from a checkpoint.
-
-    Args:
-      generator: generator for examples in the dataset.
-      name: string, a unique id that we use to count the examples
-
-    Yields:
-      The examples from generator but first skip the number specified in the
-      global variable counters[name] and next increment this variable every
-      time a new example appears.
-    """
-    global data_counters
-    local_counter = 0
-    for example in generator:
-        local_counter += 1
-        # This check must be inside the loop due to asynchronous initializations.
-        if name not in data_counters:
-            data_counters[name] = 0
-        if local_counter > data_counters[name]:
-            data_counters[name] += 1
-            yield example
 
 
 def save_data_counters(output_dir, host_id=None):
@@ -1493,13 +1600,7 @@ def load_data_counters(output_dir, host_id=None):
     data_counters = obj
 
 
-def _generator_process(generator, in_q, out_q):
-    for example in generator:
-        in_q.get()
-        out_q.put(example)
-
-
-def _buckets_for_length(
+def buckets_for_length(
     bucket_length, batch_size, max_eval_length, n_devices, training
 ):
     """Creates heuristically a set of bucket boundaries and sizes.
@@ -1562,20 +1663,19 @@ def _buckets_for_length(
     return (bucket_boundaries, bucket_batch_sizes)
 
 
-def _length_fn(example, length_axis, length_keys):
+def length_fn_(example, length_axis, length_keys):
     """Length is the maximum of shape on length_axis over length_keys."""
     if isinstance(example, (list, tuple)):
         return max([example[i].shape[length_axis] for i in length_keys])
     return example.shape[length_axis]
 
 
-# ########################################################################
+#
 # Inputs class used by Trainer, and associated helper functions.
 #
 # Note: In the planned move from Trainer to Loop, the Inputs class should be
 # deprecated and finally removed.
-
-
+#
 class Inputs:
     """Inputs bundle.
 
@@ -1671,9 +1771,6 @@ class Inputs:
         return self._example_shape, self._example_dtype
 
 
-# Batching and Inputs creation helpers.
-
-
 @gin.configurable(module="trax.data")
 def make_inputs(train_stream=gin.REQUIRED, eval_stream=None):
     """Create Inputs from two streams; mostly for use in gin configs."""
@@ -1683,18 +1780,6 @@ def make_inputs(train_stream=gin.REQUIRED, eval_stream=None):
         eval_stream = Serial(eval_stream)()
     eval_stream_fn = None if eval_stream is None else lambda _: eval_stream
     return Inputs(train_stream=lambda _: train_stream, eval_stream=eval_stream_fn)
-
-
-@gin.configurable(module="trax.data")
-def make_additional_stream(stream=gin.REQUIRED):
-    """Create a stream mostly for use in gin configs for additional tasks."""
-    return Serial(stream)()
-
-
-@gin.configurable(module="trax.data")
-def make_parallel_stream(streams=gin.REQUIRED, counters=None):
-    """Create a parallel stream for use in gin configs for additional tasks."""
-    return Parallel(streams, counters=counters)()
 
 
 @gin.configurable(module="trax.data")
@@ -1721,54 +1806,12 @@ def batcher(
     else:
         train_stream, eval_stream = data_streams
     # pylint: disable=g-long-lambda
-    batch_train_stream = lambda n_devices: batch_fn(
-        train_stream(),
-        True,
-        n_devices,
-        variable_shapes,
-        batch_size_per_device,
-        batch_size,
-        eval_batch_size,
-        bucket_length,
-        buckets,
-        buckets_include_inputs_in_length,
-        batch_shuffle_size,
-        max_eval_length,
-        id_to_mask,
-        strict_pad_on_len,
-    )
-    batch_eval_stream = lambda n_devices: batch_fn(
-        eval_stream(),
-        False,
-        n_devices,
-        variable_shapes,
-        batch_size_per_device,
-        batch_size,
-        eval_batch_size,
-        bucket_length,
-        buckets,
-        buckets_include_inputs_in_length,
-        batch_shuffle_size,
-        max_eval_length,
-        id_to_mask,
-        strict_pad_on_len,
-    )
-    batch_train_eval_stream = lambda n_devices: batch_fn(
-        train_stream(),
-        False,
-        n_devices,
-        variable_shapes,
-        batch_size_per_device,
-        batch_size,
-        eval_batch_size,
-        bucket_length,
-        buckets,
-        buckets_include_inputs_in_length,
-        batch_shuffle_size,
-        max_eval_length,
-        id_to_mask,
-        strict_pad_on_len,
-    )
+    def batch_train_stream(n_devices):
+        return batch_fn(train_stream(), True, n_devices, variable_shapes, batch_size_per_device, batch_size, eval_batch_size, bucket_length, buckets, buckets_include_inputs_in_length, batch_shuffle_size, max_eval_length, id_to_mask, strict_pad_on_len)
+    def batch_eval_stream(n_devices):
+        return batch_fn(eval_stream(), False, n_devices, variable_shapes, batch_size_per_device, batch_size, eval_batch_size, bucket_length, buckets, buckets_include_inputs_in_length, batch_shuffle_size, max_eval_length, id_to_mask, strict_pad_on_len)
+    def batch_train_eval_stream(n_devices):
+        return batch_fn(train_stream(), False, n_devices, variable_shapes, batch_size_per_device, batch_size, eval_batch_size, bucket_length, buckets, buckets_include_inputs_in_length, batch_shuffle_size, max_eval_length, id_to_mask, strict_pad_on_len)
     # pylint: enable=g-long-lambda
     return Inputs(
         train_stream=batch_train_stream,
@@ -1811,7 +1854,7 @@ def batch_fn(
             variable_shapes,
         )
         if variable_shapes:
-            buckets = _buckets_for_length(
+            buckets = buckets_for_length(
                 bucket_length, cur_batch_size, max_eval_length, n_devices, training
             )
 
@@ -1839,9 +1882,6 @@ def batch_fn(
     if training and batch_shuffle_size is not None:
         dataset = shuffle(dataset, batch_shuffle_size)
     return add_loss_weights(dataset, id_to_mask)
-
-
-# Example input functions.
 
 
 @gin.configurable(module="trax.data")
@@ -2068,87 +2108,3 @@ def _pad_to_multiple_of(x, y, axis):
     pad_widths = [(0, 0)] * len(x.shape)
     pad_widths[axis] = (0, int(pad_len - x.shape[axis]))
     return np.pad(x, pad_widths, mode="constant", constant_values=x.dtype.type(0))
-
-
-@gin.configurable(module="trax.data")
-def ConvertToUnicode(keys=None):  # pylint: disable=invalid-name
-    """Converts to Unicode UTF-8 elements of an example.
-
-    Useful for when TFDS outputs byte arrays. All of the errors of the conversion
-    are ignored.
-
-    Args:
-      keys: tuple/list of example dimensions to convert.
-
-    Returns:
-      Function converting chosen elements of an example to UTF-8.
-    """
-
-    @debug_data_pipeline.debug_pipeline
-    def _convert_to_unicode_str(stream):
-        for example in stream:
-            if isinstance(example, (list, tuple)):
-                new_example = []
-                for i, x in enumerate(example):
-                    if keys is None or i in keys:
-                        new_example.append(_to_unicode(x))
-                    else:
-                        new_example.append(x)
-                output = tuple(new_example)
-                yield output
-            elif isinstance(example, dict):
-                new_example = {}
-                for k in example:
-                    if keys is None or k in keys:
-                        new_example[k] = _to_unicode(example[k])
-                    else:
-                        new_example[k] = example[k]
-                yield new_example
-            else:
-                output = _to_unicode(example)
-                yield output
-
-    return _convert_to_unicode_str
-
-
-def _to_unicode(s):
-    # Errors of the casting are ignored (e.g. sequences not allowed by UTF-8),
-    # in order not to stay with incomplete examples (with empty values).
-    return str(s, encoding="utf-8", errors="ignore")
-
-
-@gin.configurable(module="trax.data")
-def ClassificationVector(vocab_size=8192):  # pylint: disable=invalid-name
-    """Returns a function to convert token sequences to one-hot vectors."""
-    return lambda g: classification_vector(g, vocab_size=vocab_size)
-
-
-@debug_data_pipeline.debug_pipeline
-def classification_vector(generator, vocab_size=8192):
-    """Convert token sequences to classification vectors.
-
-    The generator stream is transformed by replacing token sequences with
-    vectors where each position contains the token ID if that token appears
-    in the text, otherwise 0.
-
-    Args:
-      generator: Stream of tuples where the first element is a token sequence.
-      vocab_size: Size of the vocabulary (defines length of the vector).
-
-    Yields:
-      Examples with token sequences converted to classification vectors.
-    """
-    for example in generator:
-        tokens = example[0]
-
-        # Create a zero vector of vocab_size length
-        class_vector = np.zeros(vocab_size, dtype=np.int32)
-
-        # Set token ID at positions corresponding to tokens
-        for token_id in tokens:
-            if 0 <= token_id < vocab_size:  # Ensure token_id is in valid range
-                class_vector[token_id] = token_id
-
-        # Create output tuple with the classification vector replacing tokens
-        output = (class_vector,) + example[1:]
-        yield output

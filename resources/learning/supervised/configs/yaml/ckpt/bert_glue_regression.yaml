@@ -1,2 +1,2 @@
 ckpt:
-  checkpoint_highest: "accuracy"
+  ckpt:

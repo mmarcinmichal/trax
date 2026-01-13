@@ -1,0 +1,4 @@
+train:
+  train:
+    inputs: "${data.simple_sequence_copy_inputs}"
+    model: "${model.ConfigurableTerraformer}"

@@ -1,0 +1,4 @@
+optim:
+  Adam:
+    _target_: "trax.optimizers.Adam"
+    _partial_: true

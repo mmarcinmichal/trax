@@ -1,56 +1,45 @@
 data:
-  Batch:
-    batch_size: 16
-  PadToLength:
-    len_map:
-      0: 512
-      1: 512
-      2: 512
-    pad_value:
-      0: 0
-      1: 0
-      2: 0
-  Tokenize:
-    keys:
-      - 0
-      - 1
-    vocab_dir: "trax/data/testdata/"
-    vocab_file: "bert_uncased_vocab.txt"
-    vocab_type: "bert-lowercase"
-  TruncateToLength:
-    len_map:
-      0:
-        - 512
-      1:
-        - 512
-      2:
-        - 512
-  eval:
-    data:
-      BertNextSentencePredictionInputs:
-        dataset_name: "wiki40b"
-      TFDS:
-        train: false
   make_inputs:
-    eval_stream:
-      - "@eval/data.BertNextSentencePredictionInputs()"
-      - "@data.Tokenize()"
-      - "@data.CreateBertInputs()"
-      - "@data.Shuffle()"
-      - "@data.PadToLength()"
-      - "@data.TruncateToLength()"
-      - "@data.Batch()"
+    _target_: "trax.data.make_inputs"
     train_stream:
-      - "@train/data.BertNextSentencePredictionInputs()"
-      - "@data.Tokenize()"
-      - "@data.CreateBertInputs()"
-      - "@data.Shuffle()"
-      - "@data.PadToLength()"
-      - "@data.TruncateToLength()"
-      - "@data.Batch()"
+      - "${data.train.BertNextSentencePredictionInputs}"
+      - "${data.Tokenize}"
+      - "${data.CreateBertInputs}"
+      - "${data.Shuffle}"
+      - "${data.PadToLength}"
+      - "${data.TruncateToLength}"
+      - "${data.Batch}"
+    eval_stream:
+      - "${data.eval.BertNextSentencePredictionInputs}"
+      - "${data.Tokenize}"
+      - "${data.CreateBertInputs}"
+      - "${data.Shuffle}"
+      - "${data.PadToLength}"
+      - "${data.TruncateToLength}"
+      - "${data.Batch}"
   train:
-    data:
-      BertNextSentencePredictionInputs:
-        dataset_name: "wiki40b"
-      TFDS:
-        train: true
+    BertNextSentencePredictionInputs:
+      _target_: "trax.data.BertNextSentencePredictionInputs"
+      dataset_name: "wiki40b"
+    TFDS:
+      _target_: "trax.data.TFDS"
+      train: true
+  eval:
+    BertNextSentencePredictionInputs:
+      _target_: "trax.data.BertNextSentencePredictionInputs"
+      dataset_name: "wiki40b"
+    TFDS:
+      _target_: "trax.data.TFDS"
+      train: false
+  Tokenize:
+    _target_: "trax.data.Tokenize"
+  CreateBertInputs:
+    _target_: "trax.data.CreateBertInputs"
+  Shuffle:
+    _target_: "trax.data.Shuffle"
+  PadToLength:
+    _target_: "trax.data.PadToLength"
+  TruncateToLength:
+    _target_: "trax.data.TruncateToLength"
+  Batch:
+    _target_: "trax.data.Batch"

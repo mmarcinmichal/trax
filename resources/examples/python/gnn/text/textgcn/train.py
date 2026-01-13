@@ -4,6 +4,7 @@ import numpy as np
 
 from absl import logging
 from jax.experimental import sparse as jsparse
+from learning.training.engines import jax as trainers
 
 import trax.fastmath as fastmath
 
@@ -17,7 +18,6 @@ from trax import layers as tl
 from trax import optimizers
 from trax.fastmath import numpy as jnp
 from trax.models.gnn import GraphConvSparse
-from learning.training.engines import jax as trainers
 
 logging.set_verbosity(logging.INFO)
 

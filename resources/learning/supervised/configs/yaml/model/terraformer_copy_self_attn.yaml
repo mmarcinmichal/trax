@@ -1,0 +1,10 @@
+model:
+  ConfigurableTerraformer:
+    _target_: "trax.models.ConfigurableTerraformer"
+    encoder_attention_type: "${model.SelfAttention}"
+    encoder_decoder_attention_type: "${model.SelfAttention}"
+  SelfAttention:
+    _target_: "trax.layers.SelfAttention"
+    _partial_: true
+    predict_mem_len: "max_len"
+    predict_drop_len: "max_len"

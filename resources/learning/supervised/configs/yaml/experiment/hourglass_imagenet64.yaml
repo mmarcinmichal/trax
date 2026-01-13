@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "hourglass_imagenet64"
+  -
+    model: "hourglass_imagenet64"
+  -
+    optim: "hourglass_imagenet64"
+  -
+    schedule: "hourglass_imagenet64"
+  -
+    train: "hourglass_imagenet64"
+  -
+    ckpt: "hourglass_imagenet64"
+  - "_self_"

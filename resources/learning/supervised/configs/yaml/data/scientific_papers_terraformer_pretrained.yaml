@@ -1,82 +1,86 @@
 data:
-  AddLossWeights:
-    id_to_mask: 0
+  make_inputs:
+    _target_: "trax.data.make_inputs"
+    _partial_: true
+    train_stream:
+      - "${data.train.TFDS}"
+      - "${data.ConvertToUnicode}"
+      - "${data.Tokenize}"
+      - "${data.FilterEmptyExamples}"
+      - "${data.TruncateToLength}"
+      - "${data.AppendValue}"
+      - "${data.PadToLength}"
+      - "${data.AddLossWeights}"
+      - "${data.Batch}"
+    eval_stream:
+      - "${data.eval.TFDS}"
+      - "${data.ConvertToUnicode}"
+      - "${data.Tokenize}"
+      - "${data.FilterEmptyExamples}"
+      - "${data.TruncateToLength}"
+      - "${data.AppendValue}"
+      - "${data.PadToLength}"
+      - "${data.AddLossWeights}"
+      - "${data.Batch}"
+  train:
+    TFDS:
+      _target_: "trax.data.TFDS"
+      dataset_name: "scientific_papers/arxiv:1.1.1"
+      keys: "('article', 'abstract')"
+      train: true
+  ConvertToUnicode:
+    _target_: "trax.data.ConvertToUnicode"
+    keys:
+      - 0
+      - 1
+  Tokenize:
+    _target_: "trax.data.Tokenize"
+    vocab_file: "gs://t5-data/vocabs/cc_all.32000/sentencepiece.model"
+    keys:
+      - 0
+      - 1
+    vocab_type: "sentencepiece"
+  TruncateToLength:
+    _target_: "trax.data.TruncateToLength"
+    len_map:
+      0: "(15359, )"
+      1: "(1023, )"
   AppendValue:
+    _target_: "trax.data.AppendValue"
     val:
       0:
         - 0
       1:
         - 1
-  Batch:
-    batch_size: 4
-  ConvertToUnicode:
-    keys:
-      - 0
-      - 1
   PadToLength:
+    _target_: "trax.data.PadToLength"
     len_map:
       0: 15360
       1: 1024
     pad_value:
       0: 0
       1: 0
-  Tokenize:
-    keys:
-      - 0
-      - 1
-    vocab_file: "gs://t5-data/vocabs/cc_all.32000/sentencepiece.model"
-    vocab_type: "sentencepiece"
-  TruncateToLength:
-    len_map:
-      0:
-        - 15359
-      1:
-        - 1023
-  batcher:
-    buckets:
-      -
-        - 16384
-      -
-        - 32
-        - 1
-    data_streams: "@data.data_streams"
+  Batch:
+    _target_: "trax.data.Batch"
+    batch_size: 4
+  AddLossWeights:
+    _target_: "trax.data.AddLossWeights"
     id_to_mask: 0
-    max_eval_length: 16384
-    strict_pad_on_len: false
   eval:
-    data:
-      TFDS:
-        dataset_name: "scientific_papers/arxiv:1.1.1"
-        keys:
-          - "article"
-          - "abstract"
-        train: false
-  make_inputs:
-    eval_stream:
-      - "@eval/data.TFDS()"
-      - "@data.ConvertToUnicode()"
-      - "@data.Tokenize()"
-      - "@data.FilterEmptyExamples()"
-      - "@data.TruncateToLength()"
-      - "@data.AppendValue()"
-      - "@data.PadToLength()"
-      - "@data.AddLossWeights()"
-      - "@data.Batch()"
-    train_stream:
-      - "@train/data.TFDS()"
-      - "@data.ConvertToUnicode()"
-      - "@data.Tokenize()"
-      - "@data.FilterEmptyExamples()"
-      - "@data.TruncateToLength()"
-      - "@data.AppendValue()"
-      - "@data.PadToLength()"
-      - "@data.AddLossWeights()"
-      - "@data.Batch()"
-  train:
-    data:
-      TFDS:
-        dataset_name: "scientific_papers/arxiv:1.1.1"
-        keys:
-          - "article"
-          - "abstract"
-        train: true
+    TFDS:
+      _target_: "trax.data.TFDS"
+      dataset_name: "scientific_papers/arxiv:1.1.1"
+      keys: "('article', 'abstract')"
+      train: false
+  batcher:
+    _target_: "trax.data.batcher"
+    data_streams: "${data.data_streams}"
+    max_eval_length: 16384
+    buckets: "([16384], [32, 1])"
+    strict_pad_on_len: false
+    id_to_mask: 0
+  FilterEmptyExamples:
+    _target_: "trax.data.FilterEmptyExamples"
+  data_streams:
+    _target_: "trax.data.data_streams"
+    _partial_: true

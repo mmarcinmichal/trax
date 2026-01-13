@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "terraformer_copy"
+  -
+    model: "terraformer_copy"
+  -
+    optim: "terraformer_copy"
+  -
+    schedule: "terraformer_copy"
+  -
+    train: "terraformer_copy"
+  -
+    ckpt: "terraformer_copy"
+  - "_self_"

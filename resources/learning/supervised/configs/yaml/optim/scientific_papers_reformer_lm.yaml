@@ -1,0 +1,11 @@
+optim:
+  Adafactor:
+    _target_: "trax.optimizers.Adafactor"
+    _partial_: true
+    beta1: 0.0
+    decay_rate: 0.95
+    clipping_threshold: 1.0
+    epsilon1: 1e-25
+    epsilon2: 0.001
+    factored: true
+    multiply_by_parameter_scale: true

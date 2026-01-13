@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "sparse_c4_pretrain_16gb_adafactor"
+  -
+    model: "sparse_c4_pretrain_16gb_adafactor"
+  -
+    optim: "sparse_c4_pretrain_16gb_adafactor"
+  -
+    schedule: "sparse_c4_pretrain_16gb_adafactor"
+  -
+    train: "sparse_c4_pretrain_16gb_adafactor"
+  -
+    ckpt: "sparse_c4_pretrain_16gb_adafactor"
+  - "_self_"

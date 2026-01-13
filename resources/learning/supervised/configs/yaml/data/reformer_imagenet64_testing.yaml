@@ -1,16 +1,14 @@
 data:
   batcher:
+    _target_: "trax.data.batcher"
+    data_streams: "${data.data_streams}"
     batch_size_per_device: 4
-    buckets:
-      -
-        - 12288
-      -
-        - 4
-        - 4
-    data_streams: "@data.data_streams"
     eval_batch_size: 4
+    buckets: "([12288,], [4, 4])"
     max_eval_length: 12288
   data_streams:
+    _target_: "trax.data.data_streams"
+    _partial_: true
     data_dir: null
     dataset_name: "t2t_image_imagenet64_gen_flat_rev"
     input_name: "targets"

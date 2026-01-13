@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "rezero_wmt_ende_16gb_adafactor_testing"
+  -
+    model: "rezero_wmt_ende_16gb_adafactor_testing"
+  -
+    optim: "rezero_wmt_ende_16gb_adafactor_testing"
+  -
+    schedule: "rezero_wmt_ende_16gb_adafactor_testing"
+  -
+    train: "rezero_wmt_ende_16gb_adafactor_testing"
+  -
+    ckpt: "rezero_wmt_ende_16gb_adafactor_testing"
+  - "_self_"

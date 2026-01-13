@@ -1,7 +1,8 @@
 train:
-  eval_frequency: 20
-  eval_steps: 10
-  inputs: "@data.make_inputs"
-  model: "@trax.models.BERT"
-  optimizer: "@trax.optimizers.Adam"
-  steps: 200000
+  train:
+    optimizer: "${optim.Adam}"
+    eval_frequency: 20
+    eval_steps: 10
+    inputs: "${data.make_inputs}"
+    model: "${model.BERT}"
+    steps: 200000

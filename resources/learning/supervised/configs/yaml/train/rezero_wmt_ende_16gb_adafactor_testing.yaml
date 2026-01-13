@@ -1,0 +1,7 @@
+train:
+  train:
+    eval_frequency: 1000
+    eval_steps: 10
+    model: "${model.ReZeroTransformer}"
+    steps: 100000
+    optimizer: "${optim.Adafactor}"

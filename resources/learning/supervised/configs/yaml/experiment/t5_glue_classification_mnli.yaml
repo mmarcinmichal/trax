@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "t5_glue_classification_mnli"
+  -
+    model: "t5_glue_classification_mnli"
+  -
+    optim: "t5_glue_classification_mnli"
+  -
+    schedule: "t5_glue_classification_mnli"
+  -
+    train: "t5_glue_classification_mnli"
+  -
+    ckpt: "t5_glue_classification_mnli"
+  - "_self_"

@@ -1,0 +1,24 @@
+train:
+  eval_additional_task:
+    EvaluationTask:
+      _target_: "trax.learning.trainer.EvaluationTask"
+      labeled_data: "${data.make_additional_stream}"
+      metrics:
+        - "${train.WeightedCategoryAccuracy}"
+        - "${train.SequenceAccuracy}"
+      metric_names:
+        - "Full program accuracy"
+        - "Full program sequence accuracy"
+  WeightedCategoryAccuracy:
+    _target_: "trax.layers.WeightedCategoryAccuracy"
+  SequenceAccuracy:
+    _target_: "trax.layers.SequenceAccuracy"
+  train:
+    optimizer: "${optim.Adafactor}"
+    eval_frequency: 20
+    eval_steps: 10
+    inputs: "${data.make_inputs}"
+    model: "${model.ConfigurableTransformer}"
+    steps: 200000
+    additional_eval_tasks:
+      - "${train.eval_additional_task.EvaluationTask}"
