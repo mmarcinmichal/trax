@@ -1,6 +1,10 @@
+import warnings
+
 import gin
 import numpy as np
 import tensorflow as tf
+
+from trax.data.preprocessing import inputs as serial_inputs
 
 
 # TODO(lukaszkaiser): find a single more abstract way of text pre-processing.
@@ -9,6 +13,21 @@ def wmt_preprocess(
     dataset, training, max_length=-1, max_eval_length=-1, tokenizer=None
 ):
     """Preprocessing for LM1B: filter out targets exceeding maximum length."""
+    if not isinstance(dataset, tf.data.Dataset):
+        return serial_inputs.WMTPreprocess(
+            tokenizer=tokenizer,
+            max_length=max_length,
+            max_eval_length=max_eval_length,
+            training=training,
+        )(dataset)
+
+    warnings.warn(
+        "wmt_preprocess with tf.data.Dataset inputs is deprecated; "
+        "use trax.data.preprocessing.inputs.WMTPreprocess (Serial pipeline) "
+        "instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
     def _ensure_inputs_targets(features, targets):
         """Normalize feature dict to always have 'inputs' and 'targets' keys."""
@@ -94,9 +113,33 @@ def wmt_preprocess(
 
 
 @gin.configurable(module="trax.data", denylist=["dataset", "training"])
-def wmt_concat_preprocess(dataset, training, max_length=-1, max_eval_length=-1):
+def wmt_concat_preprocess(
+    dataset,
+    training,
+    max_length=-1,
+    max_eval_length=-1,
+    tokenizer=None,
+):
     """Preprocessing for WMT: filter exceeding maximum length and concatenate."""
-    dataset = wmt_preprocess(dataset, training, max_length, max_eval_length)
+    if not isinstance(dataset, tf.data.Dataset):
+        return serial_inputs.WMTConcatPreprocess(
+            tokenizer=tokenizer,
+            max_length=max_length,
+            max_eval_length=max_eval_length,
+            training=training,
+        )(dataset)
+
+    warnings.warn(
+        "wmt_concat_preprocess with tf.data.Dataset inputs is deprecated; "
+        "use trax.data.preprocessing.inputs.WMTConcatPreprocess (Serial pipeline) "
+        "instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
+    dataset = wmt_preprocess(
+        dataset, training, max_length, max_eval_length, tokenizer=tokenizer
+    )
 
     def concat_and_add_mask(features, targets):
         inp = features["inputs"]
