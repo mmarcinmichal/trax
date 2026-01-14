@@ -31,6 +31,7 @@ from tests.data.utils import (  # relative import
 from trax.data.loader.tf import base as ds
 from trax.data.preprocessing import inputs
 from trax.data.preprocessing.inputs import batcher  # noqa: F401
+from trax.data.preprocessing.tf import inputs as tf_inputs
 
 
 class TFDatasetTest(tf.test.TestCase):
@@ -156,7 +157,7 @@ class TFDatasetTest(tf.test.TestCase):
     def test_TFDS_mnli_split_is_eval(self):
         with mock.patch("tensorflow_datasets.load") as tfds_load:
             with mock.patch(
-                "trax.data.loader.tf.base.download_and_prepare",
+                "trax.data.loader.interface.download_and_prepare",
                 lambda _, data_dir: data_dir,
             ):
                 _ = ds.TFDS("glue/mnli", keys=("premise", "hypothesis"), train=False)
@@ -166,7 +167,7 @@ class TFDatasetTest(tf.test.TestCase):
     def test_TFDS_mnli_split_is_alt_eval(self):
         with mock.patch("tensorflow_datasets.load") as tfds_load:
             with mock.patch(
-                "trax.data.loader.tf.base.download_and_prepare",
+                "trax.data.loader.interface.download_and_prepare",
                 lambda _, data_dir: data_dir,
             ):
                 _ = ds.TFDS(
@@ -187,10 +188,10 @@ class TFDatasetTest(tf.test.TestCase):
         self.assertNotIn("inputs", example)
         self.assertNotIn("targets", example)
 
-        proc_dataset = ds.generic_text_dataset_preprocess_fn(
+        proc_dataset = tf_inputs.generic_text_dataset_preprocess_fn(
             dataset,
             spm_path=_spm_path(),
-            text_preprocess_fns=[lambda _ds, training: ds.squad_t5(_ds, None)],
+            text_preprocess_fns=[lambda _ds, training: tf_inputs.squad_t5(_ds, None)],
             copy_pretokenized=True,
             debug_print_examples=True,
             debug_print_examples_rate=1.0,
@@ -208,17 +209,20 @@ class TFDatasetTest(tf.test.TestCase):
         gin.bind_parameter("generic_text_dataset_preprocess_fn.spm_path", _spm_path())
         gin.bind_parameter(
             "generic_text_dataset_preprocess_fn.text_preprocess_fns",
-            [lambda _ds, training: ds.squad_t5(_ds, None)],
+            [lambda _ds, training: tf_inputs.squad_t5(_ds, None)],
         )
 
         # Just make sure this doesn't throw.
         def data_streams():
-            return ds.data_streams(
+            datasets = ds.data_streams(
                 "squad",
                 data_dir=TEST_CORPUS,
+            )
+            return tf_inputs.tf_dataset_streams(
+                datasets=datasets,
                 input_name="inputs",
                 target_name="targets",
-                bare_preprocess_fn=ds.generic_text_dataset_preprocess_fn,
+                bare_preprocess_fn=tf_inputs.generic_text_dataset_preprocess_fn,
                 shuffle_buffer_size=1,
             )
 
@@ -246,13 +250,13 @@ class TFDatasetTest(tf.test.TestCase):
         # {1, 2}, {2, 4}, {3, 6} ... {10, 20}
         dataset = _test_dataset_ints(range(1, 11), range(2, 21, 2))
 
-        ds1 = ds.filter_dataset_on_len(
+        ds1 = tf_inputs.filter_dataset_on_len(
             dataset, True, {"inputs": [4, 8], "targets": [14, 20]}
         )
         # Only {7, 14} and {8, 16} satisfy this.
         self.assertLen(list(ds1.as_numpy_iterator()), 2)
 
-        ds2 = ds.filter_dataset_on_len(
+        ds2 = tf_inputs.filter_dataset_on_len(
             dataset,
             False,
             len_map={"inputs": [4, 8], "targets": [14, 20]},
@@ -261,7 +265,7 @@ class TFDatasetTest(tf.test.TestCase):
         # This is eval and we aren't supposed to filter it.
         self.assertLen(list(ds2.as_numpy_iterator()), 10)
 
-        ds3 = ds.filter_dataset_on_len(
+        ds3 = tf_inputs.filter_dataset_on_len(
             dataset,
             False,
             len_map={"inputs": [4, 8], "targets": [14, 20]},
@@ -272,7 +276,7 @@ class TFDatasetTest(tf.test.TestCase):
 
     def test_truncate_dataset_on_len(self):
         dataset = _test_dataset_ints([5, 6, 7], [8, 9, 10])
-        ds1 = ds.truncate_dataset_on_len(
+        ds1 = tf_inputs.truncate_dataset_on_len(
             dataset, True, len_map={"inputs": 6, "targets": 4}
         )
         expected_ds = _test_dataset_ints([5, 6, 6], [4, 4, 4])
@@ -281,13 +285,13 @@ class TFDatasetTest(tf.test.TestCase):
         assert_dataset(ds1, list(expected_ds.as_numpy_iterator()))
 
         # not Training, shouldn't filter.
-        ds2 = ds.truncate_dataset_on_len(
+        ds2 = tf_inputs.truncate_dataset_on_len(
             dataset, False, len_map={"inputs": 6, "targets": 4}
         )
         assert_dataset(ds2, list(dataset.as_numpy_iterator()))
 
         # not Training, but asked to filter, should filter.
-        ds3 = ds.truncate_dataset_on_len(
+        ds3 = tf_inputs.truncate_dataset_on_len(
             dataset, False, len_map={"inputs": 6, "targets": 4}, truncate_on_eval=True
         )
         assert_dataset(ds3, list(expected_ds.as_numpy_iterator()))
@@ -302,7 +306,7 @@ class TFDatasetTest(tf.test.TestCase):
             """
         )
 
-        prep_rekey = ds.get_t5_preprocessor_by_name()
+        prep_rekey = tf_inputs.get_t5_preprocessor_by_name()
         og_dataset = tf.data.Dataset.from_tensors(
             {"text": "That is good.", "other": "That is bad."}
         )
@@ -312,7 +316,7 @@ class TFDatasetTest(tf.test.TestCase):
 
     def test_pad_dataset_to_length(self):
         dataset = _test_dataset_ints([5, 6, 7], [6, 7, 8])
-        ds1 = ds.pad_dataset_to_length(
+        ds1 = tf_inputs.pad_dataset_to_length(
             dataset, True, len_map={"inputs": 7, "targets": 10}
         )
 
@@ -335,7 +339,7 @@ class TFDatasetTest(tf.test.TestCase):
 
     def test_lm_token_preprocessing(self):
         dataset = _test_dataset_ints([1, 2, 3], [3, 2, 1])
-        ds1 = ds.lm_token_preprocessing(dataset, True)
+        ds1 = tf_inputs.lm_token_preprocessing(dataset, True)
 
         expected_ds = [
             {
@@ -356,6 +360,38 @@ class TFDatasetTest(tf.test.TestCase):
         ]
 
         assert_dataset(ds1, expected_ds)
+
+    def test_data_streams_returns_dataset_streams(self):
+        streams = ds.data_streams("c4/en:2.3.0", data_dir=TEST_CORPUS, download=False)
+        self.assertIsNotNone(streams.train)
+        self.assertIsNotNone(streams.eval)
+        # Some datasets (like C4) are unsupervised and do not expose keys.
+        self.assertIn(streams.supervised_keys, (None, (["inputs"], ["targets"])))
+
+    def test_tf_dataset_streams_seeded_shuffle(self):
+        dataset = tf.data.Dataset.from_tensor_slices(
+            {
+                "inputs": np.arange(5, dtype=np.int64),
+                "targets": np.arange(5, dtype=np.int64),
+            }
+        )
+        datasets = (dataset, dataset, (["inputs"], ["targets"]))
+
+        train_stream1, _ = tf_inputs.tf_dataset_streams(
+            datasets=datasets,
+            shuffle_buffer_size=5,
+            seed=123,
+        )
+        train_stream2, _ = tf_inputs.tf_dataset_streams(
+            datasets=datasets,
+            shuffle_buffer_size=5,
+            seed=123,
+        )
+
+        first1 = next(train_stream1())
+        first2 = next(train_stream2())
+        np.testing.assert_array_equal(first1[0], first2[0])
+        np.testing.assert_array_equal(first1[1], first2[1])
 
 
 if __name__ == "__main__":

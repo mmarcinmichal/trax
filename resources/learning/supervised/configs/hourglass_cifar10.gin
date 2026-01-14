@@ -22,7 +22,8 @@ train_steps = 100000
 
 # Parameters for batcher:
 # ==============================================================================
-batcher.data_streams = @data.data_streams
+batcher.data_streams = @data.tf_dataset_streams
+tf_dataset_streams.datasets = @data.data_streams
 batcher.batch_size_per_device = 1
 batcher.eval_batch_size = 8
 batcher.max_eval_length = 3072  # 32 * 32 * 3
@@ -32,9 +33,9 @@ batcher.variable_shapes = False
 # ==============================================================================
 data_streams.data_dir = None
 data_streams.dataset_name = 'cifar10'
-data_streams.input_name = 'image'
-data_streams.target_name = 'image'
-data_streams.bare_preprocess_fn = \
+tf_dataset_streams.input_name = 'image'
+tf_dataset_streams.target_name = 'image'
+tf_dataset_streams.bare_preprocess_fn = \
     @data.downsampled_imagenet_flatten_bare_preprocess
 
 # Parameters for multifactor: # ================================================

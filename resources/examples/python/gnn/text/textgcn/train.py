@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import jax
+import jax.numpy as jnp
 import numpy as np
 
 from absl import logging
@@ -16,13 +18,19 @@ from resources.examples.python.base import (
 )
 from trax import layers as tl
 from trax import optimizers
-from trax.fastmath import numpy as jnp
 from trax.models.gnn import GraphConvSparse
 
 logging.set_verbosity(logging.INFO)
 
 PROJECT_ROOT = find_project_root(Path(__file__).resolve())
-GRAPH_NPZ = PROJECT_ROOT / "resources" / "data" / "serialized" / "graphs" / "20_newsgroups_bydate.npz"
+GRAPH_NPZ = (
+    PROJECT_ROOT
+    / "resources"
+    / "data"
+    / "serialized"
+    / "graphs"
+    / "20_newsgroups_bydate.npz"
+)
 
 
 def load_graph():
@@ -120,8 +128,12 @@ def main():
 
     num_classes = int(labels_docs.max()) + 1
 
-    logging.info(f"Label Stats: {labels_docs.min()} - {labels_docs.max()} ({len(np.unique(labels_docs))} classes)")
-    logging.info(f"Docs Split: Train {train_mask_docs.sum()}, Val {val_mask_docs.sum()}, Test {test_mask_docs.sum()}")
+    logging.info(
+        f"Label Stats: {labels_docs.min()} - {labels_docs.max()} ({len(np.unique(labels_docs))} classes)"
+    )
+    logging.info(
+        f"Docs Split: Train {train_mask_docs.sum()}, Val {val_mask_docs.sum()}, Test {test_mask_docs.sum()}"
+    )
 
     # Stała macierz A_hat jako CSR w JAX
     adj_csr = build_adj_csr_jax(csr_data, csr_indices, csr_indptr, shape)
@@ -158,7 +170,10 @@ def main():
     eval_model = build_model(num_nodes, num_docs, num_classes, adj_csr, mode="eval")
     initialize_model(eval_model, example_batch)
 
-    base_rng = fastmath.random.get_prng(fastmath.random.randint(1, 200))
+    key = jax.random.PRNGKey(0)
+    base_rng = fastmath.random.get_prng(
+        fastmath.random.randint(key, shape=(), minval=1, maxval=200)
+    )
 
     # full-batch training – cały graf w jednym kroku
     train_gen = full_batch_generator(node_indices, labels_docs, train_mask_docs)
@@ -176,9 +191,15 @@ def main():
         eval_model.weights = model.weights
         eval_model.state = model.state
 
-        train_acc = evaluate_dataset(eval_model, node_indices, labels_docs, train_mask_docs)
-        final_val_acc = evaluate_dataset(eval_model, node_indices, labels_docs, val_mask_docs)
-        test_acc = evaluate_dataset(eval_model, node_indices, labels_docs, test_mask_docs)
+        train_acc = evaluate_dataset(
+            eval_model, node_indices, labels_docs, train_mask_docs
+        )
+        final_val_acc = evaluate_dataset(
+            eval_model, node_indices, labels_docs, val_mask_docs
+        )
+        test_acc = evaluate_dataset(
+            eval_model, node_indices, labels_docs, test_mask_docs
+        )
 
         logging.info("-" * 30)
         logging.info("Results:")

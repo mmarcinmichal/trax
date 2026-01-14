@@ -18,6 +18,7 @@ import trax.layers
 import trax.models
 import trax.optimizers
 import trax.learning.training.trainer
+import trax.data
 
 MAX_EVAL_LENGTH = 1024 # Get back to 65536
 BUCKETS = ([1025], [8, 1])
@@ -48,7 +49,8 @@ LSHSelfAttention.n_hashes = 2
 
 # Parameters for batcher:
 # ==============================================================================
-batcher.data_streams = @data_streams
+batcher.data_streams = @data.tf_dataset_streams
+tf_dataset_streams.datasets = @data.data_streams
 batcher.batch_size_per_device = 8
 batcher.eval_batch_size = 8
 batcher.max_eval_length = %MAX_EVAL_LENGTH
@@ -58,9 +60,9 @@ batcher.buckets =%BUCKETS
 # ==============================================================================
 data_streams.data_dir = None
 data_streams.dataset_name = 'c4'
-data_streams.input_name = 'targets'
-data_streams.target_name = 'text'
-data_streams.preprocess_fn=@c4_preprocess
+tf_dataset_streams.input_name = 'targets'
+tf_dataset_streams.target_name = 'text'
+tf_dataset_streams.preprocess_fn = @c4_preprocess
 
 # Parameters for c4_preprocess:
 # ==============================================================================

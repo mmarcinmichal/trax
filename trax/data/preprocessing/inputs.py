@@ -93,6 +93,9 @@ from trax.utils import shapes
 
 logging.set_verbosity(logging.INFO)
 
+# Re-export TF preprocessing helpers to keep the trax.data namespace stable.
+from trax.data.preprocessing.tf.inputs import *  # pylint: disable=wildcard-import,unused-wildcard-import
+
 def Serial(*fns):  # pylint: disable=invalid-name
     """Combines generator functions into one that runs them serially."""
 

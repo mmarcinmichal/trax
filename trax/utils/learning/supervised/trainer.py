@@ -135,7 +135,12 @@ def _output_dir_or_default_hydra(cfg):
 
     from omegaconf import OmegaConf
 
-    dataset_name = OmegaConf.select(cfg, "data.data_streams.dataset_name") or "random"
+    dataset_name = (
+        OmegaConf.select(cfg, "data.data_streams.dataset_name")
+        or OmegaConf.select(cfg, "data.dataset_loader.dataset_name")
+        or OmegaConf.select(cfg, "dataset.dataset_name")
+        or "random"
+    )
     model_target = OmegaConf.select(cfg, "train.model._target_")
     if not model_target:
         model_target = OmegaConf.select(cfg, "model.model_fn._target_")

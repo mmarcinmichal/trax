@@ -55,7 +55,8 @@ eval/data.FilterByLength.length_keys = [0]
 # ==============================================================================
 data_streams.data_dir = None
 data_streams.dataset_name = 't2t_sentiment_imdb'
-data_streams.input_name = 'targets'
+tf_dataset_streams.datasets = @data.data_streams
+tf_dataset_streams.input_name = 'targets'
 
 # Parameters for warmup_and_rsqrt_decay:
 # ==============================================================================

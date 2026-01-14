@@ -40,7 +40,8 @@ max_length = 2048
 
 # Parameters for batcher:
 # ==============================================================================
-batcher.data_streams = @data.data_streams
+batcher.data_streams = @data.tf_dataset_streams
+tf_dataset_streams.datasets = @data.data_streams
 batcher.batch_size_per_device = 32
 batcher.eval_batch_size = 64
 batcher.max_eval_length = 2048
@@ -50,8 +51,8 @@ batcher.id_to_mask = 0
 # ==============================================================================
 data_streams.data_dir = None
 data_streams.dataset_name = 't2t_languagemodel_lm1b32k'
-data_streams.input_name = 'targets'
-data_streams.preprocess_fn = @trax.data.lm1b_preprocess
+tf_dataset_streams.input_name = 'targets'
+tf_dataset_streams.preprocess_fn = @trax.data.lm1b_preprocess
 
 # Parameters for multifactor:
 # ==============================================================================

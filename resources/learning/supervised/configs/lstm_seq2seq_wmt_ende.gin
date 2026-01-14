@@ -20,7 +20,8 @@ import trax.learning.training.trainer
 
 # Parameters for batcher:
 # ==============================================================================
-batcher.data_streams = @data.data_streams
+batcher.data_streams = @data.tf_dataset_streams
+tf_dataset_streams.datasets = @data.data_streams
 batcher.batch_size_per_device = 64
 batcher.eval_batch_size = 64
 batcher.max_eval_length = 512
@@ -32,7 +33,7 @@ batcher.id_to_mask = 0
 # ==============================================================================
 data_streams.data_dir = None
 data_streams.dataset_name = 't2t_translate_ende_wmt32k'
-data_streams.preprocess_fn = @data.wmt_preprocess
+tf_dataset_streams.preprocess_fn = @data.wmt_preprocess
 
 # Parameters for wmt_preproces:
 # ==============================================================================

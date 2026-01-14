@@ -22,7 +22,7 @@ import tensorflow as tf
 from tests.data.utils import (  # relative import
     TEST_CORPUS,
 )
-from trax.data.loader.tf.base import next_sentence_prediction_tf
+from trax.data.preprocessing.tf.inputs import next_sentence_prediction_tf
 from trax.data.preprocessing.inputs import batcher  # noqa: F401
 from trax.data.preprocessing.tf import bert as inputs_bert
 

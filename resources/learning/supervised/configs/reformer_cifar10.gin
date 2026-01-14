@@ -17,6 +17,7 @@ import trax.data.preprocessing.tf.c4
 import trax.models
 import trax.optimizers
 import trax.learning.training.trainer
+import trax.data
 
 # Parameters that will vary between experiments:
 # ==============================================================================
@@ -26,7 +27,8 @@ n_layers = 9
 
 # Parameters for batcher:
 # ==============================================================================
-batcher.data_streams = @data_streams
+batcher.data_streams = @data.tf_dataset_streams
+tf_dataset_streams.datasets = @data.data_streams
 batcher.batch_size_per_device = 1
 batcher.eval_batch_size = 8
 batcher.max_eval_length = 12288  # 64 * 64 * 3
@@ -35,7 +37,7 @@ batcher.max_eval_length = 12288  # 64 * 64 * 3
 # ==============================================================================
 data_streams.data_dir = None
 data_streams.dataset_name = 'cifar10'
-data_streams.preprocess_fn = @cifar10_augmentation_flatten_preprocess
+tf_dataset_streams.preprocess_fn = @cifar10_augmentation_flatten_preprocess
 
 # Parameters for multifactor:
 # ==============================================================================

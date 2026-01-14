@@ -33,9 +33,10 @@ c4_bare_preprocess_fn.sequence_length = %sequence_length
 # ==============================================================================
 data_streams.data_dir = None
 data_streams.dataset_name = 'c4/en:2.3.0'
-data_streams.input_name = 'inputs'
-data_streams.target_name = 'targets'
-data_streams.bare_preprocess_fn=@trax.data.c4_bare_preprocess_fn
+tf_dataset_streams.datasets = @data.data_streams
+tf_dataset_streams.input_name = 'inputs'
+tf_dataset_streams.target_name = 'targets'
+tf_dataset_streams.bare_preprocess_fn=@trax.data.c4_bare_preprocess_fn
 
 # Parameters for unsupervised:
 # ==============================================================================

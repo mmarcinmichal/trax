@@ -77,7 +77,8 @@ eval/data.TFDS.train = False
 
 # Parameters for batcher:
 # ==============================================================================
-batcher.data_streams = @data.data_streams
+batcher.data_streams = @data.tf_dataset_streams
+tf_dataset_streams.datasets = @data.data_streams
 batcher.max_eval_length = %max_len
 # batcher.buckets = ([16384], [8, 1])   # 2x2s
 batcher.buckets = ([16384], [32, 1])  # 4x4s

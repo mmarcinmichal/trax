@@ -98,7 +98,8 @@ rekey/get_t5_preprocessor_by_name.fn_kwargs = {'key_map': {'inputs': 'article', 
 
 # Parameters for batcher:
 # ==============================================================================
-batcher.data_streams = @data.data_streams
+batcher.data_streams = @data.tf_dataset_streams
+tf_dataset_streams.datasets = @data.data_streams
 batcher.max_eval_length = %max_len
 # batcher.buckets = ([16384], [8, 1])   # 2x2s
 batcher.buckets = ([16384], [32, 1])  # 4x4s
@@ -110,9 +111,9 @@ batcher.id_to_mask = 0
 # ==============================================================================
 data_streams.data_dir = None
 data_streams.dataset_name = 'scientific_papers/arxiv:1.1.1'
-data_streams.bare_preprocess_fn = @data.generic_text_dataset_preprocess_fn
-data_streams.input_name = 'inputs'
-data_streams.target_name = 'targets'
+tf_dataset_streams.bare_preprocess_fn = @data.generic_text_dataset_preprocess_fn
+tf_dataset_streams.input_name = 'inputs'
+tf_dataset_streams.target_name = 'targets'
 
 
 # Parameters for filter_dataset_on_len:

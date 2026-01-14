@@ -29,6 +29,7 @@ from tests.data.utils import (  # relative import
 )
 from trax.data.loader.tf import base as ds
 from trax.data.preprocessing.inputs import batcher  # noqa: F401
+from trax.data.preprocessing.tf import inputs as tf_inputs
 from trax.data.preprocessing.tf.c4 import c4_bare_preprocess_fn, c4_preprocess
 
 
@@ -126,9 +127,13 @@ class TFDatasetC4Test(tf.test.TestCase):
 
         try:
             # Just make sure this doesn't throw.
-            result = ds.data_streams(
-                "c4",
+            datasets = ds.data_streams(
+                "c4/en:2.3.0",
                 data_dir=TEST_CORPUS,
+                download=False,
+            )
+            result = tf_inputs.tf_dataset_streams(
+                datasets=datasets,
                 input_name="targets",
                 target_name="text",
                 preprocess_fn=c4_preprocess,
@@ -186,9 +191,13 @@ class TFDatasetC4Test(tf.test.TestCase):
 
         try:
             # Just make sure this doesn't throw.
-            result = ds.data_streams(
-                "c4",
+            datasets = ds.data_streams(
+                "c4/en:2.3.0",
                 data_dir=TEST_CORPUS,
+                download=False
+            )
+            result = tf_inputs.tf_dataset_streams(
+                datasets=datasets,
                 input_name="inputs",
                 target_name="targets",
                 bare_preprocess_fn=c4_bare_preprocess_fn,

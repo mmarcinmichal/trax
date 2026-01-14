@@ -21,7 +21,7 @@ import gin
 import tensorflow as tf
 import tensorflow_text as tf_text
 
-from trax.data.loader.tf.base import (
+from trax.data.preprocessing.tf.inputs import (
     add_eos_to_output_features,
     pad_dataset_to_length,
     truncate_dataset_on_len,

@@ -20,7 +20,8 @@ import trax.learning.training.trainer
 
 # Parameters for batcher:
 # ==============================================================================
-batcher.data_streams = @data.data_streams
+batcher.data_streams = @data.tf_dataset_streams
+tf_dataset_streams.datasets = @data.data_streams
 batcher.batch_size_per_device = 32
 batcher.bucket_length = 32
 batcher.buckets = None

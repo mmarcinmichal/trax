@@ -20,7 +20,9 @@ import functools
 import gin
 import numpy as np
 
-from trax.data.loader.tf.base import TFDS, next_sentence_prediction_tf
+from trax import fastmath
+from trax.data.loader.interface import DatasetLoader
+from trax.data.preprocessing.tf.inputs import next_sentence_prediction_tf
 
 
 @gin.configurable(module="trax.data")
@@ -32,21 +34,24 @@ def BertNextSentencePredictionInputs(
     shuffle_size=50000,
 ):
     """Defines a stream for the next sentence prediction task."""
-    stream = TFDS(
-        dataset_name,
+    datasets = DatasetLoader(
+        dataset_name=dataset_name,
         data_dir=data_dir,
-        tfds_preprocess_fn=next_sentence_prediction_tf(
-            text_key=text_key,
-            label_sentences=True,
-            buffer_size=shuffle_size,
-        ),
-        keys=["inputs", "targets"],
-        train=train,
-    )
+        require_train_split=train,
+    ).datasets()
+    dataset = datasets.train if train else datasets.eval
+    dataset = next_sentence_prediction_tf(
+        text_key=text_key,
+        label_sentences=True,
+        buffer_size=shuffle_size,
+    )(dataset)
+    dataset = dataset.map(lambda x: (x["inputs"], x["targets"]))
+    dataset = dataset.repeat()
 
     def split_stream(generator=None):
         # split string with 'sentence1:' and 'sentence2:' into two separate strings
-        for inputs, targets in stream(generator):
+        del generator
+        for inputs, targets in fastmath.dataset_as_numpy(dataset):
             # Extract inputs and targets from the dictionary
 
             text_str = str(inputs)[:-1]  # removes last '"' which is always at the end

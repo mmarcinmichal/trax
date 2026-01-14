@@ -10,7 +10,7 @@ import tensorflow_datasets as tfds
 from absl.testing import absltest
 from t5.data import preprocessors as t5_processors
 
-from trax.data.loader.tf import base as ds
+from trax.data.preprocessing.tf import inputs as tf_inputs
 
 pkg_dir, _ = os.path.split(__file__)
 TEST_VOCAB = os.path.normpath(os.path.join(pkg_dir, "../../resources/data/vocabs/test"))
@@ -84,9 +84,9 @@ def _t5_gin_config():
     gin.bind_parameter(
         "unsupervised_preprocessors.preprocessors",
         [
-            ds._PREPROCESSOR_REGISTRY["select_random_chunk_t5"],
-            ds._PREPROCESSOR_REGISTRY["split_tokens_t5"],
-            ds._PREPROCESSOR_REGISTRY["denoise_t5"],
+            tf_inputs._PREPROCESSOR_REGISTRY["select_random_chunk_t5"],
+            tf_inputs._PREPROCESSOR_REGISTRY["split_tokens_t5"],
+            tf_inputs._PREPROCESSOR_REGISTRY["denoise_t5"],
         ],
     )
 
