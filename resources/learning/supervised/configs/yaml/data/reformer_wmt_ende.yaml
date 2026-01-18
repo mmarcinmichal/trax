@@ -1,21 +1,80 @@
 data:
-  batcher:
-    _target_: "trax.data.batcher"
-    data_streams: "${data.data_streams}"
-    batch_size_per_device: 256
-    eval_batch_size: 64
-    max_eval_length: 512
-    bucket_length: 32
-    buckets_include_inputs_in_length: true
-    id_to_mask: 0
-  data_streams:
-    _target_: "trax.data.data_streams"
+  make_inputs:
+    _target_: "trax.data.make_inputs"
     _partial_: true
-    data_dir: null
-    dataset_name: "t2t_wmt14_translate/de-en"
-    preprocess_fn: "${data.wmt_preprocess}"
-  wmt_preprocess:
-    _target_: "trax.data.wmt_preprocess"
+    train_stream:
+      - "${data.train.TFDS}"
+      - "${data.WMTPreprocess}"
+      - "${data.Shuffle}"
+      - "${data.train.BucketByLength}"
+      - "${data.AddLossWeights}"
+    eval_stream:
+      - "${data.eval.TFDS}"
+      - "${data.WMTPreprocess}"
+      - "${data.eval.BucketByLength}"
+      - "${data.AddLossWeights}"
+  train:
+    TFDS:
+      _target_: "trax.data.TFDS"
+      dataset_name: "t2t_wmt14_translate/de-en"
+      data_dir: null
+    BucketByLength:
+      _target_: "trax.data.BucketByLength"
+      boundaries:
+      - 8
+      - 16
+      - 32
+      - 64
+      - 128
+      - 256
+      - 512
+      batch_sizes:
+      - 1024
+      - 512
+      - 256
+      - 128
+      - 64
+      - 32
+      - 16
+      - 1
+      length_keys:
+        - 0
+        - 1
+  eval:
+    TFDS:
+      _target_: "trax.data.TFDS"
+      dataset_name: "t2t_wmt14_translate/de-en"
+      data_dir: null
+      train: false
+    BucketByLength:
+      _target_: "trax.data.BucketByLength"
+      boundaries:
+      - 8
+      - 16
+      - 32
+      - 64
+      - 128
+      - 256
+      - 512
+      batch_sizes:
+      - 256
+      - 128
+      - 64
+      - 32
+      - 16
+      - 8
+      - 4
+      - 1
+      length_keys:
+        - 0
+        - 1
+  WMTPreprocess:
+    _target_: "trax.data.WMTPreprocess"
     _partial_: true
     max_length: 256
     max_eval_length: 512
+  Shuffle:
+    _target_: "trax.data.Shuffle"
+  AddLossWeights:
+    _target_: "trax.data.AddLossWeights"
+    id_to_mask: 0

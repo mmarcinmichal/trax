@@ -31,7 +31,7 @@ from absl import logging
 
 from trax import fastmath
 from trax.data.encoder.encoder import SentencePieceEncoder
-from trax.data.loader.interface import DatasetLoader, DatasetStreams
+from data.loader.tf.interface import DatasetLoader, DatasetStreams
 from trax.data.loader.tf.base import dataset_to_stream
 from trax.data.preprocessing.tf.math import (
     convert_float_to_mathqa,
@@ -237,6 +237,62 @@ def tf_dataset_streams(  # pylint: disable=invalid-name
     def stream(which):
         dataset = eval_batches if which == "eval" else train_batches
         return dataset_to_stream(dataset, input_name_c)
+
+    train_stream = lambda: stream("train")
+    eval_stream = lambda: stream("eval")
+    return train_stream, eval_stream
+
+
+@gin.configurable(module="trax.data")
+def tf_dataset_streams_serial(  # pylint: disable=invalid-name
+    datasets=gin.REQUIRED,
+    preprocess_fn=gin.REQUIRED,
+    shuffle_buffer_size=1024,
+    shuffle=True,
+    seed=None,
+):
+    """Return train/eval numpy streams using Serial preprocessing pipelines."""
+    train_ds, eval_ds, _ = _resolve_datasets(datasets)
+    if train_ds is None:
+        raise ValueError("Training requested but train dataset is None.")
+
+    def _prepare(dataset, training):
+        dataset = dataset.repeat()
+        if training:
+            rng = random.Random(seed) if seed is not None else random
+            dataset = dataset.skip(rng.randint(0, _MAX_SKIP_EXAMPLES))
+        if shuffle and shuffle_buffer_size:
+            dataset = dataset.shuffle(shuffle_buffer_size, seed=seed)
+        return dataset.prefetch(8)
+
+    train_batches = _prepare(train_ds, True)
+    eval_batches = _prepare(eval_ds, False)
+
+    def _normalize_example(example):
+        if isinstance(example, (list, tuple)) and len(example) == 2:
+            features, targets = example
+            if isinstance(features, dict):
+                normalized = dict(features)
+                if "targets" not in normalized:
+                    normalized["targets"] = targets
+                return normalized
+        return example
+
+    def _resolve_pipeline(training):
+        try:
+            pipeline = preprocess_fn(training=training)
+        except TypeError:
+            pipeline = preprocess_fn
+        return pipeline
+
+    def stream(which):
+        dataset = eval_batches if which == "eval" else train_batches
+        pipeline = _resolve_pipeline(which != "eval")
+        generator = (
+            _normalize_example(example)
+            for example in fastmath.dataset_as_numpy(dataset)
+        )
+        return pipeline(generator)
 
     train_stream = lambda: stream("train")
     eval_stream = lambda: stream("eval")

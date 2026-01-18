@@ -15,8 +15,9 @@
 
 """Stable dataset loading interface (no preprocessing side effects)."""
 
-from dataclasses import dataclass
 import os
+
+from dataclasses import dataclass
 from typing import Optional, Tuple
 
 import jax

@@ -813,6 +813,14 @@ def WMTEnsureInputsTargets():  # pylint: disable=invalid-name
                 else:
                     normalized = {"inputs": features}
                     fallback_target = targets
+                if "translation" in normalized and isinstance(
+                    normalized["translation"], dict
+                ):
+                    translation = normalized["translation"]
+                    if "inputs" not in normalized and "en" in translation:
+                        normalized["inputs"] = translation["en"]
+                    if "targets" not in normalized and "de" in translation:
+                        normalized["targets"] = translation["de"]
                 if "inputs" not in normalized:
                     if "en" in normalized and "de" in normalized:
                         normalized["inputs"] = normalized["en"]
@@ -831,6 +839,14 @@ def WMTEnsureInputsTargets():  # pylint: disable=invalid-name
                 yield normalized
             elif isinstance(example, dict):
                 normalized = dict(example)
+                if "translation" in normalized and isinstance(
+                    normalized["translation"], dict
+                ):
+                    translation = normalized["translation"]
+                    if "inputs" not in normalized and "en" in translation:
+                        normalized["inputs"] = translation["en"]
+                    if "targets" not in normalized and "de" in translation:
+                        normalized["targets"] = translation["de"]
                 if "inputs" not in normalized:
                     if "en" in normalized and "de" in normalized:
                         normalized["inputs"] = normalized["en"]

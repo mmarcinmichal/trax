@@ -17,21 +17,33 @@ import trax.models
 import trax.optimizers
 import trax.learning.training.trainer
 
-# Parameters for batcher:
+# Parameters for the inputs pipeline:
 # ==============================================================================
-batcher.data_streams = @data.tf_dataset_streams
-tf_dataset_streams.datasets = @data.data_streams
-batcher.batch_size_per_device = 32
-batcher.eval_batch_size = 16
-batcher.max_eval_length = 1024
-batcher.buckets_include_inputs_in_length=True
-batcher.id_to_mask = 0
-
-# Parameters for data_streams:
-# ==============================================================================
-data_streams.data_dir = None
-data_streams.dataset_name = 't2t_translate_ende_wmt32k'
-tf_dataset_streams.preprocess_fn = @data.wmt_preprocess
+make_inputs.train_stream = [
+  @train/data.TFDS(),
+  @data.WMTPreprocess(),
+  @data.Shuffle(),
+  @train/data.BucketByLength(),
+  @data.AddLossWeights(),
+]
+train/data.TFDS.dataset_name = 't2t_translate_ende_wmt32k'
+train/data.TFDS.data_dir = None
+train/data.BucketByLength.boundaries = [8, 16, 32, 64, 128, 256, 512]
+train/data.BucketByLength.batch_sizes = [128, 64, 32, 16, 8, 4, 2, 1]
+train/data.BucketByLength.length_keys = [0, 1]
+make_inputs.eval_stream = [
+  @eval/data.TFDS(),
+  @data.WMTPreprocess(),
+  @eval/data.BucketByLength(),
+  @data.AddLossWeights(),
+]
+eval/data.TFDS.dataset_name = 't2t_translate_ende_wmt32k'
+eval/data.TFDS.data_dir = None
+eval/data.TFDS.train = False
+eval/data.BucketByLength.boundaries = [8, 16, 32, 64, 128, 256, 512]
+eval/data.BucketByLength.batch_sizes = [64, 32, 16, 8, 4, 2, 1, 1]
+eval/data.BucketByLength.length_keys = [0, 1]
+data.AddLossWeights.id_to_mask = 0
 
 # Parameters for multifactor:
 # ==============================================================================
@@ -49,13 +61,15 @@ Adafactor.epsilon2 = 0.001
 Adafactor.factored = True
 Adafactor.multiply_by_parameter_scale = True
 
-# Parameters for wmt_preprocess:
+# Parameters for WMTPreprocess:
 # ==============================================================================
-wmt_preprocess.max_length = 512
-wmt_preprocess.max_eval_length = 1024
+WMTPreprocess.max_length = 512
+WMTPreprocess.max_eval_length = 1024
 
 # Parameters for train:
 # ==============================================================================
+train.inputs = @trax.data.make_inputs
+
 train.eval_frequency = 1000
 train.eval_steps = 10
 train.model = @trax.models.Transformer

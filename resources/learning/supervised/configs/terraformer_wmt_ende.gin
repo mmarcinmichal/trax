@@ -16,29 +16,41 @@ import trax.data.loader.tf.base
 import trax.models
 import trax.optimizers
 import trax.learning.training.trainer
-import trax.data.preprocessing.tf.wmt
 import trax.data
 
 MAX_EVAL_LENGTH = 512 # Get back to 65536
-BUCKETS = ([513], [64, 1])
+BUCKET_BOUNDARIES = [513]
+BUCKET_BATCH_SIZES = [64, 1]
 
-# Parameters for batcher:
+# Parameters for the inputs pipeline:
 # ==============================================================================
-batcher.data_streams = @data.tf_dataset_streams
-tf_dataset_streams.datasets = @data.data_streams
-batcher.batch_size_per_device = 1
-batcher.eval_batch_size = 1
-batcher.buckets_include_inputs_in_length = True
-batcher.max_eval_length = %MAX_EVAL_LENGTH
-batcher.buckets = %BUCKETS
-batcher.strict_pad_on_len = True
-batcher.id_to_mask = 0
-
-# Parameters for data_streams:
-# ==============================================================================
-data_streams.data_dir = None
-data_streams.dataset_name = 't2t_wmt14_translate/de-en'
-tf_dataset_streams.preprocess_fn = @data.wmt_preprocess
+make_inputs.train_stream = [
+  @train/data.TFDS(),
+  @data.WMTPreprocess(),
+  @data.Shuffle(),
+  @train/data.BucketByLength(),
+  @data.AddLossWeights(),
+]
+train/data.TFDS.dataset_name = 't2t_wmt14_translate/de-en'
+train/data.TFDS.data_dir = None
+train/data.BucketByLength.boundaries = %BUCKET_BOUNDARIES
+train/data.BucketByLength.batch_sizes = %BUCKET_BATCH_SIZES
+train/data.BucketByLength.length_keys = [0, 1]
+train/data.BucketByLength.strict_pad_on_len = True
+make_inputs.eval_stream = [
+  @eval/data.TFDS(),
+  @data.WMTPreprocess(),
+  @eval/data.BucketByLength(),
+  @data.AddLossWeights(),
+]
+eval/data.TFDS.dataset_name = 't2t_wmt14_translate/de-en'
+eval/data.TFDS.data_dir = None
+eval/data.TFDS.train = False
+eval/data.BucketByLength.boundaries = %BUCKET_BOUNDARIES
+eval/data.BucketByLength.batch_sizes = %BUCKET_BATCH_SIZES
+eval/data.BucketByLength.length_keys = [0, 1]
+eval/data.BucketByLength.strict_pad_on_len = True
+data.AddLossWeights.id_to_mask = 0
 
 # Parameters for multifactor:
 # ==============================================================================
@@ -53,13 +65,14 @@ Adam.b1 = 0.9
 Adam.b2 = 0.98
 Adam.eps = 1e-9
 
-# Parameters for wmt_preprocess:
+# Parameters for WMTPreprocess:
 # ==============================================================================
-wmt_preprocess.max_length = %MAX_EVAL_LENGTH
-wmt_preprocess.max_eval_length = %MAX_EVAL_LENGTH
+WMTPreprocess.max_length = %MAX_EVAL_LENGTH
+WMTPreprocess.max_eval_length = %MAX_EVAL_LENGTH
 
 # Parameters for train:
 # ==============================================================================
+train.inputs = @trax.data.make_inputs
 train.eval_frequency = 1000
 train.eval_steps = 10
 train.model = @trax.models.ConfigurableTerraformer
@@ -108,4 +121,3 @@ ConfigurableTerraformer.encoder_attention_type = @encoder/LSHSelfAttention
 ConfigurableTerraformer.encoder_decoder_attention_type = @LSHSelfAttention
 ConfigurableTerraformer.pos_axial_shape  = (32, 16)  # should multiply out to max_len
 ConfigurableTerraformer.pos_d_axial_embs = (256, 256)  # should sum to d_model
-

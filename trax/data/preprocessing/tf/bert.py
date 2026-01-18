@@ -21,7 +21,7 @@ import gin
 import numpy as np
 
 from trax import fastmath
-from trax.data.loader.interface import DatasetLoader
+from data.loader.tf.interface import DatasetLoader
 from trax.data.preprocessing.tf.inputs import next_sentence_prediction_tf
 
 

@@ -1,21 +1,80 @@
 data:
-  batcher:
-    _target_: "trax.data.batcher"
-    data_streams: "${data.data_streams}"
-    batch_size_per_device: 2
-    eval_batch_size: 8
-    bucket_length: 512
-    max_eval_length: 4096
-    buckets_include_inputs_in_length: true
-    id_to_mask: 0
-  data_streams:
-    _target_: "trax.data.data_streams"
+  make_inputs:
+    _target_: "trax.data.make_inputs"
     _partial_: true
-    data_dir: null
-    dataset_name: "t2t_summarize_cnn_dailymail32k"
-    preprocess_fn: "${data.wmt_concat_preprocess}"
-  wmt_concat_preprocess:
-    _target_: "trax.data.wmt_concat_preprocess"
+    train_stream:
+      - "${data.train.TFDS}"
+      - "${data.WMTConcatPreprocess}"
+      - "${data.Shuffle}"
+      - "${data.train.BucketByLength}"
+      - "${data.AddLossWeights}"
+    eval_stream:
+      - "${data.eval.TFDS}"
+      - "${data.WMTConcatPreprocess}"
+      - "${data.eval.BucketByLength}"
+      - "${data.AddLossWeights}"
+  train:
+    TFDS:
+      _target_: "trax.data.TFDS"
+      dataset_name: "t2t_summarize_cnn_dailymail32k"
+      data_dir: null
+    BucketByLength:
+      _target_: "trax.data.BucketByLength"
+      boundaries:
+      - 128
+      - 256
+      - 512
+      - 1024
+      - 2048
+      - 4096
+      - 8192
+      batch_sizes:
+      - 8
+      - 4
+      - 2
+      - 1
+      - 1
+      - 1
+      - 1
+      - 1
+      length_keys:
+        - 0
+        - 1
+  eval:
+    TFDS:
+      _target_: "trax.data.TFDS"
+      dataset_name: "t2t_summarize_cnn_dailymail32k"
+      data_dir: null
+      train: false
+    BucketByLength:
+      _target_: "trax.data.BucketByLength"
+      boundaries:
+      - 128
+      - 256
+      - 512
+      - 1024
+      - 2048
+      - 4096
+      - 8192
+      batch_sizes:
+      - 32
+      - 16
+      - 8
+      - 4
+      - 2
+      - 1
+      - 1
+      - 1
+      length_keys:
+        - 0
+        - 1
+  WMTConcatPreprocess:
+    _target_: "trax.data.WMTConcatPreprocess"
     _partial_: true
     max_length: 2047
-    max_eval_length: 4095
+    max_eval_length: 4096
+  Shuffle:
+    _target_: "trax.data.Shuffle"
+  AddLossWeights:
+    _target_: "trax.data.AddLossWeights"
+    id_to_mask: 0

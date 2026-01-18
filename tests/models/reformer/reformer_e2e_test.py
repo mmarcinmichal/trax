@@ -54,9 +54,19 @@ class ReformerE2ETest(absltest.TestCase):
 
         gin.parse_config_file(os.path.join(_CONFIG_DIR, "reformer_wmt_ende.gin"))
 
-        gin.bind_parameter("data_streams.data_dir", _TEST_CORPUS)
-        gin.bind_parameter("wmt_preprocess.tokenizer", tokenizer)
-        gin.bind_parameter("batcher.batch_size_per_device", batch_size_per_device)
+        gin.bind_parameter("train/data.TFDS.data_dir", _TEST_CORPUS)
+        gin.bind_parameter("eval/data.TFDS.data_dir", _TEST_CORPUS)
+        gin.bind_parameter("WMTPreprocess.tokenizer", tokenizer)
+        gin.bind_parameter("train/data.BucketByLength.boundaries", [512])
+        gin.bind_parameter(
+            "train/data.BucketByLength.batch_sizes",
+            [batch_size_per_device, 1],
+        )
+        gin.bind_parameter("eval/data.BucketByLength.boundaries", [512])
+        gin.bind_parameter(
+            "eval/data.BucketByLength.batch_sizes",
+            [batch_size_per_device, 1],
+        )
         gin.bind_parameter("train.steps", steps)
         gin.bind_parameter("Reformer.n_encoder_layers", n_layers)
         gin.bind_parameter("Reformer.n_decoder_layers", n_layers)

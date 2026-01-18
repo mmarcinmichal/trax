@@ -13,21 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for WMT preprocessing compatibility between TF and Serial pipelines."""
+"""Tests for WMT preprocessing serial pipelines."""
 
 import os
 
 import numpy as np
-import tensorflow as tf
 
 from absl.testing import absltest, parameterized
 
 from trax.data.encoder import encoder
 from trax.data.preprocessing import inputs as serial_inputs
-from trax.data.preprocessing.tf import wmt as tf_wmt
 
 
-class WMTPreprocessCompatibilityTest(parameterized.TestCase):
+class WMTPreprocessTest(parameterized.TestCase):
     def setUp(self):
         super().setUp()
         pkg_dir, _ = os.path.split(__file__)
@@ -40,11 +38,6 @@ class WMTPreprocessCompatibilityTest(parameterized.TestCase):
         self.tokenizer = encoder.SubwordTextEncoder(filename=vocab_path)
 
     @staticmethod
-    def _make_tf_dataset(inputs, targets):
-        features = {"en": tf.constant(inputs), "de": tf.constant(targets)}
-        return tf.data.Dataset.from_tensor_slices((features, tf.constant(targets)))
-
-    @staticmethod
     def _make_serial_stream(inputs, targets):
         def _stream():
             for text_input, text_target in zip(inputs, targets):
@@ -52,18 +45,9 @@ class WMTPreprocessCompatibilityTest(parameterized.TestCase):
 
         return _stream
 
-    def test_wmt_preprocess_matches_serial(self):
+    def test_wmt_preprocess_tokenizes_inputs_targets(self):
         inputs = ["Hello", "Goodbye"]
         targets = ["Hallo", "Auf Wiedersehen"]
-        tf_dataset = tf_wmt.wmt_preprocess(
-            self._make_tf_dataset(inputs, targets),
-            training=True,
-            max_length=50,
-            max_eval_length=50,
-            tokenizer=self.tokenizer,
-        )
-        tf_results = list(tf_dataset.as_numpy_iterator())
-
         serial_stream = serial_inputs.WMTPreprocess(
             tokenizer=self.tokenizer,
             max_length=50,
@@ -72,29 +56,26 @@ class WMTPreprocessCompatibilityTest(parameterized.TestCase):
         )(self._make_serial_stream(inputs, targets)())
         serial_results = list(serial_stream)
 
-        self.assertLen(tf_results, len(serial_results))
-        for (tf_features, tf_targets), (serial_inputs_arr, serial_targets_arr) in zip(
-            tf_results, serial_results
+        self.assertLen(serial_results, len(inputs))
+        for (serial_inputs_arr, serial_targets_arr), text_input, text_target in zip(
+            serial_results, inputs, targets
         ):
-            np.testing.assert_array_equal(tf_features["inputs"], serial_inputs_arr)
-            np.testing.assert_array_equal(tf_targets, serial_targets_arr)
+            np.testing.assert_array_equal(
+                serial_inputs_arr,
+                np.array(self.tokenizer.encode(text_input), dtype=np.int64),
+            )
+            np.testing.assert_array_equal(
+                serial_targets_arr,
+                np.array(self.tokenizer.encode(text_target), dtype=np.int64),
+            )
 
     @parameterized.named_parameters(
         ("train", True),
         ("eval", False),
     )
-    def test_wmt_preprocess_filters_consistently(self, training):
+    def test_wmt_preprocess_filters_by_length(self, training):
         inputs = ["short", "toolong"]
         targets = ["ok", "alsoverylong"]
-        tf_dataset = tf_wmt.wmt_preprocess(
-            self._make_tf_dataset(inputs, targets),
-            training=training,
-            max_length=5,
-            max_eval_length=5,
-            tokenizer=self.tokenizer,
-        )
-        tf_results = list(tf_dataset.as_numpy_iterator())
-
         serial_stream = serial_inputs.WMTPreprocess(
             tokenizer=self.tokenizer,
             max_length=5,
@@ -103,25 +84,20 @@ class WMTPreprocessCompatibilityTest(parameterized.TestCase):
         )(self._make_serial_stream(inputs, targets)())
         serial_results = list(serial_stream)
 
-        self.assertLen(tf_results, len(serial_results))
-        for (tf_features, tf_targets), (serial_inputs_arr, serial_targets_arr) in zip(
-            tf_results, serial_results
-        ):
-            np.testing.assert_array_equal(tf_features["inputs"], serial_inputs_arr)
-            np.testing.assert_array_equal(tf_targets, serial_targets_arr)
+        self.assertLen(serial_results, 1)
+        serial_inputs_arr, serial_targets_arr = serial_results[0]
+        np.testing.assert_array_equal(
+            serial_inputs_arr,
+            np.array(self.tokenizer.encode(inputs[0]), dtype=np.int64),
+        )
+        np.testing.assert_array_equal(
+            serial_targets_arr,
+            np.array(self.tokenizer.encode(targets[0]), dtype=np.int64),
+        )
 
-    def test_wmt_concat_preprocess_matches_serial(self):
+    def test_wmt_concat_preprocess_builds_mask(self):
         inputs = ["Hello", "Hi"]
         targets = ["Hallo", "Czesc"]
-        tf_dataset = tf_wmt.wmt_concat_preprocess(
-            self._make_tf_dataset(inputs, targets),
-            training=True,
-            max_length=50,
-            max_eval_length=50,
-            tokenizer=self.tokenizer,
-        )
-        tf_results = list(tf_dataset.as_numpy_iterator())
-
         serial_stream = serial_inputs.WMTConcatPreprocess(
             tokenizer=self.tokenizer,
             max_length=50,
@@ -130,13 +106,32 @@ class WMTPreprocessCompatibilityTest(parameterized.TestCase):
         )(self._make_serial_stream(inputs, targets)())
         serial_results = list(serial_stream)
 
-        self.assertLen(tf_results, len(serial_results))
-        for (tf_features, tf_targets), (serial_concat, serial_output, serial_mask) in zip(
-            tf_results, serial_results
+        self.assertLen(serial_results, len(inputs))
+        for (serial_concat, serial_output, serial_mask), text_input, text_target in zip(
+            serial_results, inputs, targets
         ):
-            np.testing.assert_array_equal(tf_features["inputs"], serial_concat)
-            np.testing.assert_array_equal(tf_targets, serial_output)
-            np.testing.assert_array_equal(tf_features["mask"], serial_mask)
+            inputs_tokens = np.array(
+                self.tokenizer.encode(text_input), dtype=np.int64
+            )
+            targets_tokens = np.array(
+                self.tokenizer.encode(text_target), dtype=np.int64
+            )
+            pad = np.zeros_like(inputs_tokens[:1])
+            expected_concat = np.concatenate(
+                [inputs_tokens, pad, targets_tokens], axis=0
+            )
+            expected_mask = np.concatenate(
+                [
+                    np.zeros_like(inputs_tokens),
+                    pad,
+                    np.ones_like(targets_tokens),
+                ],
+                axis=0,
+            )
+
+            np.testing.assert_array_equal(serial_concat, expected_concat)
+            np.testing.assert_array_equal(serial_output, expected_concat)
+            np.testing.assert_array_equal(serial_mask, expected_mask)
 
 
 if __name__ == "__main__":
