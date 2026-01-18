@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import trax.data.loader.tf.base
-import trax.data.preprocessing.tf.c4
 import trax.layers
 import trax.models
 import trax.optimizers
@@ -21,7 +20,8 @@ import trax.learning.training.trainer
 import trax.data
 
 MAX_EVAL_LENGTH = 1024 # Get back to 65536
-BUCKETS = ([1025], [8, 1])
+BUCKET_BOUNDARIES = [1025]
+BUCKET_BATCH_SIZES = [8, 1]
 
 # Parameters that will vary between experiments:
 # ==============================================================================
@@ -47,27 +47,40 @@ LSHSelfAttention.n_buckets = 512
 LSHSelfAttention.n_chunks_before = 1
 LSHSelfAttention.n_hashes = 2
 
-# Parameters for batcher:
+# Parameters for the inputs pipeline:
 # ==============================================================================
-batcher.data_streams = @data.tf_dataset_streams
-tf_dataset_streams.datasets = @data.data_streams
-batcher.batch_size_per_device = 8
-batcher.eval_batch_size = 8
-batcher.max_eval_length = %MAX_EVAL_LENGTH
-batcher.buckets =%BUCKETS
+make_inputs.train_stream = [
+  @train/data.TFDS(),
+  @data.C4Preprocess(),
+  @data.Shuffle(),
+  @train/data.BucketByLength(),
+  @data.AddLossWeights(),
+]
+train/data.TFDS.dataset_name = 'c4'
+train/data.TFDS.data_dir = None
+train/data.TFDS.keys = ('text',)
+train/data.BucketByLength.boundaries = %BUCKET_BOUNDARIES
+train/data.BucketByLength.batch_sizes = %BUCKET_BATCH_SIZES
+train/data.BucketByLength.length_keys = [0, 1]
+make_inputs.eval_stream = [
+  @eval/data.TFDS(),
+  @data.C4Preprocess(),
+  @eval/data.BucketByLength(),
+  @data.AddLossWeights(),
+]
+eval/data.TFDS.dataset_name = 'c4'
+eval/data.TFDS.data_dir = None
+eval/data.TFDS.train = False
+eval/data.TFDS.keys = ('text',)
+eval/data.BucketByLength.boundaries = %BUCKET_BOUNDARIES
+eval/data.BucketByLength.batch_sizes = %BUCKET_BATCH_SIZES
+eval/data.BucketByLength.length_keys = [0, 1]
+data.AddLossWeights.id_to_mask = 0
 
-# Parameters for data_streams:
+# Parameters for C4Preprocess:
 # ==============================================================================
-data_streams.data_dir = None
-data_streams.dataset_name = 'c4'
-tf_dataset_streams.input_name = 'targets'
-tf_dataset_streams.target_name = 'text'
-tf_dataset_streams.preprocess_fn = @c4_preprocess
-
-# Parameters for c4_preprocess:
-# ==============================================================================
-c4_preprocess.max_target_length = %MAX_EVAL_LENGTH
-c4_preprocess.tokenization = 'spc'
+C4Preprocess.max_target_length = %MAX_EVAL_LENGTH
+C4Preprocess.tokenization = 'spc'
 
 # Parameters for multifactor:
 # ==============================================================================
@@ -85,6 +98,7 @@ Adam.eps = 1e-9
 
 # Parameters for train:
 # ==============================================================================
+train.inputs = @trax.data.make_inputs
 train.eval_frequency = 500
 train.eval_steps = 8
 train.model = @trax.models.ReformerLM
@@ -129,4 +143,3 @@ ReformerLM.n_layers = %n_layers
 ReformerLM.vocab_size = 32000  # Includes pad token and unused EOS token
 #ReformerLM.pos_axial_shape = (128, 512)
 ReformerLM.pos_axial_shape = (32, 32)
-

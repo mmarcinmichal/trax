@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import trax.data.loader.tf.base
-import trax.data.preprocessing.tf.c4
 import trax.models
 import trax.optimizers
 import trax.learning.training.trainer
@@ -68,4 +67,3 @@ ReformerLM.mode = 'train'
 ReformerLM.n_heads = 8
 ReformerLM.n_layers = %n_layers
 ReformerLM.vocab_size = 256
-

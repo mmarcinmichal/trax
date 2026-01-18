@@ -13,20 +13,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for trax.data.tf_inputs."""
+"""Tests for MathQA preprocessing modules."""
 
+import json
+import os
 
 import gin
+import numpy as np
 import tensorflow as tf
 
-from trax.data.preprocessing.inputs import batcher  # noqa: F401
-from trax.data.preprocessing.tf import math as dataset_math
+from trax.data.preprocessing.modules import math as modules_math
+from trax.utils import test_utils
 
 
-class TFDatasetMathTest(tf.test.TestCase):
+class ModulesMathTest(tf.test.TestCase):
     def setUp(self):
         super().setUp()
         gin.clear_config()
+        test_utils.ensure_flag("test_tmpdir")
 
     def test_process_single_mathqa_example_0(self):
         # This is the first problem in the MathQA dataset.
@@ -52,7 +56,7 @@ class TFDatasetMathTest(tf.test.TestCase):
             python_program,
             list_op,
             list_num,
-        ) = dataset_math.process_single_mathqa_example(example)
+        ) = modules_math.process_single_mathqa_example(example)
 
         self.assertEqual(answer_num, 400)  # we know it, because correct answer is a)
         self.assertEqual(python_result, [3600.0, 30.0, 120.0, 12000.0, 400.0])
@@ -103,7 +107,7 @@ class TFDatasetMathTest(tf.test.TestCase):
             python_program,
             list_op,
             list_num,
-        ) = dataset_math.process_single_mathqa_example(example)
+        ) = modules_math.process_single_mathqa_example(example)
 
         self.assertEqual(answer_num, 270)  # we know it, because correct answer is b)
         self.assertAllClose(
@@ -138,7 +142,7 @@ class TFDatasetMathTest(tf.test.TestCase):
             python_program,
             list_op,
             list_num,
-        ) = dataset_math.process_single_mathqa_example(example)
+        ) = modules_math.process_single_mathqa_example(example)
 
         self.assertEqual(answer_num, 14)  # we know it, because correct answer is c)
         self.assertAllClose(python_result, [196, 14])
@@ -161,14 +165,48 @@ class TFDatasetMathTest(tf.test.TestCase):
         exec(target_values, globals(), var_dict)  # pylint: disable=exec-used
         self.assertAllClose(var_dict["answer"], 14)
         self.assertAllClose(
-            dataset_math.execute_mathqa_program(problem, target_values.split("\n")), 14
+            modules_math.execute_mathqa_program(problem, target_values.split("\n")), 14
         )
         self.assertAllClose(
-            dataset_math.execute_mathqa_dsl_program(
+            modules_math.execute_mathqa_dsl_program(
                 problem, [example["linear_formula"]]
             ),
             14,
         )
+
+    def test_create_mathqa_inputs(self):
+        example = {
+            "Problem": "the banker ' s gain of a certain sum due 3 years hence at 10 % "
+            "per annum is rs . 36 . what is the present worth ?",
+            "Rationale": '"explanation : t = 3 years r = 10 % td = ( bg × 100 ) / tr = ( '
+            "36 × 100 ) / ( 3 × 10 ) = 12 × 10 = rs . 120 td = ( pw × tr )"
+            " / 100 ⇒ 120 = ( pw × 3 × 10 ) / 100 ⇒ 1200 = pw × 3 pw = "
+            '1200 / 3 = rs . 400 answer : option a"',
+            "options": "a ) rs . 400 , b ) rs . 300 , c ) rs . 500 , d ) rs . 350 , e ) "
+            "none of these",
+            "correct": "a",
+            "annotated_formula": "divide(multiply(const_100, divide(multiply(36, const_100), "
+            "multiply(3, 10))), multiply(3, 10))",
+            "linear_formula": "multiply(n2,const_100)|multiply(n0,n1)|divide(#0,#1)|multiply(#2,const_100)|divide(#3,#1)|",
+            "category": "gain",
+        }
+        tmp_dir = self.create_tempdir().full_path
+        train_path = os.path.join(tmp_dir, "train.json")
+        with tf.io.gfile.GFile(train_path, "w") as handle:
+            json.dump([example], handle)
+
+        stream = modules_math.CreateMathQAInputs(
+            dataset_path=tmp_dir,
+            train=True,
+            cumulative=True,
+            partial_results=False,
+        )()
+
+        for _ in range(3):
+            sample = next(stream)
+            self.assertTrue(sample[0].startswith(example["Problem"]))
+            self.assertTrue(isinstance(sample[1], str))
+            np.testing.assert_array_equal(sample[2], np.array([1] * len(sample[1])))
 
 
 if __name__ == "__main__":

@@ -32,6 +32,7 @@ functions using ``data.foo`` qualified names; for example::
 """
 
 from trax.data.preprocessing import inputs as inputs  # noqa: F401
+from trax.data.preprocessing.modules import *  # pylint: disable=wildcard-import
 
 # Re-export commonly-used preprocessing utilities at the module level to keep
 # the historical ``trax.data.*`` namespace working (e.g. gin configs that refer
@@ -42,6 +43,11 @@ __all__ = ["inputs"]
 __all__ += [
     name
     for name in dir(inputs)
+    if not name.startswith("_") and name not in __all__
+]
+__all__ += [
+    name
+    for name in dir()
     if not name.startswith("_") and name not in __all__
 ]
 

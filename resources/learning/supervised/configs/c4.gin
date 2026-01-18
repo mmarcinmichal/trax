@@ -14,73 +14,92 @@
 
 # Generic gin file in TRAX to use for C4's span corruption objective.
 
-import t5.data.preprocessors
 import trax.data
+import trax.learning.training.trainer
 
-
-# Parameters for T5
+# Parameters for C4 Serial preprocessing.
 # ==============================================================================
 max_length = 512
-sequence_length = {'inputs': 512, 'targets': 512}
+sequence_length_inputs = 512
+sequence_length_targets = 512
 mean_noise_span_length = 3.0
 noise_density = 0.15
+vocab_size = 32000
+spm_path = None
 
-# Parameters for c4_bare_preprocess_fn:
+# Parameters for TFDS data pipeline:
 # ==============================================================================
-c4_bare_preprocess_fn.sequence_length = %sequence_length
+make_inputs.train_stream = [
+  @training/data.TFDS(),
+  @data.CountAndSkip(),
+  @data.SentencePieceTokenize(),
+  @data.MLM(),
+  @data.FilterEmptyExamples(),
+  @data.AppendValue(),
+  @data.TruncateToLength(),
+  @data.PadToLength(),
+  @data.AddLossWeights(),
+  @data.Shuffle(),
+  @data.Batch(),
+]
 
-# Parameters for data_streams:
+make_inputs.eval_stream = [
+  @validation/data.TFDS(),
+  @data.SentencePieceTokenize(),
+  @data.MLM(),
+  @data.FilterEmptyExamples(),
+  @data.AppendValue(),
+  @data.TruncateToLength(),
+  @data.PadToLength(),
+  @data.AddLossWeights(),
+  @validation/data.Batch(),
+]
+
+# Parameters for data.TFDS:
 # ==============================================================================
-data_streams.data_dir = None
-data_streams.dataset_name = 'c4/en:2.3.0'
-tf_dataset_streams.datasets = @data.data_streams
-tf_dataset_streams.input_name = 'inputs'
-tf_dataset_streams.target_name = 'targets'
-tf_dataset_streams.bare_preprocess_fn=@trax.data.c4_bare_preprocess_fn
+data.TFDS.dataset_name = 'c4/en:2.3.0'
+data.TFDS.keys = ('text',)
+data.TFDS.shuffle_train = False
+training/data.TFDS.train = True
+validation/data.TFDS.train = False
 
-# Parameters for unsupervised:
+# Parameters for data.SentencePieceTokenize:
 # ==============================================================================
+data.SentencePieceTokenize.spm_path = %spm_path
 
-# This is what T5 uses.
-# unsupervised.preprocessors = \
-#     [@preprocessors.select_random_chunk,
-#      @preprocessors.reduce_concat_tokens,
-#      @preprocessors.split_tokens,
-#      @preprocessors.denoise]
-
-# We.delete out reduce_concat_tokens since we don't want to do sequence packing
-unsupervised.preprocessors = \
-    [@preprocessors.select_random_chunk,
-     @preprocessors.split_tokens,
-     @preprocessors.denoise]
-
-# Parameters for select_random_chunk:
+# Parameters for data.MLM:
 # ==============================================================================
-select_random_chunk.feature_key = 'targets'
-select_random_chunk.max_length = %max_length
+data.MLM.vocab_size = %vocab_size
+data.MLM.max_length = %max_length
+data.MLM.noise_density = %noise_density
+data.MLM.mean_noise_span_length = %mean_noise_span_length
 
-# Parameters for reduce_concat_tokens:
+# Parameters for data.AppendValue:
 # ==============================================================================
-reduce_concat_tokens.batch_size = 128
-reduce_concat_tokens.feature_key = 'targets'
+data.AppendValue.val = {1:[1]}
 
-# Parameters for random_spans_helper:
+# Parameters for data.CountAndSkip:
 # ==============================================================================
-random_spans_helper.extra_tokens_per_span_inputs = 1
-random_spans_helper.extra_tokens_per_span_targets = 1
-random_spans_helper.inputs_length = %max_length
-random_spans_helper.mean_noise_span_length = %mean_noise_span_length
-random_spans_helper.noise_density = %noise_density
+data.CountAndSkip.name = 'c4'
 
-# Parameters for split_tokens:
+# Parameters for data.TruncateToLength:
 # ==============================================================================
-split_tokens.feature_key = 'targets'
-split_tokens.max_tokens_per_segment = @preprocessors.random_spans_tokens_length()
-split_tokens.min_tokens_per_segment = None
+data.TruncateToLength.len_map = {0: (%sequence_length_inputs,), 1: (%sequence_length_targets,)}
 
-# Parameters for denoise:
+# Parameters for data.PadToLength:
 # ==============================================================================
-denoise.inputs_fn = @preprocessors.noise_span_to_unique_sentinel
-denoise.noise_density = %noise_density
-denoise.noise_mask_fn = @preprocessors.random_spans_noise_mask
-denoise.targets_fn = @preprocessors.nonnoise_span_to_unique_sentinel
+data.PadToLength.len_map = {0: %sequence_length_inputs, 1: %sequence_length_targets}
+data.PadToLength.pad_value = {0: 0, 1: 0}
+
+# Parameters for data.AddLossWeights:
+# ==============================================================================
+data.AddLossWeights.id_to_mask = 0
+
+# Parameters for data.Batch:
+# ==============================================================================
+data.Batch.batch_size = 32  # On one 2x2, 8 chips, batch_size 4 per chip for 32.
+validation/data.Batch.batch_size = 64
+
+# Parameters for train:
+# ==============================================================================
+train.inputs = @trax.data.make_inputs

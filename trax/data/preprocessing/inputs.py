@@ -87,6 +87,7 @@ import tensorflow as tf
 from absl import logging
 
 from trax import fastmath
+from trax.data.encoder.encoder import SentencePieceEncoder
 from trax.data.debugger import data_pipeline as debug_data_pipeline
 from trax.fastmath import numpy as jnp
 from trax.utils import shapes
@@ -105,6 +106,59 @@ def Serial(*fns):  # pylint: disable=invalid-name
         return generator
 
     return composed_fns
+
+
+@gin.configurable(module="trax.data")
+def NextSentencePrediction(  # pylint: disable=invalid-name
+    text_key="text",
+    buffer_size=50000,
+    seed=None,
+):
+    """Builds next sentence prediction pairs from a text stream."""
+    rng = random.Random(seed) if seed is not None else random
+
+    def _extract_text(example):
+        if isinstance(example, dict):
+            return example.get(text_key)
+        if isinstance(example, (list, tuple)) and example:
+            return example[0]
+        return example
+
+    def _first_two_sentences(text):
+        text = _text_to_str(text)
+        if isinstance(text, np.ndarray):
+            return None, None
+        parts = text.split(". ")
+        first = parts[0].strip()
+        second = parts[1].strip() if len(parts) > 1 else first
+        return first, second
+
+    def _nsp(stream):
+        buffer = []
+        for example in stream:
+            text = _extract_text(example)
+            if text is None:
+                continue
+            sent1, sent2 = _first_two_sentences(text)
+            if sent1 is None:
+                continue
+            use_random = rng.random() < 0.5
+            if use_random:
+                if buffer:
+                    other_text = buffer[rng.randrange(len(buffer))]
+                else:
+                    other_text = text
+                other_sent1, _ = _first_two_sentences(other_text)
+                if other_sent1 is None:
+                    continue
+                sent2 = other_sent1
+            label = not use_random
+            yield sent1, sent2, label
+            buffer.append(text)
+            if len(buffer) > buffer_size:
+                buffer.pop(0)
+
+    return _nsp
 
 
 def Parallel(  # pylint: disable=invalid-name
@@ -771,7 +825,7 @@ def ConvertToUnicode(keys=None):  # pylint: disable=invalid-name
     return _convert_to_unicode_str
 
 
-def _wmt_text_to_str(text):
+def _text_to_str(text):
     if isinstance(text, np.ndarray):
         if text.shape == ():
             text = text.item()
@@ -786,215 +840,29 @@ def _wmt_text_to_str(text):
     return str(text)
 
 
-def _wmt_text_length(text):
-    if isinstance(text, np.ndarray):
-        if text.shape == ():
-            text = text.item()
-        else:
-            return text.shape[0]
-    if isinstance(text, np.bytes_):
-        text = text.tobytes()
-    if isinstance(text, (bytes, str)):
-        return len(text)
-    return len(text)
-
-
 @gin.configurable(module="trax.data")
-def WMTEnsureInputsTargets():  # pylint: disable=invalid-name
-    """Normalizes WMT examples to dictionaries with `inputs` and `targets`."""
-
-    def _ensure(stream):
-        for example in stream:
-            if isinstance(example, (list, tuple)) and len(example) == 2:
-                features, targets = example
-                if isinstance(features, dict):
-                    normalized = dict(features)
-                    fallback_target = targets
-                else:
-                    normalized = {"inputs": features}
-                    fallback_target = targets
-                if "translation" in normalized and isinstance(
-                    normalized["translation"], dict
-                ):
-                    translation = normalized["translation"]
-                    if "inputs" not in normalized and "en" in translation:
-                        normalized["inputs"] = translation["en"]
-                    if "targets" not in normalized and "de" in translation:
-                        normalized["targets"] = translation["de"]
-                if "inputs" not in normalized:
-                    if "en" in normalized and "de" in normalized:
-                        normalized["inputs"] = normalized["en"]
-                    elif "targets" in normalized:
-                        normalized["inputs"] = normalized["targets"]
-                if "targets" not in normalized:
-                    if "de" in normalized:
-                        normalized["targets"] = normalized["de"]
-                    else:
-                        normalized["targets"] = fallback_target
-                if "inputs" not in normalized or "targets" not in normalized:
-                    raise ValueError(
-                        "WMT example missing inputs/targets after normalization: "
-                        f"{normalized}"
-                    )
-                yield normalized
-            elif isinstance(example, dict):
-                normalized = dict(example)
-                if "translation" in normalized and isinstance(
-                    normalized["translation"], dict
-                ):
-                    translation = normalized["translation"]
-                    if "inputs" not in normalized and "en" in translation:
-                        normalized["inputs"] = translation["en"]
-                    if "targets" not in normalized and "de" in translation:
-                        normalized["targets"] = translation["de"]
-                if "inputs" not in normalized:
-                    if "en" in normalized and "de" in normalized:
-                        normalized["inputs"] = normalized["en"]
-                    elif "targets" in normalized:
-                        normalized["inputs"] = normalized["targets"]
-                if "targets" not in normalized:
-                    if "de" in normalized:
-                        normalized["targets"] = normalized["de"]
-                if "inputs" not in normalized or "targets" not in normalized:
-                    raise ValueError(
-                        "WMT example missing inputs/targets after normalization: "
-                        f"{normalized}"
-                    )
-                yield normalized
-            else:
-                raise ValueError(f"Unsupported WMT example type: {type(example)}")
-
-    return _ensure
-
-
-@gin.configurable(module="trax.data")
-def WMTFilterByLength(  # pylint: disable=invalid-name
-    max_length=-1, max_eval_length=-1, training=True
+def SentencePieceTokenize(  # pylint: disable=invalid-name
+    spm_path=gin.REQUIRED, extra_ids=0
 ):
-    """Filters WMT examples by the string lengths of inputs/targets."""
-
-    def _filter(stream):
-        max_allowed = max_length if training else max_eval_length
-        if max_allowed <= 0:
-            for example in stream:
-                yield example
-            return
-        for example in stream:
-            max_text_len = max(
-                _wmt_text_length(example["inputs"]),
-                _wmt_text_length(example["targets"]),
-            )
-            if max_text_len < max_allowed + 1:
-                yield example
-
-    return _filter
-
-
-@gin.configurable(module="trax.data")
-def WMTTokenize(tokenizer=gin.REQUIRED, keys=("inputs", "targets")):  # pylint: disable=invalid-name
-    """Tokenizes WMT string fields using a provided SubwordTextEncoder."""
+    """Tokenizes a stream of text using SentencePiece."""
+    tokenizer = SentencePieceEncoder(spm_path, extra_ids=extra_ids)
 
     def _tokenize(stream):
         for example in stream:
-            if not isinstance(example, dict):
-                raise ValueError(
-                    "WMTTokenize expects dict examples, got: "
-                    f"{type(example)}"
-                )
-            tokenized = dict(example)
-            for key in keys:
-                if key not in tokenized:
-                    continue
-                text = _wmt_text_to_str(tokenized[key])
-                if isinstance(text, np.ndarray):
-                    tokenized[key] = text
-                else:
-                    tokenized[key] = np.array(
-                        tokenizer.encode(text), dtype=np.int64
-                    )
-            yield tokenized
+            if isinstance(example, dict):
+                text = example.get("text", example.get("inputs", example.get("targets")))
+            elif isinstance(example, (list, tuple)) and example:
+                text = example[0]
+            else:
+                text = example
+            text = _text_to_str(text)
+            if isinstance(text, np.ndarray):
+                tokens = np.asarray(text, dtype=np.int64)
+            else:
+                tokens = np.array(tokenizer.encode(text), dtype=np.int64)
+            yield tokens
 
     return _tokenize
-
-
-@gin.configurable(module="trax.data")
-def WMTToInputsTargetsTuple():  # pylint: disable=invalid-name
-    """Converts WMT dict examples to (inputs, targets) tuples."""
-
-    def _to_tuple(stream):
-        for example in stream:
-            if isinstance(example, dict):
-                yield (example["inputs"], example["targets"])
-            elif isinstance(example, (list, tuple)) and len(example) == 2:
-                yield tuple(example)
-            else:
-                raise ValueError(f"Unsupported WMT example type: {type(example)}")
-
-    return _to_tuple
-
-
-@gin.configurable(module="trax.data")
-def WMTConcatInputsTargets():  # pylint: disable=invalid-name
-    """Concatenates inputs/targets with a separator pad and builds a mask."""
-
-    def _concat(stream):
-        for example in stream:
-            if isinstance(example, dict):
-                inputs = example["inputs"]
-                targets = example["targets"]
-            elif isinstance(example, (list, tuple)) and len(example) >= 2:
-                inputs, targets = example[0], example[1]
-            else:
-                raise ValueError(f"Unsupported WMT example type: {type(example)}")
-            inputs = np.asarray(inputs)
-            targets = np.asarray(targets)
-            pad = np.zeros_like(inputs[:1])
-            concat = np.concatenate([inputs, pad, targets], axis=0)
-            mask = np.concatenate(
-                [np.zeros_like(inputs), pad, np.ones_like(targets)], axis=0
-            )
-            yield (concat, concat, mask)
-
-    return _concat
-
-
-@gin.configurable(module="trax.data")
-def WMTPreprocess(  # pylint: disable=invalid-name
-    tokenizer=gin.REQUIRED,
-    max_length=-1,
-    max_eval_length=-1,
-    training=True,
-):
-    """Returns a Serial pipeline for WMT preprocessing."""
-    return Serial(
-        WMTEnsureInputsTargets(),
-        WMTFilterByLength(
-            max_length=max_length,
-            max_eval_length=max_eval_length,
-            training=training,
-        ),
-        WMTTokenize(tokenizer=tokenizer),
-        WMTToInputsTargetsTuple(),
-    )
-
-
-@gin.configurable(module="trax.data")
-def WMTConcatPreprocess(  # pylint: disable=invalid-name
-    tokenizer=gin.REQUIRED,
-    max_length=-1,
-    max_eval_length=-1,
-    training=True,
-):
-    """Returns a Serial pipeline for WMT preprocessing with concatenation."""
-    return Serial(
-        WMTPreprocess(
-            tokenizer=tokenizer,
-            max_length=max_length,
-            max_eval_length=max_eval_length,
-            training=training,
-        ),
-        WMTConcatInputsTargets(),
-    )
 
 
 @gin.configurable(module="trax.data")

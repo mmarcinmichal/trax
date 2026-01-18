@@ -22,7 +22,7 @@ import numpy as np
 from absl.testing import absltest, parameterized
 
 from trax.data.encoder import encoder
-from trax.data.preprocessing import inputs as serial_inputs
+from trax import data
 
 
 class WMTPreprocessTest(parameterized.TestCase):
@@ -30,7 +30,7 @@ class WMTPreprocessTest(parameterized.TestCase):
         super().setUp()
         pkg_dir, _ = os.path.split(__file__)
         vocab_dir = os.path.normpath(
-            os.path.join(pkg_dir, "../../../resources/data/vocabs/test")
+            os.path.join(pkg_dir, "../../../../resources/data/vocabs/test")
         )
         vocab_path = os.path.join(
             vocab_dir, "vocab.translate_ende_wmt32k.32768.subwords"
@@ -48,7 +48,7 @@ class WMTPreprocessTest(parameterized.TestCase):
     def test_wmt_preprocess_tokenizes_inputs_targets(self):
         inputs = ["Hello", "Goodbye"]
         targets = ["Hallo", "Auf Wiedersehen"]
-        serial_stream = serial_inputs.WMTPreprocess(
+        serial_stream = data.WMTPreprocess(
             tokenizer=self.tokenizer,
             max_length=50,
             max_eval_length=50,
@@ -76,7 +76,7 @@ class WMTPreprocessTest(parameterized.TestCase):
     def test_wmt_preprocess_filters_by_length(self, training):
         inputs = ["short", "toolong"]
         targets = ["ok", "alsoverylong"]
-        serial_stream = serial_inputs.WMTPreprocess(
+        serial_stream = data.WMTPreprocess(
             tokenizer=self.tokenizer,
             max_length=5,
             max_eval_length=5,
@@ -98,7 +98,7 @@ class WMTPreprocessTest(parameterized.TestCase):
     def test_wmt_concat_preprocess_builds_mask(self):
         inputs = ["Hello", "Hi"]
         targets = ["Hallo", "Czesc"]
-        serial_stream = serial_inputs.WMTConcatPreprocess(
+        serial_stream = data.WMTConcatPreprocess(
             tokenizer=self.tokenizer,
             max_length=50,
             max_eval_length=50,

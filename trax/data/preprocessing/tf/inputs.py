@@ -33,7 +33,7 @@ from trax import fastmath
 from trax.data.encoder.encoder import SentencePieceEncoder
 from data.loader.tf.interface import DatasetLoader, DatasetStreams
 from trax.data.loader.tf.base import dataset_to_stream
-from trax.data.preprocessing.tf.math import (
+from trax.data.preprocessing.modules.math import (
     convert_float_to_mathqa,
     convert_to_subtract,
 )
@@ -78,54 +78,6 @@ def random_split_text_tf(max_words_per_segment=512, text_key="text"):
 
     return preprocess_fn
 
-
-def next_sentence_prediction_tf(
-    text_key="text", label_sentences=True, buffer_size=50000
-):
-    """Returns a TFDS preprocessing function for NSP."""
-    del label_sentences
-
-    def preprocess_fn(dataset):
-        dataset = dataset.shuffle(buffer_size, reshuffle_each_iteration=True)
-        other_dataset = dataset.shuffle(buffer_size, reshuffle_each_iteration=True)
-        combined = tf.data.Dataset.zip((dataset, other_dataset))
-
-        def create_nsp_example(a, b):
-            text_a = a[text_key]
-            text_b = b[text_key]
-
-            def first_two_sentences(text):
-                rt = tf.strings.split([text], sep=". ")
-                dense = rt.to_tensor(default_value="")
-                n = tf.shape(dense)[1]
-                first = tf.cond(
-                    tf.greater(n, 0),
-                    lambda: dense[0, 0],
-                    lambda: tf.constant("", dtype=tf.string),
-                )
-                second = tf.cond(
-                    tf.greater(n, 1),
-                    lambda: dense[0, 1],
-                    lambda: first,
-                )
-                return first, second
-
-            first_sentence, a_second = first_two_sentences(text_a)
-            b_first, _ = first_two_sentences(text_b)
-
-            use_random = tf.random.uniform(()) < 0.5
-            second_sentence = tf.cond(use_random, lambda: b_first, lambda: a_second)
-
-            input_text = tf.strings.join(
-                ["sentence1: ", first_sentence, " sentence2: ", second_sentence]
-            )
-            label = tf.where(use_random, "not_next", "next")
-
-            return {"inputs": input_text, "targets": label}
-
-        return combined.map(create_nsp_example)
-
-    return preprocess_fn
 
 
 def no_preprocess(dataset, training):
@@ -608,7 +560,6 @@ def rekey_t5(dataset, training, key_map=None):
 
 
 _PREPROCESSOR_REGISTRY = {
-    "next_sentence_prediction_tf": next_sentence_prediction_tf,
     "random_split_text_tf": random_split_text_tf,
     "select_random_chunk_t5": select_random_chunk_t5,
     "split_tokens_t5": split_tokens_t5,

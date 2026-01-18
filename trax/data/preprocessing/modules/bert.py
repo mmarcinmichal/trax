@@ -13,16 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""TensorFlow data sources and associated prepocessing functions."""
+"""BERT-specific preprocessing pipelines."""
 
 import functools
 
 import gin
 import numpy as np
 
-from trax import fastmath
-from data.loader.tf.interface import DatasetLoader
-from trax.data.preprocessing.tf.inputs import next_sentence_prediction_tf
+from trax.data.preprocessing import inputs as preprocessing_inputs
+from trax.data.loader.tf.base import TFDS
 
 
 @gin.configurable(module="trax.data")
@@ -34,36 +33,19 @@ def BertNextSentencePredictionInputs(
     shuffle_size=50000,
 ):
     """Defines a stream for the next sentence prediction task."""
-    datasets = DatasetLoader(
-        dataset_name=dataset_name,
-        data_dir=data_dir,
-        require_train_split=train,
-    ).datasets()
-    dataset = datasets.train if train else datasets.eval
-    dataset = next_sentence_prediction_tf(
-        text_key=text_key,
-        label_sentences=True,
-        buffer_size=shuffle_size,
-    )(dataset)
-    dataset = dataset.map(lambda x: (x["inputs"], x["targets"]))
-    dataset = dataset.repeat()
-
-    def split_stream(generator=None):
-        # split string with 'sentence1:' and 'sentence2:' into two separate strings
-        del generator
-        for inputs, targets in fastmath.dataset_as_numpy(dataset):
-            # Extract inputs and targets from the dictionary
-
-            text_str = str(inputs)[:-1]  # removes last '"' which is always at the end
-            print(text_str)
-            sentences = text_str.split("sentence1: ")[1].split(" sentence2: ")
-            if len(sentences) != 2:
-                # 'sentence2:' appeared in the text and got mixed up with the label
-                continue
-            sent1, sent2 = sentences
-            yield sent1, sent2, targets == "next"
-
-    return split_stream
+    return preprocessing_inputs.Serial(
+        TFDS(
+            dataset_name=dataset_name,
+            data_dir=data_dir,
+            keys=(text_key,),
+            train=train,
+            shuffle_train=True,
+        ),
+        preprocessing_inputs.NextSentencePrediction(
+            text_key=text_key,
+            buffer_size=shuffle_size,
+        ),
+    )
 
 
 def BertSingleSentenceInputs(
@@ -88,7 +70,7 @@ def BertSingleSentenceInputs(
 def BertDoubleSentenceInputs(
     batch, labeled=True, cls_id=101, sep_id=102  # pylint: disable=invalid-name
 ):
-    """Prepares inputs for BERT models by adding [SEP] and [CLS] tokens and creating segment embeddings."""
+    """Prepares inputs for BERT models by adding [SEP] and [CLS] tokens."""
     if labeled:
         for sent1, sent2, label in batch:
             value_vector = np.concatenate(([cls_id], sent1, [sep_id], sent2, [sep_id]))
@@ -132,44 +114,7 @@ def mask_random_tokens(
     mask_id=103,
     vocab_start_id=999,
 ):
-    """Prepares input for the masking task.
-
-    Preparation consist in masking masking_prob percentage of non-special tokens
-    at each input row; round(masking_prob * num_nonspecial_tokens) random tokens
-    are selected out of which each token is either
-    - replaced with [MASK] token with 80% probability,
-    - replaced with random token with 10% probability,
-    - or unchanged with 10%.
-    The implentation is based on
-    https://github.com/google-research/bert/blob/master/create_pretraining_data.py#L342
-
-    Examples:
-    - batch is a stream with each row having tuple (token_ids,). Function yields
-    rows of form (modified_token_ids, original_tokens, token_weights), where
-    modified_token_ids have [MASK] tokens or random tokens according to the
-    procedure described above.
-    - batch is a stream with each row having tuple (token_ids, segment_embeddings,
-    nsp_label, nsp_weight).Function yields rows of form (modified_token_ids,
-    segment_embeddings, nsp_label, nsp_weight, original_tokens, token_weights).
-
-    Args:
-      batch: stream of inputs. Each row in the stream is a tuple which first
-        element is an array of tokens
-      explicit_vocab_size: the total size of the vocabulary.
-      masking_prob: Determines percent of non-special tokens to be selected for
-        masking.
-      cls_id: id of the special CLS token.
-      sep_id: id of the special SEP token.
-      mask_id: id of the special MASK token.
-      vocab_start_id: id of first non-special token in the vocabulary.
-
-    Yields:
-      a stream with tokens masked for MLM training and 2 appended arrays:
-        - original tokens: a copy of original tokens used as a label for mlm
-        training
-        - token_weights: weights distributed uniformly over selected tokens (sum
-        is 1). Other tokens have 0 weight.
-    """
+    """Prepares input for the masking task."""
     for token_ids, *row_rest in batch:
         original_tokens = token_ids.copy()
 
@@ -203,4 +148,4 @@ def mask_random_tokens(
         )
 
         # rest (10%) is left unchaged
-        yield (token_ids, *row_rest, original_tokens, token_weights)
+        yield token_ids, *row_rest, original_tokens, token_weights
