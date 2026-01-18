@@ -1,0 +1,31 @@
+{
+  "citation": "@article{bojar2014wmt14,\n  title={Findings of the 2014 Workshop on Statistical Machine Translation},\n  author={Bojar, Ondrej and Buck, Christian and Federmann, Christian and Haddow, Barry and Koehn, Philipp and Leveling, Johannes and Monz, Christof and Pecina, Pavel and Saint-Amand, Herve and Soricut, Radu and Specia, Lucia},\n  journal={Proceedings of the Ninth Workshop on Statistical Machine Translation},\n  year={2014}\n}",
+  "configDescription": "Translation dataset from English to de.",
+  "configName": "de-en",
+  "description": "WMT14 translation dataset.",
+  "location": {
+    "urls": [
+      "http://www.statmt.org/wmt14/translation-task.html"
+    ]
+  },
+  "name": "wmt14_translate",
+  "splits": [
+    {
+      "name": "train",
+      "shardLengths": [
+        "281799"
+      ]
+    },
+    {
+      "name": "validation",
+      "shardLengths": [
+        "3000"
+      ]
+    }
+  ],
+  "supervisedKeys": {
+    "input": "en",
+    "output": "de"
+  },
+  "version": "1.0.0"
+}
