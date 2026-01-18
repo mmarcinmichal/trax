@@ -7,14 +7,17 @@ data:
     max_eval_length: 2048
     id_to_mask: 0
   data_streams:
+    _target_: "trax.data.tf_dataset_streams_serial"
+    _partial_: true
+    datasets: "${data.dataset_loader}"
+    preprocess_fn: "${data.LM1BFilterByLength}"
+  dataset_loader:
     _target_: "trax.data.data_streams"
     _partial_: true
     data_dir: null
     dataset_name: "t2t_languagemodel_ptb10k"
-    input_name: "targets"
-    preprocess_fn: "${data.lm1b_preprocess}"
-  lm1b_preprocess:
-    _target_: "trax.data.lm1b_preprocess"
+  LM1BFilterByLength:
+    _target_: "trax.data.LM1BFilterByLength"
     _partial_: true
     max_target_length: 512
     max_eval_target_length: 2048

@@ -22,8 +22,9 @@ train_steps = 100000
 
 # Parameters for batcher:
 # ==============================================================================
-batcher.data_streams = @data.tf_dataset_streams
-tf_dataset_streams.datasets = @data.data_streams
+batcher.data_streams = @data.tf_dataset_streams_serial
+tf_dataset_streams_serial.datasets = @data.data_streams
+tf_dataset_streams_serial.preprocess_fn = @data.Cifar10FlattenNoAugmentation
 batcher.batch_size_per_device = 1
 batcher.eval_batch_size = 8
 batcher.max_eval_length = 3072  # 32 * 32 * 3
@@ -33,10 +34,6 @@ batcher.variable_shapes = False
 # ==============================================================================
 data_streams.data_dir = None
 data_streams.dataset_name = 'cifar10'
-tf_dataset_streams.input_name = 'image'
-tf_dataset_streams.target_name = 'image'
-tf_dataset_streams.bare_preprocess_fn = \
-    @data.downsampled_imagenet_flatten_bare_preprocess
 
 # Parameters for multifactor: # ================================================
 trax.learning.supervised.lr_schedules.multifactor.constant = 1e-3
@@ -73,4 +70,3 @@ HourglassLM.n_heads = 8
 HourglassLM.vocab_size = 256
 HourglassLM.attention_downsampling_fn = @LinearPooling
 HourglassLM.attention_upsampling_fn = @LinearUpsampling
-

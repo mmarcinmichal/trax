@@ -8,11 +8,15 @@ data:
     eval_batch_size: 512
     variable_shapes: false
   data_streams:
+    _target_: "trax.data.tf_dataset_streams_serial"
+    _partial_: true
+    datasets: "${data.dataset_loader}"
+    preprocess_fn: "${data.Cifar10Augmentation}"
+  dataset_loader:
     _target_: "trax.data.data_streams"
     _partial_: true
     data_dir: null
     dataset_name: "cifar10"
-    preprocess_fn: "${data.cifar10_augmentation_preprocess}"
-  cifar10_augmentation_preprocess:
-    _target_: "trax.data.cifar10_augmentation_preprocess"
+  Cifar10Augmentation:
+    _target_: "trax.data.Cifar10Augmentation"
     _partial_: true

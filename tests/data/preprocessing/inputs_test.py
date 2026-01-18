@@ -1120,6 +1120,77 @@ class InputsTest(parameterized.TestCase):
             self.assertEqual(x.shape, (3, 5))
             self.assertEqual(y.shape, (3, 5))
 
+    def test_concat_inputs_targets(self):
+        inputs = np.array([1, 2, 3], dtype=np.int32)
+        targets = np.array([4, 5], dtype=np.int32)
+        stream = iter([({"inputs": inputs}, targets)])
+        features, concat_targets = next(data.ConcatInputsTargets()(stream))
+        expected = np.array([0, 1, 2, 3, 0, 4, 5], dtype=np.int32)
+        self.assertTrue(np.array_equal(features["inputs"], expected))
+        self.assertTrue(np.array_equal(concat_targets, expected))
+
+    def test_squeeze_targets(self):
+        inputs = np.array([1, 2], dtype=np.int32)
+        targets = np.array([[3], [4]], dtype=np.int32)
+        stream = iter([({"inputs": inputs}, targets)])
+        features, squeezed = next(data.SqueezeTargets()(stream))
+        self.assertEqual(features["inputs"].shape, (2,))
+        self.assertEqual(squeezed.shape, (2,))
+
+    def test_lm1b_filter_by_length(self):
+        short = np.array([1, 2, 3], dtype=np.int32)
+        long = np.array([1, 2, 3, 4, 5], dtype=np.int32)
+        stream = iter([({"inputs": short}, short), ({"inputs": long}, long)])
+        filtered = list(
+            data.LM1BFilterByLength(max_target_length=3, training=True)(stream)
+        )
+        self.assertLen(filtered, 1)
+        self.assertTrue(np.array_equal(filtered[0][1], short))
+
+    def test_lm_token_preprocess(self):
+        inputs_arr = np.array([1, 2], dtype=np.int32)
+        targets_arr = np.array([3, 4], dtype=np.int32)
+        stream = iter([{"inputs": inputs_arr, "targets": targets_arr}])
+        example = next(data.LMTokenPreprocess()(stream))
+        self.assertTrue(np.array_equal(example["inputs"], example["targets"]))
+        self.assertEqual(example["mask"].dtype, np.float32)
+
+    def test_filter_by_length_map(self):
+        short = {"inputs": np.array([1]), "targets": np.array([1, 2])}
+        long = {"inputs": np.array([1, 2, 3, 4]), "targets": np.array([1])}
+        stream = iter([short, long])
+        filtered = list(
+            data.FilterByLengthMap(
+                len_map={"inputs": (1, 3), "targets": (1, 2)}, training=True
+            )(stream)
+        )
+        self.assertLen(filtered, 1)
+        self.assertEqual(filtered[0]["inputs"].shape[0], 1)
+
+    def test_truncate_by_length_map(self):
+        example = {"inputs": np.array([1, 2, 3]), "targets": np.array([4, 5, 6])}
+        stream = iter([example])
+        truncated = next(
+            data.TruncateByLengthMap(
+                len_map={"inputs": 2, "targets": 1}, training=True
+            )(stream)
+        )
+        self.assertEqual(truncated["inputs"].shape[0], 2)
+        self.assertEqual(truncated["targets"].shape[0], 1)
+
+    def test_pad_to_length_map(self):
+        example = {"inputs": np.array([1, 2]), "targets": np.array([3])}
+        stream = iter([example])
+        padded = next(data.PadToLengthMap(len_map={"inputs": 4, "targets": 3})(stream))
+        self.assertEqual(padded["inputs"].shape[0], 4)
+        self.assertEqual(padded["targets"].shape[0], 3)
+
+    def test_add_eos(self):
+        example = {"inputs": np.array([1, 2]), "targets": np.array([3, 4])}
+        stream = iter([example])
+        updated = next(data.AddEOS(output_features="targets", eos=99)(stream))
+        self.assertTrue(np.array_equal(updated["targets"], np.array([3, 4, 99])))
+
 
 if __name__ == "__main__":
     absltest.main()

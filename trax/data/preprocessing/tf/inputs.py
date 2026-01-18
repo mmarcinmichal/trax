@@ -15,7 +15,6 @@
 
 """TensorFlow preprocessing utilities for Trax input pipelines."""
 
-import functools
 import itertools
 import json
 import os
@@ -30,8 +29,7 @@ import tensorflow_datasets as tfds
 from absl import logging
 
 from trax import fastmath
-from trax.data.encoder.encoder import SentencePieceEncoder
-from data.loader.tf.interface import DatasetLoader, DatasetStreams
+from trax.data.loader.tf.interface import DatasetLoader, DatasetStreams
 from trax.data.loader.tf.base import dataset_to_stream
 from trax.data.preprocessing.modules.math import (
     convert_float_to_mathqa,
@@ -267,75 +265,6 @@ def downsampled_imagenet_flatten_bare_preprocess(dataset, training):
 
 
 @gin.configurable(module="trax.data", denylist=["dataset", "training"])
-def concat_preprocess(dataset, training, pad_symbol=0):
-    """Pre-processing function that concatenates input and target for LM."""
-    del training
-
-    def concat(features, targets):
-        inp = features["inputs"]
-        pad = tf.expand_dims(tf.zeros_like(inp[0]) + pad_symbol, axis=0)
-        concat = tf.concat([pad, inp, pad, targets], axis=0)
-        features["inputs"] = concat
-        return features, concat
-
-    dataset = dataset.map(concat)
-    return dataset
-
-
-@gin.configurable(module="trax.data", denylist=["dataset", "training"])
-def squeeze_targets_preprocess(dataset, training):
-    """Pre-processing function that squeezes last axis of targets."""
-    del training
-
-    def squeeze(features, targets):
-        if targets.shape[-1] == 1:
-            targets = tf.squeeze(targets, axis=-1)
-        return features, targets
-
-    dataset = dataset.map(squeeze)
-    return dataset
-
-
-@gin.configurable(module="trax.data", denylist=["dataset", "training"])
-def lm1b_preprocess(dataset, training, max_target_length=-1, max_eval_target_length=-1):
-    """Preprocessing for LM1B: filter out targets exceeding maximum length."""
-
-    def target_right_length(_, target):
-        return tf.less(tf.shape(target)[0], max_target_length + 1)
-
-    def eval_target_right_length(_, target):
-        return tf.less(tf.shape(target)[0], max_eval_target_length + 1)
-
-    if max_target_length > 0 and training:
-        dataset = dataset.filter(target_right_length)
-
-    if max_eval_target_length > 0 and not training:
-        dataset = dataset.filter(eval_target_right_length)
-
-    return dataset
-
-
-@gin.configurable(module="trax.data", denylist=["dataset", "training"])
-def lm_token_preprocessing(dataset, training):
-    """Concatenates inputs, 0, targets, with masking only for targets."""
-    del training
-
-    def concat_and_add_mask(x):
-        inp = x["inputs"]
-        targets = x["targets"]
-        pad = tf.expand_dims(tf.zeros_like(inp[0]), axis=0)
-        concat = tf.concat([inp, pad, targets], axis=0)
-        mask = tf.concat([tf.zeros_like(inp), pad, tf.ones_like(targets)], axis=0)
-        x["inputs"] = concat
-        x["targets"] = concat
-        x["mask"] = mask
-        return x
-
-    dataset = dataset.map(concat_and_add_mask)
-    return dataset
-
-
-@gin.configurable(module="trax.data", denylist=["dataset", "training"])
 def bair_robot_pushing_preprocess(dataset, training):
     """Pre-processing function that concatenates input and target frames."""
     del training
@@ -354,79 +283,6 @@ def bair_robot_pushing_preprocess(dataset, training):
 
     dataset = dataset.map(concat_and_add_mask)
     return dataset
-
-
-@gin.configurable(module="trax.data", denylist=["dataset", "training"])
-def filter_dataset_on_len(dataset, training, len_map=None, filter_on_eval=False):
-    """Filters a dataset of lengths given in `len_map`."""
-    if (len_map is None) or (not training and not filter_on_eval):
-        return dataset
-
-    assert isinstance(len_map, dict)
-    for k, bounds in len_map.items():
-        def within_bounds(x, key, len_bounds):
-            size = tf.shape(x[key])[0]
-            min_len, max_len = len_bounds
-            return (min_len <= size) and (size <= max_len)
-
-        dataset = dataset.filter(lambda x: within_bounds(x, k, bounds))
-
-    return dataset
-
-
-@gin.configurable(module="trax.data", denylist=["dataset", "training"])
-def truncate_dataset_on_len(dataset, training, len_map=None, truncate_on_eval=False):
-    """Truncates features in an example to lengths given in `len_map`."""
-    if (len_map is None) or (not training and not truncate_on_eval):
-        return dataset
-
-    assert isinstance(len_map, dict)
-
-    def truncate_example(x):
-        for key, max_len in len_map.items():
-            x_len = tf.shape(x[key])[0]
-            if x_len > max_len:
-                x[key] = x[key][:max_len, ...]
-        return x
-
-    return dataset.map(truncate_example)
-
-
-@gin.configurable(module="trax.data", denylist=["dataset", "training"])
-def pad_dataset_to_length(dataset, training, len_map=None):
-    """Pad features less than specified length to specified length."""
-    del training
-    if len_map is None:
-        return dataset
-
-    def pad_to_len(x):
-        for key, max_len in len_map.items():
-            x_shape = tf.shape(x[key])
-            x_len = x_shape[0]
-            if x_len < max_len:
-                pad_shape = [
-                    max_len - x_len,
-                ]
-                zeros = tf.zeros(pad_shape, dtype=x[key].dtype)
-                x[key] = tf.concat([x[key], zeros], 0)
-        return x
-
-    return dataset.map(pad_to_len)
-
-
-@gin.configurable(module="trax.data", denylist=["dataset", "training"])
-def add_eos_to_output_features(dataset, training, output_features="targets", eos=1):
-    """Adds `EOS` to all features in `output_features`."""
-    del training
-    if not isinstance(output_features, (list, tuple)):
-        output_features = [output_features]
-
-    def add_eos(x):
-        for output_feature in output_features:
-            x[output_feature] = tf.concat([x[output_feature], [eos]], axis=0)
-        return x
-
-    return dataset.map(add_eos)
 
 
 @gin.configurable(module="trax.data", denylist=["dataset", "training"])
@@ -507,68 +363,6 @@ def denoise_t5(
     return dataset.map(apply_noise, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
 
-def _pad_punctuation(text):
-    text = tf.strings.regex_replace(text, r"([[:punct:]])", r" \1 ")
-    text = tf.strings.regex_replace(text, r"\s+", " ")
-    return text
-
-
-def _string_join(lst):
-    out = tf.strings.join(lst, separator=" ")
-    return tf.strings.regex_replace(out, r"\s+", " ")
-
-
-@gin.configurable(module="trax.data", denylist=["dataset", "training"])
-def squad_t5(dataset, training, include_context=True):
-    """Convert SQuAD examples to a text2text pair."""
-    del training
-
-    def squad(x):
-        a = _pad_punctuation(x["answers"]["text"])
-        q = _pad_punctuation(x["question"])
-        c = _pad_punctuation(x["context"])
-        if include_context:
-            inputs = _string_join(["question:", q, "context:", c])
-        else:
-            inputs = _string_join(["squad trivia question:", q])
-        return {
-            "inputs": inputs,
-            "targets": a[0],
-            "id": x["id"],
-            "context": c,
-            "question": q,
-            "answers": a,
-        }
-
-    return dataset.map(squad, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-
-
-@gin.configurable(module="trax.data", denylist=["dataset", "training"])
-def rekey_t5(dataset, training, key_map=None):
-    """Replace the feature keys according to the mapping in `key_map`."""
-    del training
-
-    def rekey(x):
-        if key_map:
-            return {
-                new_key: x[old_key] if old_key else ""
-                for new_key, old_key in key_map.items()
-            }
-        return x
-
-    return dataset.map(rekey, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-
-
-_PREPROCESSOR_REGISTRY = {
-    "random_split_text_tf": random_split_text_tf,
-    "select_random_chunk_t5": select_random_chunk_t5,
-    "split_tokens_t5": split_tokens_t5,
-    "denoise_t5": denoise_t5,
-    "squad_t5": squad_t5,
-    "rekey_t5": rekey_t5,
-}
-
-
 @gin.configurable(module="trax.data", denylist=["dataset", "training"])
 def unsupervised_preprocessors(
     dataset, training, sequence_length=None, output_features=None, preprocessors=None
@@ -590,89 +384,6 @@ def unsupervised_preprocessors(
     return dataset
 
 
-@gin.configurable(module="trax.data", denylist=["dataset", "training"])
-def generic_text_dataset_preprocess_fn(
-    dataset,
-    training=True,
-    text_preprocess_fns=None,
-    token_preprocess_fns=None,
-    spm_path=None,
-    copy_pretokenized=False,
-    debug_print_examples=False,
-    debug_print_examples_rate=0.01,
-):
-    """Pre-processes, tokenizes and post-processes a `tf.data.Dataset`."""
-    if text_preprocess_fns is not None:
-        for text_preprocess_fn in text_preprocess_fns:
-            dataset = text_preprocess_fn(dataset, training)
-
-    if debug_print_examples:
-
-        def print_examples(x):
-            if np.random.uniform() < debug_print_examples_rate:
-                tf.print(x, output_stream=logging.info)
-            return x
-
-        dataset = dataset.map(print_examples)
-
-    tokenizer = SentencePieceEncoder(spm_path)
-
-    def tokenize_fields(example):
-        inputs = example.get("inputs", example["targets"])
-        targets = example["targets"]
-
-        tokenized_inputs = tf.cast(tokenizer.encode(inputs), tf.int64)
-        tokenized_targets = tf.cast(tokenizer.encode(targets), tf.int64)
-
-        new_example = {
-            "inputs": tokenized_inputs,
-            "targets": tokenized_targets,
-        }
-        if copy_pretokenized:
-            new_example["inputs_pretokenized"] = inputs
-            new_example["targets_pretokenized"] = targets
-
-        return new_example
-
-    dataset = dataset.map(tokenize_fields)
-
-    if token_preprocess_fns is not None:
-        for token_preprocess_fn in token_preprocess_fns:
-            dataset = token_preprocess_fn(dataset, training)
-
-    if debug_print_examples:
-
-        def print_examples_and_shapes(x):
-            if np.random.uniform() < debug_print_examples_rate:
-                tf.print(
-                    "inputs_shape:",
-                    tf.size(x["inputs"]),
-                    "targets_shape:",
-                    tf.size(x["targets"]),
-                    "inputs:",
-                    x["inputs"],
-                    "targets:",
-                    x["targets"],
-                    output_stream=logging.info,
-                )
-            return x
-
-        dataset = dataset.map(print_examples_and_shapes)
-
-    return dataset
-
-
-@gin.configurable(module="trax.data")
-def get_t5_preprocessor_by_name(name=None, fn_kwargs=None):
-    """Returns a closure of any T5 preprocessor function with its arguments."""
-    if name is None or name not in _PREPROCESSOR_REGISTRY:
-        raise ValueError(f"Unknown or missing preprocessor name: '{name}'.")
-
-    fn = _PREPROCESSOR_REGISTRY[name]
-    if fn_kwargs:
-        fn = functools.partial(fn, **fn_kwargs)
-
-    return lambda ds, training: fn(ds, training)
 
 
 @gin.configurable(module="trax.data")

@@ -38,22 +38,23 @@ multifactor.constant = 0.001
 
 # Parameters for data_streams:
 # ==============================================================================
+batcher.data_streams = @data.tf_dataset_streams_serial
+tf_dataset_streams_serial.datasets = @data.data_streams
+tf_dataset_streams_serial.preprocess_fn = @data.GenericTextPreprocess
 data_streams.dataset_name = 'squad/plain_text:1.0.0'
-tf_dataset_streams.datasets = @data.data_streams
-tf_dataset_streams.bare_preprocess_fn = @data.generic_text_dataset_preprocess_fn
 
 
-# Parameters for get_t5_preprocessor_by_name:
+# Parameters for GenericTextPreprocess:
 # ==============================================================================
-squad/get_t5_preprocessor_by_name.name = 'squad'
-squad/get_t5_preprocessor_by_name.fn_kwargs = {'include_context': True}
+GenericTextPreprocess.spm_path = 'gs://t5-data/vocabs/cc_all.32000/sentencepiece.model'
+GenericTextPreprocess.text_preprocess_fns = [
+    @data.SquadTextPreprocess()
+]
+GenericTextPreprocess.token_preprocess_fns = [
+    @data.AddEOS()
+]
 
 
-# Parameters for generic_text_dataset_preprocess_fn:
+# Parameters for SquadTextPreprocess:
 # ==============================================================================
-generic_text_dataset_preprocess_fn.text_preprocess_fns = [
-    @squad/get_t5_preprocessor_by_name()
-]
-generic_text_dataset_preprocess_fn.token_preprocess_fns = [
-    @data.add_eos_to_output_features
-]
+SquadTextPreprocess.include_context = True

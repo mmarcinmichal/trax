@@ -84,9 +84,9 @@ def _t5_gin_config():
     gin.bind_parameter(
         "unsupervised_preprocessors.preprocessors",
         [
-            tf_inputs._PREPROCESSOR_REGISTRY["select_random_chunk_t5"],
-            tf_inputs._PREPROCESSOR_REGISTRY["split_tokens_t5"],
-            tf_inputs._PREPROCESSOR_REGISTRY["denoise_t5"],
+            tf_inputs.select_random_chunk_t5,
+            tf_inputs.split_tokens_t5,
+            tf_inputs.denoise_t5,
         ],
     )
 

@@ -19,8 +19,8 @@ import trax.learning.training.trainer
 
 # Parameters for batcher:
 # ==============================================================================
-batcher.data_streams = @data.tf_dataset_streams
-tf_dataset_streams.datasets = @data.data_streams
+batcher.data_streams = @data.tf_dataset_streams_serial
+tf_dataset_streams_serial.datasets = @data.data_streams
 batcher.batch_size_per_device = 64
 batcher.eval_batch_size = 64
 batcher.max_eval_length = 2048
@@ -30,8 +30,7 @@ batcher.id_to_mask = 0
 # ==============================================================================
 data_streams.data_dir = None
 data_streams.dataset_name = 't2t_languagemodel_lm1b32k'
-tf_dataset_streams.input_name = 'targets'
-tf_dataset_streams.preprocess_fn = @data.lm1b_preprocess
+tf_dataset_streams_serial.preprocess_fn = @data.LM1BFilterByLength
 
 # Parameters for multifactor:
 # ==============================================================================
@@ -39,10 +38,10 @@ trax.learning.supervised.lr_schedules.multifactor.constant = 0.001
 trax.learning.supervised.lr_schedules.multifactor.factors = 'constant * linear_warmup'
 trax.learning.supervised.lr_schedules.multifactor.warmup_steps = 8000
 
-# Parameters for lm1b_preprocess:
+# Parameters for LM1BFilterByLength:
 # ==============================================================================
-lm1b_preprocess.max_target_length = 512
-lm1b_preprocess.max_eval_target_length = 2048
+LM1BFilterByLength.max_target_length = 512
+LM1BFilterByLength.max_eval_target_length = 2048
 
 # Parameters for train:
 # ==============================================================================

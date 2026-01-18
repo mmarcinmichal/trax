@@ -20,8 +20,9 @@ import trax.learning.training.trainer
 
 # Parameters for batcher:
 # ==============================================================================
-batcher.data_streams = @data.tf_dataset_streams
-tf_dataset_streams.datasets = @data.data_streams
+batcher.data_streams = @data.tf_dataset_streams_serial
+tf_dataset_streams_serial.datasets = @data.data_streams
+tf_dataset_streams_serial.preprocess_fn = @data.Cifar10Augmentation
 batcher.batch_size_per_device = 256
 batcher.bucket_length = 32
 batcher.buckets = None
@@ -32,7 +33,6 @@ batcher.variable_shapes = False
 # ==============================================================================
 data_streams.data_dir = None
 data_streams.dataset_name = 'cifar10'
-tf_dataset_streams.preprocess_fn = @data.cifar10_augmentation_preprocess
 
 # Parameters for multifactor:
 # ==============================================================================
@@ -58,4 +58,3 @@ train.eval_steps = 10
 train.model = @trax.models.WideResnet
 train.optimizer = @trax.optimizers.Momentum
 train.steps = 10000
-

@@ -18,7 +18,7 @@
 import gin
 import numpy as np
 
-from data.loader.tf import interface
+from trax.data.loader.tf import interface
 
 from trax import fastmath
 

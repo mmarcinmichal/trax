@@ -4,19 +4,18 @@ data:
     buckets: "([513,], [8, 8])"
     strict_pad_on_len: true
     buckets_include_inputs_in_length: true
-  squad:
-    get_t5_preprocessor_by_name:
-      _target_: "trax.data.get_t5_preprocessor_by_name"
-      name: "squad"
-      fn_kwargs:
-        include_context: true
-  generic_text_dataset_preprocess_fn:
-    _target_: "trax.data.generic_text_dataset_preprocess_fn"
+  GenericTextPreprocess:
+    _target_: "trax.data.GenericTextPreprocess"
     _partial_: true
+    spm_path: "gs://t5-data/vocabs/cc_all.32000/sentencepiece.model"
     text_preprocess_fns:
-      - "${data.squad.get_t5_preprocessor_by_name}"
+      - "${data.SquadTextPreprocess}"
     token_preprocess_fns:
-      - "${data.add_eos_to_output_features}"
-  add_eos_to_output_features:
-    _target_: "trax.data.add_eos_to_output_features"
+      - "${data.AddEOS}"
+  SquadTextPreprocess:
+    _target_: "trax.data.SquadTextPreprocess"
+    _partial_: true
+    include_context: true
+  AddEOS:
+    _target_: "trax.data.AddEOS"
     _partial_: true

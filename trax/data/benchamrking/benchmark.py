@@ -23,7 +23,7 @@ from trax import data
 from trax import layers as tl
 from trax.data.encoder import encoder as tokenizer
 from trax.data.loader.tf.base import TFDS
-from trax.data.preprocessing.tf.inputs import generic_text_dataset_preprocess_fn, t5_data
+from trax.data.preprocessing.tf.inputs import t5_data
 from trax.data.preprocessing.modules import bert as bert
 from trax.fastmath import numpy as jnp
 from trax.learning import EvaluationTask
@@ -282,26 +282,17 @@ def _t5_glue_data_split(benchmark_id):
     """Returns a GLUE data split prepared with the standard T5 preprocessor."""
     benchmark, split = _t5_glue_benchmark_and_split(benchmark_id)
     dataset = tfds.load(name=f"glue/{benchmark}", split=split)
-    processed_dataset = generic_text_dataset_preprocess_fn(
-        dataset,
-        spm_path=t5_data().DEFAULT_SPM_PATH,
-        text_preprocess_fns=[
-            lambda ds, training: t5_data().preprocessors.glue(  # pylint: disable=g-long-lambda
-                ds, benchmark_name=benchmark, label_names=_GLUE_LABELS[benchmark]
-            )
-        ],
-        copy_pretokenized=True,
-        debug_print_examples=True,
-        debug_print_examples_rate=0.05,
+    processed_dataset = t5_data().preprocessors.glue(  # pylint: disable=g-long-lambda
+        dataset, benchmark_name=benchmark, label_names=_GLUE_LABELS[benchmark]
     )
-    dataset_as_numpy = tfds.as_numpy(processed_dataset)
 
     def stream_of_inputs_targets_weights(generator=None):
         del generator
         while True:
-            for example in dataset_as_numpy:
-                input_values = example["inputs"]
-                target_values = example["targets"]
+            token_stream = data.GenericTextPreprocess(
+                spm_path=t5_data().DEFAULT_SPM_PATH
+            )(tfds.as_numpy(processed_dataset))
+            for input_values, target_values in token_stream:
                 yield (
                     jnp.array(input_values),
                     jnp.array(target_values),

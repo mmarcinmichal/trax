@@ -6,11 +6,15 @@ data:
     eval_batch_size: 8
     max_eval_length: 12288
   data_streams:
+    _target_: "trax.data.tf_dataset_streams_serial"
+    _partial_: true
+    datasets: "${data.dataset_loader}"
+    preprocess_fn: "${data.Cifar10AugmentationFlatten}"
+  dataset_loader:
     _target_: "trax.data.data_streams"
     _partial_: true
     data_dir: null
     dataset_name: "cifar10"
-    preprocess_fn: "${data.cifar10_augmentation_flatten_preprocess}"
-  cifar10_augmentation_flatten_preprocess:
-    _target_: "trax.data.cifar10_augmentation_flatten_preprocess"
+  Cifar10AugmentationFlatten:
+    _target_: "trax.data.Cifar10AugmentationFlatten"
     _partial_: true

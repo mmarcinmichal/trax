@@ -8,6 +8,12 @@ from trax.data.preprocessing.modules.bert import (
     CreateBertInputs,
     mask_random_tokens,
 )
+from trax.data.preprocessing.modules.cifar import (
+    Cifar10Augmentation,
+    Cifar10AugmentationFlatten,
+    Cifar10FlattenNoAugmentation,
+    Cifar10NoAugmentation,
+)
 from trax.data.preprocessing.modules.math import (
     CreateMathQAInputs,
     convert_float_to_mathqa,
@@ -25,6 +31,7 @@ from trax.data.preprocessing.modules.wmt import (
     WMTToInputsTargetsTuple,
     WMTTokenize,
 )
+from trax.data.preprocessing.modules.video import bair_robot_pushing_hparams
 
 __all__ = [
     "C4Preprocess",
@@ -34,6 +41,10 @@ __all__ = [
     "BertSingleSentenceInputs",
     "CreateBertInputs",
     "mask_random_tokens",
+    "Cifar10Augmentation",
+    "Cifar10AugmentationFlatten",
+    "Cifar10FlattenNoAugmentation",
+    "Cifar10NoAugmentation",
     "CreateMathQAInputs",
     "convert_float_to_mathqa",
     "convert_to_subtract",
@@ -47,4 +58,5 @@ __all__ = [
     "WMTPreprocess",
     "WMTToInputsTargetsTuple",
     "WMTTokenize",
+    "bair_robot_pushing_hparams",
 ]

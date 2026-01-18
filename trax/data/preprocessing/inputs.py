@@ -487,6 +487,253 @@ def PadToLength(  # pylint: disable=invalid-name
 
 
 @gin.configurable(module="trax.data")
+def ConcatInputsTargets(pad_symbol=0):  # pylint: disable=invalid-name
+    """Concatenates inputs and targets with a pad symbol between."""
+
+    def _concat(generator):
+        for example in generator:
+            if isinstance(example, (list, tuple)) and len(example) == 2:
+                features, targets = example
+                if isinstance(features, dict):
+                    inputs = np.asarray(features.get("inputs"))
+                else:
+                    inputs = np.asarray(features)
+                targets = np.asarray(targets)
+                pad = np.zeros_like(inputs[:1]) + pad_symbol
+                concatenated = np.concatenate([pad, inputs, pad, targets], axis=0)
+                if isinstance(features, dict):
+                    updated = dict(features)
+                    updated["inputs"] = concatenated
+                    yield updated, concatenated
+                else:
+                    yield concatenated, concatenated
+            elif isinstance(example, dict):
+                inputs = np.asarray(example.get("inputs"))
+                targets = np.asarray(example.get("targets"))
+                pad = np.zeros_like(inputs[:1]) + pad_symbol
+                concatenated = np.concatenate([pad, inputs, pad, targets], axis=0)
+                updated = dict(example)
+                updated["inputs"] = concatenated
+                yield updated, concatenated
+            else:
+                raise ValueError(
+                    "ConcatInputsTargets expects (features, targets) or dict examples."
+                )
+
+    return _concat
+
+
+@gin.configurable(module="trax.data")
+def SqueezeTargets():  # pylint: disable=invalid-name
+    """Squeezes the last axis of targets if it is size 1."""
+
+    def _squeeze(generator):
+        for example in generator:
+            if isinstance(example, (list, tuple)) and len(example) == 2:
+                features, targets = example
+                targets = np.asarray(targets)
+                if targets.shape[-1] == 1:
+                    targets = np.squeeze(targets, axis=-1)
+                yield features, targets
+            elif isinstance(example, dict):
+                updated = dict(example)
+                targets = np.asarray(updated["targets"])
+                if targets.shape[-1] == 1:
+                    targets = np.squeeze(targets, axis=-1)
+                updated["targets"] = targets
+                yield updated
+            else:
+                raise ValueError("SqueezeTargets expects dict or (features, targets).")
+
+    return _squeeze
+
+
+@gin.configurable(module="trax.data")
+def LM1BFilterByLength(  # pylint: disable=invalid-name
+    max_target_length=-1, max_eval_target_length=-1, training=True, target_key=1
+):
+    """Filters examples by target length for LM1B-style datasets."""
+    max_len = max_target_length if training else max_eval_target_length
+    if max_len <= 0:
+        return lambda g: g
+
+    def _filter(generator):
+        for example in generator:
+            if isinstance(example, dict):
+                target = np.asarray(example["targets"])
+            elif isinstance(example, (list, tuple)) and len(example) > target_key:
+                target = np.asarray(example[target_key])
+            else:
+                raise ValueError("LM1BFilterByLength expects dict or tuple example.")
+            if target.shape[0] < max_len + 1:
+                yield example
+
+    return _filter
+
+
+@gin.configurable(module="trax.data")
+def LMTokenPreprocess():  # pylint: disable=invalid-name
+    """Concatenates inputs, pad, targets and adds loss mask for targets."""
+
+    def _process(generator):
+        for example in generator:
+            if isinstance(example, dict):
+                inputs = np.asarray(example["inputs"])
+                targets = np.asarray(example["targets"])
+                pad = np.zeros_like(inputs[:1])
+                concatenated = np.concatenate([inputs, pad, targets], axis=0)
+                mask = np.concatenate(
+                    [np.zeros_like(inputs), pad, np.ones_like(targets)], axis=0
+                ).astype(np.float32)
+                updated = dict(example)
+                updated["inputs"] = concatenated
+                updated["targets"] = concatenated
+                updated["mask"] = mask
+                yield updated
+            elif isinstance(example, (list, tuple)) and len(example) == 2:
+                inputs = np.asarray(example[0])
+                targets = np.asarray(example[1])
+                pad = np.zeros_like(inputs[:1])
+                concatenated = np.concatenate([inputs, pad, targets], axis=0)
+                mask = np.concatenate(
+                    [np.zeros_like(inputs), pad, np.ones_like(targets)], axis=0
+                ).astype(np.float32)
+                yield concatenated, concatenated, mask
+            else:
+                raise ValueError("LMTokenPreprocess expects dict or (inputs, targets).")
+
+    return _process
+
+
+@gin.configurable(module="trax.data")
+def FilterByLengthMap(  # pylint: disable=invalid-name
+    len_map=None, filter_on_eval=False, training=True
+):
+    """Filters examples by min/max lengths per key from len_map."""
+    if len_map is None or (not training and not filter_on_eval):
+        return lambda g: g
+
+    def _filter(generator):
+        for example in generator:
+            ok = True
+            for key, bounds in len_map.items():
+                min_len, max_len = bounds
+                if isinstance(example, dict):
+                    value = example[key]
+                else:
+                    value = example[key]
+                size = np.asarray(value).shape[0]
+                if size < min_len or size > max_len:
+                    ok = False
+                    break
+            if ok:
+                yield example
+
+    return _filter
+
+
+@gin.configurable(module="trax.data")
+def TruncateByLengthMap(  # pylint: disable=invalid-name
+    len_map=None, truncate_on_eval=False, training=True
+):
+    """Truncates examples to max lengths per key from len_map."""
+    if len_map is None or (not training and not truncate_on_eval):
+        return lambda g: g
+
+    def _truncate(generator):
+        for example in generator:
+            if isinstance(example, dict):
+                updated = dict(example)
+                for key, max_len in len_map.items():
+                    value = np.asarray(updated[key])
+                    if value.shape[0] > max_len:
+                        updated[key] = value[:max_len, ...]
+                yield updated
+            elif isinstance(example, (list, tuple)):
+                updated = list(example)
+                for key, max_len in len_map.items():
+                    value = np.asarray(updated[key])
+                    if value.shape[0] > max_len:
+                        updated[key] = value[:max_len, ...]
+                yield tuple(updated)
+            else:
+                raise ValueError("TruncateByLengthMap expects dict or tuple example.")
+
+    return _truncate
+
+
+@gin.configurable(module="trax.data")
+def PadToLengthMap(len_map=None, pad_value=0):  # pylint: disable=invalid-name
+    """Pads examples to max lengths per key from len_map."""
+    if len_map is None:
+        raise ValueError("len_map parameter should be provided.")
+
+    def _pad_value_for(key):
+        if isinstance(pad_value, dict):
+            return pad_value.get(key, 0)
+        return pad_value
+
+    def _pad(generator):
+        for example in generator:
+            if isinstance(example, dict):
+                updated = dict(example)
+                for key, max_len in len_map.items():
+                    value = np.asarray(updated[key])
+                    pad_len = max(0, max_len - value.shape[0])
+                    if pad_len:
+                        updated[key] = np.pad(
+                            value,
+                            pad_width=(0, pad_len),
+                            mode="constant",
+                            constant_values=_pad_value_for(key),
+                        )
+                yield updated
+            elif isinstance(example, (list, tuple)):
+                updated = list(example)
+                for key, max_len in len_map.items():
+                    value = np.asarray(updated[key])
+                    pad_len = max(0, max_len - value.shape[0])
+                    if pad_len:
+                        updated[key] = np.pad(
+                            value,
+                            pad_width=(0, pad_len),
+                            mode="constant",
+                            constant_values=_pad_value_for(key),
+                        )
+                yield tuple(updated)
+            else:
+                raise ValueError("PadToLengthMap expects dict or tuple example.")
+
+    return _pad
+
+
+@gin.configurable(module="trax.data")
+def AddEOS(output_features="targets", eos=1):  # pylint: disable=invalid-name
+    """Appends EOS to specified output features."""
+    if not isinstance(output_features, (list, tuple)):
+        output_features = [output_features]
+
+    def _append(generator):
+        for example in generator:
+            if isinstance(example, dict):
+                updated = dict(example)
+                for key in output_features:
+                    value = np.asarray(updated[key])
+                    updated[key] = np.concatenate([value, [eos]], axis=0)
+                yield updated
+            elif isinstance(example, (list, tuple)):
+                updated = list(example)
+                for key in output_features:
+                    value = np.asarray(updated[key])
+                    updated[key] = np.concatenate([value, [eos]], axis=0)
+                yield tuple(updated)
+            else:
+                raise ValueError("AddEOS expects dict or tuple example.")
+
+    return _append
+
+
+@gin.configurable(module="trax.data")
 def BucketByLength(
     boundaries,
     batch_sizes,  # pylint: disable=invalid-name
@@ -863,6 +1110,133 @@ def SentencePieceTokenize(  # pylint: disable=invalid-name
             yield tokens
 
     return _tokenize
+
+
+@gin.configurable(module="trax.data")
+def Rekey(key_map=None):  # pylint: disable=invalid-name
+    """Replaces example keys according to the mapping in `key_map`."""
+    if not key_map:
+        return lambda g: g
+
+    def _rekey(stream):
+        for example in stream:
+            if not isinstance(example, dict):
+                raise ValueError("Rekey expects dict examples.")
+            yield {
+                new_key: example[old_key] if old_key else ""
+                for new_key, old_key in key_map.items()
+            }
+
+    return _rekey
+
+
+@gin.configurable(module="trax.data")
+def SentencePieceTokenizePairs(  # pylint: disable=invalid-name
+    spm_path=gin.REQUIRED,
+    input_key="inputs",
+    target_key="targets",
+    copy_pretokenized=False,
+):
+    """Tokenizes `inputs` and `targets` fields using SentencePiece."""
+    tokenizer = SentencePieceEncoder(spm_path)
+
+    def _tokenize(stream):
+        for example in stream:
+            if not isinstance(example, dict):
+                raise ValueError("SentencePieceTokenizePairs expects dict examples.")
+            inputs = _text_to_str(example.get(input_key, example.get("targets")))
+            targets = _text_to_str(example.get(target_key, example.get("targets")))
+            tokenized_inputs = np.array(tokenizer.encode(inputs), dtype=np.int64)
+            tokenized_targets = np.array(tokenizer.encode(targets), dtype=np.int64)
+            output = {
+                input_key: tokenized_inputs,
+                target_key: tokenized_targets,
+            }
+            if copy_pretokenized:
+                output[f"{input_key}_pretokenized"] = inputs
+                output[f"{target_key}_pretokenized"] = targets
+            yield output
+
+    return _tokenize
+
+
+@gin.configurable(module="trax.data")
+def DictToTuple(keys=("inputs", "targets")):  # pylint: disable=invalid-name
+    """Converts dict examples to tuples based on `keys`."""
+    def _convert(stream):
+        for example in stream:
+            if not isinstance(example, dict):
+                raise ValueError("DictToTuple expects dict examples.")
+            yield tuple(example[key] for key in keys)
+
+    return _convert
+
+
+@gin.configurable(module="trax.data")
+def GenericTextPreprocess(  # pylint: disable=invalid-name
+    spm_path=gin.REQUIRED,
+    text_preprocess_fns=None,
+    token_preprocess_fns=None,
+    copy_pretokenized=False,
+):
+    """Serial-friendly text preprocessing with SentencePiece tokenization."""
+    steps = []
+    if text_preprocess_fns:
+        steps.extend(text_preprocess_fns)
+    steps.append(
+        SentencePieceTokenizePairs(
+            spm_path=spm_path, copy_pretokenized=copy_pretokenized
+        )
+    )
+    if token_preprocess_fns:
+        steps.extend(token_preprocess_fns)
+    steps.append(DictToTuple())
+    return Serial(*steps)
+
+
+def _pad_punctuation_py(text):
+    import re
+    import string
+
+    pattern = r"([{}])".format(re.escape(string.punctuation))
+    text = re.sub(pattern, r" \1 ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+@gin.configurable(module="trax.data")
+def SquadTextPreprocess(include_context=True):  # pylint: disable=invalid-name
+    """Converts SQuAD examples to dicts with `inputs` and `targets`."""
+
+    def _squad(stream):
+        for example in stream:
+            if not isinstance(example, dict):
+                raise ValueError("SquadTextPreprocess expects dict examples.")
+            question = _pad_punctuation_py(_text_to_str(example.get("question", "")))
+            context = _pad_punctuation_py(_text_to_str(example.get("context", "")))
+            answers = example.get("answers", {})
+            if isinstance(answers, dict):
+                answer_list = answers.get("text", [])
+            else:
+                answer_list = answers
+            answer = ""
+            if isinstance(answer_list, (list, tuple)) and answer_list:
+                answer = _pad_punctuation_py(_text_to_str(answer_list[0]))
+            elif isinstance(answer_list, str):
+                answer = _pad_punctuation_py(_text_to_str(answer_list))
+            if include_context:
+                inputs = f"question: {question} context: {context}".strip()
+            else:
+                inputs = f"squad trivia question: {question}".strip()
+            yield {
+                "inputs": inputs,
+                "targets": answer,
+                "id": example.get("id", ""),
+                "context": context,
+                "question": question,
+                "answers": answer_list,
+            }
+
+    return _squad
 
 
 @gin.configurable(module="trax.data")
