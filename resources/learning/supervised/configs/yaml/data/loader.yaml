@@ -1,0 +1,14 @@
+dataset_loader:
+  _target_: "trax.data.loader.tf.interface.DatasetLoader"
+  dataset_name: "c4/en:2.3.0"
+  data_dir: null
+  eval_holdout_size: 0.0
+  use_alt_eval: false
+  download: true
+  train_split: null
+  eval_split: null
+  shuffle_train_files: true
+  shuffle_eval_files: false
+  host_id: null
+  n_hosts: null
+  require_train_split: true
