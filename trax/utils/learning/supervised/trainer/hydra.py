@@ -73,23 +73,45 @@ def train_with_hydra(cfg, output_dir):
     from hydra.utils import instantiate
     from omegaconf import OmegaConf
 
-    train_node = OmegaConf.select(cfg, "train")
-    train_cfg = (
-        OmegaConf.to_container(train_node, resolve=True)
-        if train_node is not None
-        else {}
-    )
-    if not isinstance(train_cfg, dict):
-        train_cfg = {}
-
     def _inst(path):
         node = OmegaConf.select(cfg, path)
         return None if node is None else instantiate(node)
 
-    inputs = _inst("train.inputs") or _inst("data.batcher")
-    model = _inst("train.model") or _inst("model.model_fn")
-    optimizer = _inst("train.optimizer") or _inst("optim.optimizer")
-    lr_schedule_fn = _inst("train.lr_schedule_fn") or _inst("schedule.lr_schedule_fn")
+    train_node = OmegaConf.select(cfg, "train")
+    train_args_node = None
+    if train_node is not None:
+        if isinstance(train_node, dict) and "train" in train_node:
+            train_args_node = train_node["train"]
+        else:
+            train_args_node = train_node
+
+    if train_args_node is not None:
+        train_args = instantiate(train_args_node)
+        train_cfg = (
+            OmegaConf.to_container(train_args, resolve=True)
+            if isinstance(train_args, dict) or OmegaConf.is_config(train_args)
+            else {}
+        )
+    else:
+        train_cfg = {}
+
+    if not isinstance(train_cfg, dict):
+        train_cfg = {}
+
+    inputs = train_cfg.get("inputs") or _inst("data.batcher") or _inst("data.make_inputs")
+    model = train_cfg.get("model") or _inst("model.model_fn")
+    optimizer = train_cfg.get("optimizer") or _inst("optim.optimizer")
+    lr_schedule_fn = train_cfg.get("lr_schedule_fn")
+
+    if lr_schedule_fn is None:
+        lr_schedule_fn = _inst("schedule.lr_schedule_fn")
+    if lr_schedule_fn is None:
+        schedule_node = OmegaConf.select(cfg, "schedule")
+        if isinstance(schedule_node, dict):
+            if "multifactor" in schedule_node:
+                lr_schedule_fn = instantiate(schedule_node["multifactor"])
+            elif len(schedule_node) == 1:
+                lr_schedule_fn = instantiate(next(iter(schedule_node.values())))
 
     for key in ("inputs", "model", "optimizer", "lr_schedule_fn"):
         train_cfg.pop(key, None)
@@ -103,10 +125,23 @@ def train_with_hydra(cfg, output_dir):
     if lr_schedule_fn is not None:
         train_cfg["lr_schedule_fn"] = lr_schedule_fn
 
+    for key, path, fallback in (
+        ("additional_eval_tasks", "train.train.additional_eval_tasks", "train.additional_eval_tasks"),
+        ("additional_train_tasks", "train.train.additional_train_tasks", "train.additional_train_tasks"),
+    ):
+        if key not in train_cfg:
+            value = _inst(path)
+            if value is None:
+                value = _inst(fallback)
+            if value is not None:
+                train_cfg[key] = value
+
     ckpt_node = OmegaConf.select(cfg, "ckpt")
     ckpt_cfg = (
         OmegaConf.to_container(ckpt_node, resolve=True) if ckpt_node is not None else {}
     )
+    if isinstance(ckpt_cfg, dict) and "ckpt" in ckpt_cfg:
+        ckpt_cfg = ckpt_cfg.get("ckpt", {})
     if isinstance(ckpt_cfg, dict):
         for key, value in ckpt_cfg.items():
             if value is not None and value != {}:
