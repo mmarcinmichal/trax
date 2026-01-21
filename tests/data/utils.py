@@ -10,7 +10,7 @@ import tensorflow_datasets as tfds
 from absl.testing import absltest
 from t5.data import preprocessors as t5_processors
 
-from trax.data.preprocessing.tf import inputs as tf_inputs
+from trax.data.preprocessing import inputs as serial_inputs
 
 pkg_dir, _ = os.path.split(__file__)
 TEST_VOCAB = os.path.normpath(os.path.join(pkg_dir, "../../resources/data/vocabs/test"))
@@ -84,9 +84,9 @@ def _t5_gin_config():
     gin.bind_parameter(
         "unsupervised_preprocessors.preprocessors",
         [
-            tf_inputs.select_random_chunk_t5,
-            tf_inputs.split_tokens_t5,
-            tf_inputs.denoise_t5,
+            serial_inputs.select_random_chunk_t5,
+            serial_inputs.split_tokens_t5,
+            serial_inputs.denoise_t5,
         ],
     )
 

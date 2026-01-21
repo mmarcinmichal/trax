@@ -32,6 +32,11 @@ from trax.data.preprocessing.modules.wmt import (
     WMTTokenize,
 )
 from trax.data.preprocessing.modules.video import bair_robot_pushing_hparams
+from trax.data.preprocessing.modules.t5 import (
+    denoise_t5,
+    select_random_chunk_t5,
+    split_tokens_t5,
+)
 
 __all__ = [
     "C4Preprocess",
@@ -59,4 +64,7 @@ __all__ = [
     "WMTToInputsTargetsTuple",
     "WMTTokenize",
     "bair_robot_pushing_hparams",
+    "denoise_t5",
+    "select_random_chunk_t5",
+    "split_tokens_t5",
 ]

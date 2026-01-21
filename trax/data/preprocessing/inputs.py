@@ -90,6 +90,11 @@ from trax import fastmath
 from trax.data.encoder.encoder import SentencePieceEncoder
 from trax.data.debugger import data_pipeline as debug_data_pipeline
 from trax.fastmath import numpy as jnp
+from trax.data.preprocessing.modules.t5 import (
+    denoise_t5,
+    select_random_chunk_t5,
+    split_tokens_t5,
+)
 from trax.utils import shapes
 
 logging.set_verbosity(logging.INFO)
