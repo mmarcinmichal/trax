@@ -1,0 +1,60 @@
+# Copyright 2022 The Trax Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import trax.data
+include 'transformer/transformer_c4_pretrain_16gb_adafactor.gin'
+
+
+# Parameters for train:
+# ==============================================================================
+# This should always be overriden since this is relative to the pre-trained
+# checkpoint.
+train.steps = 262144
+
+
+# Parameters for batcher:
+# ==============================================================================
+batcher.buckets = ([513,], [8, 8])
+batcher.strict_pad_on_len = True
+batcher.buckets_include_inputs_in_length = True
+
+
+# Parameters for multifactor:
+# ==============================================================================
+multifactor.factors = 'constant'
+multifactor.constant = 0.001
+
+
+# Parameters for data_streams:
+# ==============================================================================
+batcher.data_streams = @data.tf_dataset_streams_serial
+tf_dataset_streams_serial.datasets = @data.data_streams
+tf_dataset_streams_serial.preprocess_fn = @data.GenericTextPreprocess
+data_streams.dataset_name = 'squad/plain_text:1.0.0'
+
+
+# Parameters for GenericTextPreprocess:
+# ==============================================================================
+GenericTextPreprocess.spm_path = 'gs://t5-data/vocabs/cc_all.32000/sentencepiece.model'
+GenericTextPreprocess.text_preprocess_fns = [
+    @data.SquadTextPreprocess()
+]
+GenericTextPreprocess.token_preprocess_fns = [
+    @data.AddEOS()
+]
+
+
+# Parameters for SquadTextPreprocess:
+# ==============================================================================
+SquadTextPreprocess.include_context = True

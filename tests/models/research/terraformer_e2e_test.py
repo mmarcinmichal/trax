@@ -28,7 +28,7 @@ from trax.utils import test_utils
 pkg_dir, _ = os.path.split(__file__)
 _TEST_VOCAB = os.path.normpath(os.path.join(pkg_dir, "../../../resources/data/vocabs/test"))
 _CONFIG_DIR = os.path.normpath(
-    os.path.join(pkg_dir, "../../../resources/learning/supervised/configs")
+    os.path.join(pkg_dir, "../../../resources/learning/supervised/configs/gini")
 )
 _TEST_CORPUS = os.path.normpath(
     os.path.join(pkg_dir, "../../../resources/data/corpus/test"))
@@ -53,7 +53,9 @@ class TerraformerE2ETest(absltest.TestCase):
             )
         )
 
-        gin.parse_config_file(os.path.join(_CONFIG_DIR, "terraformer_wmt_ende.gin"))
+        gin.parse_config_file(
+            os.path.join(_CONFIG_DIR, "terraformer/terraformer_wmt_ende.gin")
+        )
 
         gin.bind_parameter("train/data.TFDS.data_dir", _TEST_CORPUS)
         gin.bind_parameter("eval/data.TFDS.data_dir", _TEST_CORPUS)
@@ -84,7 +86,9 @@ class TerraformerE2ETest(absltest.TestCase):
         n_layers = 2
         d_ff = 32
 
-        gin.parse_config_file(os.path.join(_CONFIG_DIR, "terraformer_copy.gin"))
+        gin.parse_config_file(
+            os.path.join(_CONFIG_DIR, "terraformer/terraformer_copy.gin")
+        )
 
         gin.bind_parameter("batcher.batch_size_per_device", batch_size_per_device)
         gin.bind_parameter("batcher.buckets", ([64], [1, 1]))  # batch size 1.
@@ -102,7 +106,9 @@ class TerraformerE2ETest(absltest.TestCase):
         n_layers = 2
         d_ff = 32
 
-        gin.parse_config_file(os.path.join(_CONFIG_DIR, "terraformer_purelsh_copy.gin"))
+        gin.parse_config_file(
+            os.path.join(_CONFIG_DIR, "terraformer/terraformer_purelsh_copy.gin")
+        )
 
         gin.bind_parameter("batcher.batch_size_per_device", batch_size_per_device)
         gin.bind_parameter("batcher.buckets", ([64], [1, 1]))  # batch size 1.

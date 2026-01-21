@@ -15,7 +15,7 @@ from trax.data.preprocessing import inputs as serial_inputs
 pkg_dir, _ = os.path.split(__file__)
 TEST_VOCAB = os.path.normpath(os.path.join(pkg_dir, "../../resources/data/vocabs/test"))
 CONFIG_DIR = os.path.normpath(
-    os.path.join(pkg_dir, "../../resources/learning/supervised/configs")
+    os.path.join(pkg_dir, "../../resources/learning/supervised/configs/gini")
 )
 TEST_CORPUS = os.path.normpath(
     os.path.join(pkg_dir, "../../resources/data/corpus/test")

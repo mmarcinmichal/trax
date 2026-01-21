@@ -23,7 +23,7 @@ Sample invocation:
 
     TRAIN_BATCH_SIZE=32
     python trax/trainer.py \
-      --config_file=trax/reinforcement/configs/ppo_acrobot.gin \
+      --config_file=resources/learning/reinforcement/configs/gini/light/light_cartpole.gin \
       --train_batch_size=${TRAIN_BATCH_SIZE} \
       --output_dir=${HOME}/ppo_acrobot \
       --alsologtostderr

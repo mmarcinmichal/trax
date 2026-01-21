@@ -312,7 +312,7 @@ class DecodingTest(test.TestCase):
         np.random.seed(0)
         for test_len in test_lengths:
             gin.clear_config()
-            gin.parse_config_file("terraformer_copy.gin")
+            gin.parse_config_file("terraformer/terraformer_copy.gin")
             gin.bind_parameter("LSHSelfAttention.predict_mem_len", 2 * max_len)
             gin.bind_parameter("LSHSelfAttention.predict_drop_len", 2 * max_len)
 
@@ -496,7 +496,7 @@ class DecodingTest(test.TestCase):
         np.random.seed(0)
         for test_len in test_lengths:
             gin.clear_config()
-            gin.parse_config_file("terraformer_purelsh_copy.gin")
+            gin.parse_config_file("terraformer/terraformer_purelsh_copy.gin")
             gin.bind_parameter("PureLSHSelfAttention.predict_mem_len", 2 * max_len)
             gin.bind_parameter("PureLSHSelfAttention.predict_drop_len", 2 * max_len)
             gin.bind_parameter("PureLSHSelfAttentionWrapper.bias", False)
