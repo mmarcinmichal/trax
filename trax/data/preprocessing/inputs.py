@@ -87,21 +87,14 @@ import tensorflow as tf
 from absl import logging
 
 from trax import fastmath
-from trax.data.loader.tf.interface import DatasetLoader, DatasetStreams
-from trax.data.encoder.encoder import SentencePieceEncoder
 from trax.data.debugger import data_pipeline as debug_data_pipeline
-from trax.fastmath import numpy as jnp
-from trax.data.preprocessing.modules.t5 import (
-    denoise_t5,
-    select_random_chunk_t5,
-    split_tokens_t5,
-)
+from trax.data.encoder.encoder import SentencePieceEncoder
+from trax.data.loader.tf.interface import DatasetLoader, DatasetStreams
 from trax.utils import shapes
 
-logging.set_verbosity(logging.INFO)
+# Alias fastmath.numpy for local use without relying on import-as syntax.
+jnp = fastmath.numpy
 
-# Re-export TF preprocessing helpers to keep the trax.data namespace stable.
-from trax.data.preprocessing.tf.inputs import *  # pylint: disable=wildcard-import,unused-wildcard-import
 
 # For now, we skip at most 100K examples for efficiency.
 _MAX_SKIP_EXAMPLES = 100_000
