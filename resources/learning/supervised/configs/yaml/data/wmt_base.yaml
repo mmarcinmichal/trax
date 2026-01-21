@@ -1,0 +1,18 @@
+data:
+  make_inputs:
+    _target_: "trax.data.make_inputs"
+    _partial_: true
+    train_stream:
+      - "${data.train.TFDS}"
+      - "${data.WMTPreprocess}"
+      - "${data.Shuffle}"
+      - "${data.train.BucketByLength}"
+      - "${data.AddLossWeights}"
+    eval_stream:
+      - "${data.eval.TFDS}"
+      - "${data.WMTPreprocess}"
+      - "${data.eval.BucketByLength}"
+      - "${data.AddLossWeights}"
+  AddLossWeights:
+    _target_: "trax.data.AddLossWeights"
+    id_to_mask: 0

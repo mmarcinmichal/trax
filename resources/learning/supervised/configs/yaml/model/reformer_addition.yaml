@@ -1,3 +1,7 @@
+defaults:
+  - base
+  - _self_
+
 model:
   data_streams:
     _target_: "trax.models.data_streams"
@@ -94,9 +98,3 @@ model:
     pos_type: null
     pos_start_from_zero_prob: 0.95
     pos_max_offset_to_add: 300
-  CausalAttention:
-    _target_: "trax.layers.CausalAttention"
-    _partial_: true
-  Attention:
-    _target_: "trax.layers.Attention"
-    _partial_: true

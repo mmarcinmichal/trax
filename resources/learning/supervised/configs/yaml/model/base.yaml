@@ -1,0 +1,12 @@
+model:
+  Attention:
+    _target_: "trax.layers.Attention"
+  CausalAttention:
+    _target_: "trax.layers.CausalAttention"
+  MultiplicativeModularCausalAttention:
+    _target_: "trax.layers.MultiplicativeModularCausalAttention"
+  Relu:
+    _target_: "trax.layers.Relu"
+    _partial_: true
+  dec_attn_type: "${model.CausalAttention}"
+  enc_attn_type: "${model.Attention}"

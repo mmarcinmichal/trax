@@ -1,0 +1,18 @@
+data:
+  make_inputs:
+    _target_: "trax.data.make_inputs"
+    _partial_: true
+    train_stream:
+      - "${data.train.CreateMathQAInputs}"
+      - "${data.Tokenize}"
+      - "${data.Shuffle}"
+      - "${data.PadToLength}"
+      - "${data.TruncateToLength}"
+      - "${data.Batch}"
+    eval_stream:
+      - "${data.eval.CreateMathQAInputs}"
+      - "${data.Tokenize}"
+      - "${data.Shuffle}"
+      - "${data.PadToLength}"
+      - "${data.TruncateToLength}"
+      - "${data.Batch}"

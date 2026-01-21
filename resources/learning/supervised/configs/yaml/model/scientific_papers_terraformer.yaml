@@ -1,3 +1,7 @@
+defaults:
+  - base
+  - _self_
+
 model:
   LSHSelfAttention:
     _target_: "trax.layers.LSHSelfAttention"
@@ -54,6 +58,3 @@ model:
     pos_d_axial_embs: "(512, 512)"
   attn_type:
     _target_: "trax.models.attn_type"
-  Relu:
-    _target_: "trax.layers.Relu"
-    _partial_: true

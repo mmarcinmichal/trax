@@ -1,3 +1,7 @@
+defaults:
+  - base
+  - _self_
+
 dataset_loader:
   _target_: "trax.data.loader.tf.interface.DatasetLoader"
   dataset_name: "c4/en:2.3.0"

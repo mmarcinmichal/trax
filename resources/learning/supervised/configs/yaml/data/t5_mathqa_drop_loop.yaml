@@ -1,3 +1,7 @@
+defaults:
+  - base
+  - _self_
+
 data:
   Tokenize:
     _target_: "trax.data.Tokenize"
@@ -303,5 +307,3 @@ data:
   Batch:
     _target_: "trax.data.Batch"
     batch_size: 4
-  Shuffle:
-    _target_: "trax.data.Shuffle"

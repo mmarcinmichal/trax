@@ -1,3 +1,7 @@
+defaults:
+  - base
+  - _self_
+
 model:
   PureLSHSelfAttention:
     _target_: "trax.layers.PureLSHSelfAttention"
@@ -46,6 +50,3 @@ model:
     reversible_encoder: true
     pos_type: null
     pos_d_axial_embs: "(512, 512)"
-  Relu:
-    _target_: "trax.layers.Relu"
-    _partial_: true

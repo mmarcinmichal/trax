@@ -1,3 +1,7 @@
+defaults:
+  - base
+  - _self_
+
 data:
   make_inputs:
     _target_: "trax.data.make_inputs"
@@ -63,7 +67,5 @@ data:
       max_length: 2048
       length_keys:
         - 0
-  Shuffle:
-    _target_: "trax.data.Shuffle"
   AddLossWeights:
     _target_: "trax.data.AddLossWeights"

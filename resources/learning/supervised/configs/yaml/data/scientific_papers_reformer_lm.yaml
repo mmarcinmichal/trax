@@ -1,3 +1,7 @@
+defaults:
+  - base
+  - _self_
+
 data:
   make_inputs:
     _target_: "trax.data.make_inputs"
@@ -26,11 +30,6 @@ data:
       dataset_name: "scientific_papers/arxiv:1.1.1"
       keys: "('article', 'abstract')"
       train: true
-  ConvertToUnicode:
-    _target_: "trax.data.ConvertToUnicode"
-    keys:
-      - 0
-      - 1
   Tokenize:
     _target_: "trax.data.Tokenize"
     vocab_file: "gs://t5-data/vocabs/cc_all.32000/sentencepiece.model"
@@ -62,5 +61,3 @@ data:
       dataset_name: "scientific_papers/arxiv:1.1.1"
       keys: "('article', 'abstract')"
       train: false
-  FilterEmptyExamples:
-    _target_: "trax.data.FilterEmptyExamples"

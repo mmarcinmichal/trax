@@ -1,0 +1,11 @@
+data:
+  Shuffle:
+    _target_: "trax.data.Shuffle"
+  ConvertToUnicode:
+    _target_: "trax.data.ConvertToUnicode"
+    keys: [0, 1]
+  FilterEmptyExamples:
+    _target_: "trax.data.FilterEmptyExamples"
+  mask_random_tokens:
+    _target_: "trax.data.mask_random_tokens"
+    _partial_: true

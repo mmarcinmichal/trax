@@ -1,3 +1,7 @@
+defaults:
+  - base
+  - _self_
+
 data:
   make_inputs:
     _target_: "trax.data.make_inputs"
@@ -78,7 +82,3 @@ data:
   SentencePieceTokenize:
     _target_: "trax.data.SentencePieceTokenize"
     spm_path: null
-  FilterEmptyExamples:
-    _target_: "trax.data.FilterEmptyExamples"
-  Shuffle:
-    _target_: "trax.data.Shuffle"

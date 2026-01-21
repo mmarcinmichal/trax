@@ -1,3 +1,7 @@
+defaults:
+  - base
+  - _self_
+
 optim:
   Momentum:
     _target_: "trax.optimizers.Momentum"

@@ -1,5 +1,8 @@
+defaults:
+  - base
+  - _self_
+
 schedule:
   multifactor:
-    _target_: "trax.learning.supervised.lr_schedules.multifactor"
     factors: "constant"
     constant: 0.001

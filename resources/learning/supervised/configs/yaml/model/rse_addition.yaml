@@ -1,3 +1,7 @@
+defaults:
+  - base
+  - _self_
+
 model:
   ResidualShuffleExchange:
     _target_: "trax.models.ResidualShuffleExchange"

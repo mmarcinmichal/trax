@@ -1,3 +1,7 @@
+defaults:
+  - base
+  - _self_
+
 data:
   addition_inputs:
     _target_: "trax.data.addition_inputs"

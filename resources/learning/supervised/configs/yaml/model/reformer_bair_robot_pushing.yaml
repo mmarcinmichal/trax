@@ -1,3 +1,7 @@
+defaults:
+  - base
+  - _self_
+
 model:
   bair_robot_pushing_hparams:
     _target_: "trax.models.bair_robot_pushing_hparams"

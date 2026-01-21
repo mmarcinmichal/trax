@@ -1,3 +1,7 @@
+defaults:
+  - base
+  - _self_
+
 ckpt:
   ckpt:
     checkpoint_highest: "sequence_accuracy"

@@ -1,7 +1,8 @@
+defaults:
+  - base
+  - _self_
+
 model:
-  MultiplicativeModularCausalAttention:
-    _target_: "trax.layers.MultiplicativeModularCausalAttention"
-    sparsity: 16
   MultiplicativeConvCausalAttention:
     _target_: "trax.layers.MultiplicativeConvCausalAttention"
     sparsity: 16
@@ -40,9 +41,3 @@ model:
     loss_sparsity: 0
   attn_type:
     _target_: "trax.models.attn_type"
-  CausalAttention:
-    _target_: "trax.layers.CausalAttention"
-    _partial_: true
-  Relu:
-    _target_: "trax.layers.Relu"
-    _partial_: true

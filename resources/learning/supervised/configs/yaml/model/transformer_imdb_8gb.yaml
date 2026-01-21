@@ -1,3 +1,7 @@
+defaults:
+  - base
+  - _self_
+
 model:
   data_streams:
     _target_: "trax.models.data_streams"

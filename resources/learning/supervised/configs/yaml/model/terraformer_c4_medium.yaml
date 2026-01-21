@@ -1,7 +1,8 @@
+defaults:
+  - base
+  - _self_
+
 model:
-  MultiplicativeModularCausalAttention:
-    _target_: "trax.layers.MultiplicativeModularCausalAttention"
-    sparsity: 16
   MultiplicativeConvCausalAttention:
     _target_: "trax.layers.MultiplicativeConvCausalAttention"
     _partial_: true
@@ -99,13 +100,3 @@ model:
     decoder_attention_type: "${model.MultiplicativeConvCausalAttention}"
     pos_type: null
     attention_chunk_size: 0
-  enc_attn_type:
-    _target_: "trax.models.enc_attn_type"
-  dec_attn_type:
-    _target_: "trax.models.dec_attn_type"
-  Relu:
-    _target_: "trax.layers.Relu"
-    _partial_: true
-  Attention:
-    _target_: "trax.layers.Attention"
-    _partial_: true

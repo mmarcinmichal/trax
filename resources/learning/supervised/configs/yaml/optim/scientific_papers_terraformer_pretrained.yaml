@@ -1,6 +1,9 @@
+defaults:
+  - base
+  - _self_
+
 optim:
   Adafactor:
-    _target_: "trax.optimizers.Adafactor"
     _partial_: true
     beta1: 0.0
     decay_rate: 0.9

@@ -1,3 +1,7 @@
+defaults:
+  - base
+  - _self_
+
 data:
   Tokenize:
     _target_: "trax.data.Tokenize"

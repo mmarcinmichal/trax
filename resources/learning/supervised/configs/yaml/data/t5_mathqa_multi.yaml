@@ -1,3 +1,8 @@
+defaults:
+  - base
+  - mathqa_base
+  - _self_
+
 data:
   Tokenize:
     _target_: "trax.data.Tokenize"
@@ -5,23 +10,6 @@ data:
       - 0
       - 1
     vocab_file: "en_32k.subword"
-  make_inputs:
-    _target_: "trax.data.make_inputs"
-    _partial_: true
-    train_stream:
-      - "${data.train.CreateMathQAInputs}"
-      - "${data.Tokenize}"
-      - "${data.Shuffle}"
-      - "${data.PadToLength}"
-      - "${data.TruncateToLength}"
-      - "${data.Batch}"
-    eval_stream:
-      - "${data.eval.CreateMathQAInputs}"
-      - "${data.Tokenize}"
-      - "${data.Shuffle}"
-      - "${data.PadToLength}"
-      - "${data.TruncateToLength}"
-      - "${data.Batch}"
   eval_additional_task:
     make_additional_stream:
       _target_: "trax.data.make_additional_stream"
@@ -117,7 +105,5 @@ data:
   Batch:
     _target_: "trax.data.Batch"
     batch_size: 4
-  Shuffle:
-    _target_: "trax.data.Shuffle"
   WeightedCategoryCrossEntropy:
     _target_: "trax.layers.WeightedCategoryCrossEntropy"

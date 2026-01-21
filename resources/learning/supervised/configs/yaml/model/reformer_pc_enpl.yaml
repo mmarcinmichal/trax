@@ -1,3 +1,7 @@
+defaults:
+  - base
+  - _self_
+
 model:
   Reformer:
     _target_: "trax.models.Reformer"
@@ -12,6 +16,3 @@ model:
     n_encoder_layers: 6
     n_decoder_layers: 6
     input_vocab_size: 8064
-  Relu:
-    _target_: "trax.layers.Relu"
-    _partial_: true

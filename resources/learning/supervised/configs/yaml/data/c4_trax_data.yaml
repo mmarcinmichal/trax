@@ -1,3 +1,7 @@
+defaults:
+  - base
+  - _self_
+
 data:
   make_inputs:
     _target_: "trax.data.make_inputs"
@@ -70,7 +74,3 @@ data:
     batch_size: 32
   SentencePieceTokenize:
     _target_: "trax.data.SentencePieceTokenize"
-  FilterEmptyExamples:
-    _target_: "trax.data.FilterEmptyExamples"
-  Shuffle:
-    _target_: "trax.data.Shuffle"

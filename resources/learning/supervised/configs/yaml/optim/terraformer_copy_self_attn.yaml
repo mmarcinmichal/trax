@@ -1,1 +1,5 @@
+defaults:
+  - base
+  - _self_
+
 optim:

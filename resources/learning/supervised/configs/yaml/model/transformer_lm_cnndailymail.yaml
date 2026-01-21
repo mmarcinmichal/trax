@@ -1,3 +1,7 @@
+defaults:
+  - base
+  - _self_
+
 model:
   TransformerLM:
     _target_: "trax.models.TransformerLM"

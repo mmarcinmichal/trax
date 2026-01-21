@@ -1,3 +1,7 @@
+defaults:
+  - base
+  - _self_
+
 model:
   SelfAttention:
     _target_: "trax.layers.SelfAttention"
@@ -39,6 +43,3 @@ model:
     vocab_size: 258
     pos_axial_shape: "(128, 512)"
     pos_d_axial_embs: "(256, 512)"
-  Relu:
-    _target_: "trax.layers.Relu"
-    _partial_: true

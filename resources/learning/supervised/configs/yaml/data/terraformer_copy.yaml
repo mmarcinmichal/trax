@@ -1,3 +1,7 @@
+defaults:
+  - base
+  - _self_
+
 data:
   simple_sequence_copy_inputs:
     _target_: "trax.data.simple_sequence_copy_inputs"

@@ -1,18 +1,9 @@
+defaults:
+  - base
+  - wmt_concat_base
+  - _self_
+
 data:
-  make_inputs:
-    _target_: "trax.data.make_inputs"
-    _partial_: true
-    train_stream:
-      - "${data.train.TFDS}"
-      - "${data.WMTConcatPreprocess}"
-      - "${data.Shuffle}"
-      - "${data.train.BucketByLength}"
-      - "${data.AddLossWeights}"
-    eval_stream:
-      - "${data.eval.TFDS}"
-      - "${data.WMTConcatPreprocess}"
-      - "${data.eval.BucketByLength}"
-      - "${data.AddLossWeights}"
   train:
     TFDS:
       _target_: "trax.data.TFDS"
@@ -73,8 +64,3 @@ data:
     _partial_: true
     max_length: 2047
     max_eval_length: 4096
-  Shuffle:
-    _target_: "trax.data.Shuffle"
-  AddLossWeights:
-    _target_: "trax.data.AddLossWeights"
-    id_to_mask: 0

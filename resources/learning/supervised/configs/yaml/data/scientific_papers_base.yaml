@@ -1,0 +1,27 @@
+data:
+  make_inputs:
+    _target_: "trax.data.make_inputs"
+    _partial_: true
+    train_stream:
+      - "${data.train.TFDS}"
+      - "${data.ConvertToUnicode}"
+      - "${data.Tokenize}"
+      - "${data.FilterEmptyExamples}"
+      - "${data.TruncateToLength}"
+      - "${data.AppendValue}"
+      - "${data.PadToLength}"
+      - "${data.AddLossWeights}"
+      - "${data.Batch}"
+    eval_stream:
+      - "${data.eval.TFDS}"
+      - "${data.ConvertToUnicode}"
+      - "${data.Tokenize}"
+      - "${data.FilterEmptyExamples}"
+      - "${data.TruncateToLength}"
+      - "${data.AppendValue}"
+      - "${data.PadToLength}"
+      - "${data.AddLossWeights}"
+      - "${data.Batch}"
+  AddLossWeights:
+    _target_: "trax.data.AddLossWeights"
+    id_to_mask: 0

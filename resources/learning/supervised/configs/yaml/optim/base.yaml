@@ -1,0 +1,5 @@
+optim:
+  Adafactor:
+    _target_: "trax.optimizers.Adafactor"
+  Adam:
+    _target_: "trax.optimizers.Adam"

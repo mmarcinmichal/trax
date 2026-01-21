@@ -1,0 +1,3 @@
+schedule:
+  multifactor:
+    _target_: "trax.learning.supervised.lr_schedules.multifactor"
