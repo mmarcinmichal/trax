@@ -19,6 +19,20 @@ import random
 
 import gin
 import numpy as np
+from absl import logging
+
+
+def t5_data():
+    """Get the T5 data module if available."""
+    module = None
+    try:
+        import t5.data  # pylint: disable=g-import-not-at-top
+
+        module = t5.data
+    except AttributeError as e:
+        logging.error("pip install t5")
+        raise e
+    return module
 
 
 @gin.configurable(module="trax.data")

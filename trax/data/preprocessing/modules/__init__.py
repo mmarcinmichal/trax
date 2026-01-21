@@ -14,6 +14,7 @@ from trax.data.preprocessing.modules.cifar import (
     Cifar10FlattenNoAugmentation,
     Cifar10NoAugmentation,
 )
+from trax.data.preprocessing.modules.aqua import CreateAquaInputs
 from trax.data.preprocessing.modules.math import (
     CreateMathQAInputs,
     convert_float_to_mathqa,
@@ -21,6 +22,10 @@ from trax.data.preprocessing.modules.math import (
     execute_mathqa_dsl_program,
     execute_mathqa_program,
     process_single_mathqa_example,
+)
+from trax.data.preprocessing.modules.drop import (
+    CreateAnnotatedDropInputs,
+    CreateDropInputs,
 )
 from trax.data.preprocessing.modules.wmt import (
     WMTConcatInputsTargets,
@@ -40,6 +45,7 @@ from trax.data.preprocessing.modules.t5 import (
     denoise_t5,
     select_random_chunk_t5,
     split_tokens_t5,
+    t5_data,
 )
 
 __all__ = [
@@ -55,6 +61,9 @@ __all__ = [
     "Cifar10FlattenNoAugmentation",
     "Cifar10NoAugmentation",
     "CreateMathQAInputs",
+    "CreateAquaInputs",
+    "CreateAnnotatedDropInputs",
+    "CreateDropInputs",
     "convert_float_to_mathqa",
     "convert_to_subtract",
     "execute_mathqa_dsl_program",
@@ -70,6 +79,7 @@ __all__ = [
     "bair_robot_pushing_hparams",
     "BairRobotPushingPreprocess",
     "DownsampledImagenetFlatten",
+    "t5_data",
     "denoise_t5",
     "select_random_chunk_t5",
     "split_tokens_t5",

@@ -23,7 +23,7 @@ from trax import data
 from trax import layers as tl
 from trax.data.encoder import encoder as tokenizer
 from trax.data.loader.tf.base import TFDS
-from trax.data.preprocessing.tf.inputs import t5_data
+from trax.data.preprocessing.modules.t5 import t5_data
 from trax.data.preprocessing.modules import bert as bert
 from trax.fastmath import numpy as jnp
 from trax.learning import EvaluationTask

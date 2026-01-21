@@ -144,6 +144,14 @@ def _resolve_pipeline(fn, training):
         return fn
 
 
+@gin.configurable(module="trax.data")
+def unsupervised_preprocessors(preprocessors=None):  # pylint: disable=invalid-name
+    """Combines preprocessors into a Serial pipeline."""
+    if preprocessors is None:
+        return lambda g: g
+    return Serial(*preprocessors)
+
+
 def _prepare_tf_dataset_for_serial(
     dataset, training, shuffle_buffer_size, shuffle, seed
 ):
