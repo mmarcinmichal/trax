@@ -37,7 +37,7 @@ data_streams.data_dir = None
 data_streams.dataset_name = 'downsampled_imagenet/64x64'
 tf_dataset_streams.input_name = 'image'
 tf_dataset_streams.target_name = 'image'
-tf_dataset_streams.bare_preprocess_fn = @data.downsampled_imagenet_flatten_bare_preprocess
+tf_dataset_streams.bare_preprocess_fn = @data.DownsampledImagenetFlatten
 
 # Parameters for multifactor:
 # ==============================================================================
@@ -100,4 +100,3 @@ HourglassLM.vocab_size = 256
 HourglassLM.vanilla_attn_type = %vanilla_attn_type
 HourglassLM.downsampling_fn = @LinearPooling
 HourglassLM.upsampling_fn = @LinearUpsampling
-

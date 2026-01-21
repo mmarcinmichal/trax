@@ -34,7 +34,7 @@ data_streams.dataset_name = 'downsampled_imagenet/32x32'
 tf_dataset_streams.input_name = 'image'
 tf_dataset_streams.target_name = 'image'
 tf_dataset_streams.bare_preprocess_fn = \
-    @data.downsampled_imagenet_flatten_bare_preprocess
+    @data.DownsampledImagenetFlatten
 
 # Parameters for multifactor:
 # ==============================================================================
@@ -74,4 +74,3 @@ HourglassLM.hierarchy = '24@3'
 HourglassLM.vocab_size = 256
 HourglassLM.attention_downsampling_fn = @LinearPooling
 HourglassLM.ff_activation = @trax.layers.FastGelu
-

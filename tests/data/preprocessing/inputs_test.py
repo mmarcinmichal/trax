@@ -16,14 +16,17 @@
 """Tests for trax.data.inputs."""
 
 import itertools
+import random
 import os
 
 import numpy as np
+import tensorflow as tf
 
 from absl.testing import absltest, parameterized
 
 from trax.data.preprocessing import inputs as data
 from trax.data.preprocessing.inputs import ConvertToUnicode
+from trax import fastmath
 
 pkg_dir, _ = os.path.split(__file__)
 _TESTDATA = os.path.normpath(os.path.join(pkg_dir, "../../resources/data/testdata"))
@@ -34,6 +37,203 @@ def _spm_path():
 
 
 class InputsTest(parameterized.TestCase):
+    def test_random_split_text_matches_legacy_tf(self):
+        def legacy_random_split_text_tf(dataset, max_words_per_segment=512):
+            def random_chunk(example):
+                text = example["text"]
+                tokens = tf.strings.split([text]).values
+                length = tf.size(tokens)
+                max_len = tf.minimum(length, max_words_per_segment)
+                start = tf.random.uniform(
+                    shape=[], maxval=length - max_len + 1, dtype=tf.int32
+                )
+                chunk = tokens[start : start + max_len]
+                example["text"] = tf.strings.reduce_join(chunk, separator=" ")
+                return example
+
+            return dataset.map(random_chunk, num_parallel_calls=tf.data.AUTOTUNE)
+
+        text = "hello world"
+        dataset = tf.data.Dataset.from_tensor_slices({"text": [text]})
+        legacy = list(legacy_random_split_text_tf(dataset, max_words_per_segment=2))
+        legacy_text = legacy[0]["text"].numpy().decode("utf-8")
+
+        serial = list(
+            data.RandomSplitText(max_words_per_segment=2, text_key="text")(
+                iter([{"text": text}])
+            )
+        )
+        self.assertEqual(legacy_text, serial[0]["text"])
+
+    def test_tf_dataset_streams_matches_legacy(self):
+        def legacy_tf_dataset_streams(
+            datasets,
+            preprocess_fn,
+            bare_preprocess_fn=None,
+            shuffle_buffer_size=1024,
+            shuffle=False,
+            seed=None,
+            input_name=None,
+            target_name=None,
+        ):
+            train_ds, eval_ds, keys = datasets
+            input_names = (
+                [input_name]
+                if input_name is not None
+                else keys[0]
+                if keys is not None
+                else [None]
+            )
+            target_names = (
+                [target_name]
+                if target_name is not None
+                else keys[1]
+                if keys is not None
+                else [None]
+            )
+            if target_names == [None]:
+                raise ValueError("Target name must be provided when supervised keys are missing.")
+
+            def _append_targets(example):
+                if len(target_names) == 1:
+                    return (example, example[target_names[0]])
+                targets = {name: example[name] for name in target_names}
+                return (example, targets)
+
+            def _prepare(dataset, training):
+                if bare_preprocess_fn is not None:
+                    dataset = bare_preprocess_fn(dataset, training)
+                dataset = dataset.map(lambda x: _append_targets(x))
+                dataset = dataset.repeat()
+                if training:
+                    rng = random.Random(seed) if seed is not None else random
+                    dataset = dataset.skip(rng.randint(0, 100_000))
+                dataset = preprocess_fn(dataset, training)
+                if shuffle and shuffle_buffer_size:
+                    dataset = dataset.shuffle(shuffle_buffer_size, seed=seed)
+                return dataset.prefetch(8)
+
+            train_batches = _prepare(train_ds, True)
+            eval_batches = _prepare(eval_ds, False)
+            input_name_c = input_names[0]
+
+            def dataset_to_stream(dataset):
+                for example in fastmath.dataset_as_numpy(dataset):
+                    features = example[0]
+                    chosen_input = (
+                        input_name_c if input_name_c in features else "inputs"
+                    )
+                    inp = np.asarray(features[chosen_input])
+                    out = np.asarray(example[1])
+                    yield inp, out
+
+            def stream(which):
+                dataset = eval_batches if which == "eval" else train_batches
+                return dataset_to_stream(dataset)
+
+            return lambda: stream("train"), lambda: stream("eval")
+
+        dataset = tf.data.Dataset.from_tensor_slices(
+            {
+                "inputs": [np.array([1, 2], dtype=np.int32)],
+                "targets": [np.array([3, 4], dtype=np.int32)],
+            }
+        )
+        datasets = (dataset, dataset, (["inputs"], ["targets"]))
+
+        legacy_train, legacy_eval = legacy_tf_dataset_streams(
+            datasets,
+            preprocess_fn=lambda ds, training: ds,
+            shuffle=False,
+            shuffle_buffer_size=0,
+        )
+        new_train, new_eval = data.tf_dataset_streams(
+            datasets=datasets,
+            preprocess_fn=lambda g: g,
+            shuffle=False,
+            shuffle_buffer_size=0,
+        )
+
+        np.testing.assert_array_equal(next(legacy_eval())[0], next(new_eval())[0])
+        np.testing.assert_array_equal(next(legacy_eval())[1], next(new_eval())[1])
+
+    def test_tf_dataset_streams_serial_matches_legacy(self):
+        def legacy_tf_dataset_streams_serial(
+            datasets,
+            preprocess_fn,
+            shuffle_buffer_size=1024,
+            shuffle=False,
+            seed=None,
+        ):
+            train_ds, eval_ds, _ = datasets
+
+            def _prepare(dataset, training):
+                dataset = dataset.repeat()
+                if training:
+                    rng = random.Random(seed) if seed is not None else random
+                    dataset = dataset.skip(rng.randint(0, 100_000))
+                if shuffle and shuffle_buffer_size:
+                    dataset = dataset.shuffle(shuffle_buffer_size, seed=seed)
+                return dataset.prefetch(8)
+
+            train_batches = _prepare(train_ds, True)
+            eval_batches = _prepare(eval_ds, False)
+
+            def _normalize_example(example):
+                if isinstance(example, (list, tuple)) and len(example) == 2:
+                    features, targets = example
+                    if isinstance(features, dict):
+                        normalized = dict(features)
+                        if "targets" not in normalized:
+                            normalized["targets"] = targets
+                        return normalized
+                return example
+
+            def _resolve_pipeline(training):
+                try:
+                    pipeline = preprocess_fn(training=training)
+                except TypeError:
+                    pipeline = preprocess_fn
+                return pipeline
+
+            def stream(which):
+                dataset = eval_batches if which == "eval" else train_batches
+                pipeline = _resolve_pipeline(which != "eval")
+                generator = (
+                    _normalize_example(example)
+                    for example in fastmath.dataset_as_numpy(dataset)
+                )
+                return pipeline(generator)
+
+            return lambda: stream("train"), lambda: stream("eval")
+
+        dataset = tf.data.Dataset.from_tensor_slices(
+            {
+                "inputs": [np.array([1, 2], dtype=np.int32)],
+                "targets": [np.array([3, 4], dtype=np.int32)],
+            }
+        )
+        datasets = (dataset, dataset, (["inputs"], ["targets"]))
+
+        legacy_train, legacy_eval = legacy_tf_dataset_streams_serial(
+            datasets,
+            preprocess_fn=lambda g: g,
+            shuffle=False,
+            shuffle_buffer_size=0,
+        )
+        new_train, new_eval = data.tf_dataset_streams_serial(
+            datasets=datasets,
+            preprocess_fn=lambda g: g,
+            shuffle=False,
+            shuffle_buffer_size=0,
+        )
+
+        legacy_example = next(legacy_eval())
+        new_example = next(new_eval())
+        self.assertEqual(legacy_example.keys(), new_example.keys())
+        np.testing.assert_array_equal(legacy_example["inputs"], new_example["inputs"])
+        np.testing.assert_array_equal(legacy_example["targets"], new_example["targets"])
+
     def test_convert_to_unicode(self):
         def dataset1():
             yield (b"Audentes fortuna iuvat.", b"Fortune favors the bold.")

@@ -6,6 +6,10 @@ data:
     eval_batch_size: 256
     variable_shapes: false
   data_streams:
+    _target_: "trax.data.tf_dataset_streams"
+    _partial_: true
+    datasets: "${data.dataset_loader}"
+  dataset_loader:
     _target_: "trax.data.data_streams"
     _partial_: true
     data_dir: null

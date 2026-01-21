@@ -6,8 +6,12 @@ data:
     buckets: "([2049], [8])"
     id_to_mask: 0
   data_streams:
+    _target_: "trax.data.tf_dataset_streams"
+    _partial_: true
+    datasets: "${data.dataset_loader}"
+    input_name: "targets"
+  dataset_loader:
     _target_: "trax.data.data_streams"
     _partial_: true
     data_dir: null
     dataset_name: "t2t_enwik8_l2k"
-    input_name: "targets"

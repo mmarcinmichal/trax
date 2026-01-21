@@ -22,7 +22,8 @@ dataset_name = 'wiki40b'
 # Parameters for TFDS data pipeline:
 # ==============================================================================
 make_inputs.train_stream = [
-  @train/data.CorpusToRandomChunks(),
+  @train/data.TFDS(),
+  @data.RandomSplitText(),
   @data.Tokenize(),
   @data.CreateBertInputs(),
   @data.Shuffle(),
@@ -32,7 +33,8 @@ make_inputs.train_stream = [
   @data.Batch()
 ]
 make_inputs.eval_stream = [
-  @eval/data.CorpusToRandomChunks(),
+  @eval/data.TFDS(),
+  @data.RandomSplitText(),
   @data.Tokenize(),
   @data.CreateBertInputs(),
   @data.Shuffle(),
@@ -42,10 +44,13 @@ make_inputs.eval_stream = [
   @data.Batch()
 ]
 
-train/data.CorpusToRandomChunks.dataset_name = %dataset_name
+train/data.TFDS.dataset_name = %dataset_name
+train/data.TFDS.keys = ('text',)
 train/data.TFDS.train = True
-eval/data.CorpusToRandomChunks.dataset_name = %dataset_name
+eval/data.TFDS.dataset_name = %dataset_name
+eval/data.TFDS.keys = ('text',)
 eval/data.TFDS.train = False
+data.RandomSplitText.text_key = 0
 
 data.CreateBertInputs.labeled = False
 data.CreateBertInputs.double_sentence = False

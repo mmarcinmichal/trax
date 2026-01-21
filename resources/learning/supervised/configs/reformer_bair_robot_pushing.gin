@@ -40,7 +40,7 @@ batcher.max_eval_length = 24576
 data_streams.data_dir = None
 data_streams.dataset_name = 't2t_video_bair_robot_pushing'
 tf_dataset_streams.input_name = 'targets'
-tf_dataset_streams.preprocess_fn = @bair_robot_pushing_preprocess
+tf_dataset_streams.preprocess_fn = @data.BairRobotPushingPreprocess
 tf_dataset_streams.shuffle_buffer_size = 8
 bair_robot_pushing_hparams.video_num_input_frames = 1
 bair_robot_pushing_hparams.video_num_target_frames = 1
@@ -89,4 +89,3 @@ ReformerLM.n_layers = %n_layers
 ReformerLM.vocab_size = 256
 ReformerLM.pos_axial_shape = (2, 64, 64, 3)
 ReformerLM.pos_d_axial_embs= (128, 128, 128, 128)
-

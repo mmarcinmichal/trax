@@ -87,6 +87,7 @@ import tensorflow as tf
 from absl import logging
 
 from trax import fastmath
+from trax.data.loader.tf.interface import DatasetLoader, DatasetStreams
 from trax.data.encoder.encoder import SentencePieceEncoder
 from trax.data.debugger import data_pipeline as debug_data_pipeline
 from trax.fastmath import numpy as jnp
@@ -102,6 +103,9 @@ logging.set_verbosity(logging.INFO)
 # Re-export TF preprocessing helpers to keep the trax.data namespace stable.
 from trax.data.preprocessing.tf.inputs import *  # pylint: disable=wildcard-import,unused-wildcard-import
 
+# For now, we skip at most 100K examples for efficiency.
+_MAX_SKIP_EXAMPLES = 100_000
+
 def Serial(*fns):  # pylint: disable=invalid-name
     """Combines generator functions into one that runs them serially."""
 
@@ -111,6 +115,214 @@ def Serial(*fns):  # pylint: disable=invalid-name
         return generator
 
     return composed_fns
+
+
+def _identity_preprocess(generator):
+    return generator
+
+
+def _resolve_tf_datasets(datasets):
+    if isinstance(datasets, DatasetLoader):
+        datasets = datasets.datasets()
+    if callable(datasets):
+        datasets = datasets()
+    if isinstance(datasets, DatasetStreams):
+        return datasets.train, datasets.eval, datasets.supervised_keys
+    if isinstance(datasets, (list, tuple)) and len(datasets) == 3:
+        return datasets
+    raise ValueError(
+        "Expected DatasetLoader, DatasetStreams, or (train, eval, supervised_keys)."
+    )
+
+
+def _resolve_pipeline(fn, training):
+    if fn is None:
+        return _identity_preprocess
+    try:
+        return fn(training=training)
+    except TypeError:
+        return fn
+
+
+def _prepare_tf_dataset_for_serial(
+    dataset, training, shuffle_buffer_size, shuffle, seed
+):
+    dataset = dataset.repeat()
+    if training:
+        rng = random.Random(seed) if seed is not None else random
+        dataset = dataset.skip(rng.randint(0, _MAX_SKIP_EXAMPLES))
+    if shuffle and shuffle_buffer_size:
+        dataset = dataset.shuffle(shuffle_buffer_size, seed=seed)
+    return dataset.prefetch(8)
+
+
+def _append_targets_serial(example, target_names):
+    if target_names is None:
+        return example
+    if isinstance(example, dict):
+        if "targets" in example:
+            return example
+        if len(target_names) == 1:
+            example = dict(example)
+            example["targets"] = example[target_names[0]]
+            return example
+        targets = {name: example[name] for name in target_names}
+        example = dict(example)
+        example["targets"] = targets
+        return example
+    return example
+
+
+def _map_to_stream_tuple(
+    example, input_names=None, target_names=None, input_name=None, target_name=None
+):
+    if isinstance(example, (list, tuple)) and len(example) >= 2:
+        if isinstance(example[0], dict):
+            features = example[0]
+            targets = example[1]
+        else:
+            return example
+    elif isinstance(example, dict):
+        features = example
+        if target_name is not None:
+            targets = features[target_name]
+        elif "targets" in features:
+            targets = features["targets"]
+        elif target_names:
+            if len(target_names) == 1:
+                targets = features[target_names[0]]
+            else:
+                targets = {name: features[name] for name in target_names}
+        else:
+            raise ValueError(
+                "Target name must be provided when supervised keys are missing."
+            )
+    else:
+        return example
+
+    chosen_input = input_name
+    if chosen_input is None:
+        if "inputs" in features:
+            chosen_input = "inputs"
+        elif input_names:
+            chosen_input = input_names[0]
+
+    if chosen_input is None or chosen_input not in features:
+        raise KeyError(
+            f"Expected input feature '{chosen_input}' not found in features: {list(features.keys())}"
+        )
+
+    inp = np.asarray(features[chosen_input])
+    out = np.asarray(targets)
+    mask = features.get("mask") if isinstance(features, dict) else None
+    if isinstance(inp, np.uint8):
+        inp = inp.astype(np.int32)
+    if isinstance(out, np.uint8):
+        out = out.astype(np.int32)
+    if mask is None:
+        return inp, out
+    return inp, out, np.asarray(mask)
+
+
+@gin.configurable(module="trax.data")
+def tf_dataset_streams(  # pylint: disable=invalid-name
+    datasets=gin.REQUIRED,
+    preprocess_fn=_identity_preprocess,
+    bare_preprocess_fn=None,
+    shuffle_buffer_size=1024,
+    shuffle=True,
+    seed=None,
+    input_name=None,
+    target_name=None,
+):
+    """Serial-friendly dataset streams with input/target selection."""
+    return _tf_dataset_streams_serial(
+        datasets=datasets,
+        preprocess_fn=preprocess_fn,
+        bare_preprocess_fn=bare_preprocess_fn,
+        shuffle_buffer_size=shuffle_buffer_size,
+        shuffle=shuffle,
+        seed=seed,
+        input_name=input_name,
+        target_name=target_name,
+        map_to_stream=True,
+    )
+
+
+@gin.configurable(module="trax.data")
+def tf_dataset_streams_serial(  # pylint: disable=invalid-name
+    datasets=gin.REQUIRED,
+    preprocess_fn=gin.REQUIRED,
+    bare_preprocess_fn=None,
+    shuffle_buffer_size=1024,
+    shuffle=True,
+    seed=None,
+):
+    """Serial-friendly dataset streams without forced input/target mapping."""
+    return _tf_dataset_streams_serial(
+        datasets=datasets,
+        preprocess_fn=preprocess_fn,
+        bare_preprocess_fn=bare_preprocess_fn,
+        shuffle_buffer_size=shuffle_buffer_size,
+        shuffle=shuffle,
+        seed=seed,
+        map_to_stream=False,
+    )
+
+
+def _tf_dataset_streams_serial(
+    datasets,
+    preprocess_fn,
+    bare_preprocess_fn,
+    shuffle_buffer_size,
+    shuffle,
+    seed,
+    map_to_stream,
+    input_name=None,
+    target_name=None,
+):
+    train_ds, eval_ds, keys = _resolve_tf_datasets(datasets)
+    if train_ds is None:
+        raise ValueError("Training requested but train dataset is None.")
+
+    input_names = keys[0] if keys is not None else None
+    target_names = keys[1] if keys is not None else None
+    if target_name is not None:
+        target_names = [target_name]
+    if input_name is not None:
+        input_names = [input_name]
+
+    train_batches = _prepare_tf_dataset_for_serial(
+        train_ds, True, shuffle_buffer_size, shuffle, seed
+    )
+    eval_batches = _prepare_tf_dataset_for_serial(
+        eval_ds, False, shuffle_buffer_size, shuffle, seed
+    )
+
+    def stream(which):
+        dataset = eval_batches if which == "eval" else train_batches
+        generator = (
+            _append_targets_serial(example, target_names)
+            for example in fastmath.dataset_as_numpy(dataset)
+        )
+        bare_pipeline = _resolve_pipeline(bare_preprocess_fn, which != "eval")
+        preprocess_pipeline = _resolve_pipeline(preprocess_fn, which != "eval")
+        generator = bare_pipeline(generator)
+        generator = preprocess_pipeline(generator)
+        if map_to_stream:
+            generator = (
+                _map_to_stream_tuple(
+                    example,
+                    input_names=input_names,
+                    target_names=target_names,
+                    input_name=input_name,
+                    target_name=target_name,
+                )
+                for example in generator
+            )
+        return generator
+
+    return (lambda: stream("train")), (lambda: stream("eval"))
 
 
 @gin.configurable(module="trax.data")
@@ -608,6 +820,45 @@ def LMTokenPreprocess():  # pylint: disable=invalid-name
                 raise ValueError("LMTokenPreprocess expects dict or (inputs, targets).")
 
     return _process
+
+
+@gin.configurable(module="trax.data")
+def RandomSplitText(  # pylint: disable=invalid-name
+    max_words_per_segment=512, text_key="text", seed=None
+):
+    """Randomly selects a contiguous word chunk from text examples."""
+    rng = random.Random(seed) if seed is not None else random
+
+    def _chunk_text(text_value):
+        if isinstance(text_value, bytes):
+            text_value = text_value.decode("utf-8")
+        words = str(text_value).split()
+        length = len(words)
+        if length == 0:
+            return ""
+        max_len = min(length, max_words_per_segment)
+        max_start = length - max_len
+        start = rng.randint(0, max_start) if max_start > 0 else 0
+        return " ".join(words[start : start + max_len])
+
+    def _split(generator):
+        for example in generator:
+            if isinstance(example, dict):
+                updated = dict(example)
+                updated[text_key] = _chunk_text(updated[text_key])
+                yield updated
+            elif isinstance(example, (list, tuple)):
+                if not isinstance(text_key, int):
+                    raise ValueError(
+                        "RandomSplitText expects integer text_key for tuple examples."
+                    )
+                updated = list(example)
+                updated[text_key] = _chunk_text(updated[text_key])
+                yield tuple(updated)
+            else:
+                raise ValueError("RandomSplitText expects dict or tuple examples.")
+
+    return _split
 
 
 @gin.configurable(module="trax.data")

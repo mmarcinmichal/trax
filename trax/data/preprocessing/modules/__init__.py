@@ -31,7 +31,11 @@ from trax.data.preprocessing.modules.wmt import (
     WMTToInputsTargetsTuple,
     WMTTokenize,
 )
-from trax.data.preprocessing.modules.video import bair_robot_pushing_hparams
+from trax.data.preprocessing.modules.imagenet import DownsampledImagenetFlatten
+from trax.data.preprocessing.modules.video import (
+    BairRobotPushingPreprocess,
+    bair_robot_pushing_hparams,
+)
 from trax.data.preprocessing.modules.t5 import (
     denoise_t5,
     select_random_chunk_t5,
@@ -64,6 +68,8 @@ __all__ = [
     "WMTToInputsTargetsTuple",
     "WMTTokenize",
     "bair_robot_pushing_hparams",
+    "BairRobotPushingPreprocess",
+    "DownsampledImagenetFlatten",
     "denoise_t5",
     "select_random_chunk_t5",
     "split_tokens_t5",

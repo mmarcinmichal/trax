@@ -82,5 +82,12 @@ data:
   FilterEmptyExamples:
     _target_: "trax.data.FilterEmptyExamples"
   data_streams:
+    _target_: "trax.data.tf_dataset_streams"
+    _partial_: true
+    datasets: "${data.dataset_loader}"
+
+  dataset_loader:
     _target_: "trax.data.data_streams"
     _partial_: true
+    data_dir: null
+    dataset_name: "scientific_papers/arxiv:1.1.1"

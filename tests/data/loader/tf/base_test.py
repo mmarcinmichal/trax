@@ -25,7 +25,6 @@ from tests.data.utils import TEST_CORPUS  # relative import
 from trax.data.loader.tf import base as ds
 from trax.data.preprocessing import inputs
 from trax.data.preprocessing.inputs import batcher  # noqa: F401
-from trax.data.preprocessing.tf import inputs as tf_inputs
 
 
 class TFDatasetTest(tf.test.TestCase):
@@ -189,12 +188,12 @@ class TFDatasetTest(tf.test.TestCase):
         )
         datasets = (dataset, dataset, (["inputs"], ["targets"]))
 
-        train_stream1, _ = tf_inputs.tf_dataset_streams(
+        train_stream1, _ = inputs.tf_dataset_streams(
             datasets=datasets,
             shuffle_buffer_size=5,
             seed=123,
         )
-        train_stream2, _ = tf_inputs.tf_dataset_streams(
+        train_stream2, _ = inputs.tf_dataset_streams(
             datasets=datasets,
             shuffle_buffer_size=5,
             seed=123,
