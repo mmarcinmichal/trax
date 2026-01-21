@@ -1,29 +1,78 @@
-# entrypoint.py
+"""Hydra configuration helpers for trainer entrypoints."""
+
+import datetime
 import os
-from hydra import compose, initialize_config_dir
-from hydra.utils import instantiate
-from omegaconf import OmegaConf
 
-from trax.utils.learning.supervised import trainer as trax_trainer
+from absl import flags, logging
 
-def main():
-    # 1) Kompozycja hydra config (jak w _compose_hydra_config)
-    config_dir = os.path.abspath(
+from trax.utils.learning.training import trainer_flags  # noqa: F401
+
+FLAGS = flags.FLAGS
+
+
+def config_dir():
+    if FLAGS.hydra_config_dir:
+        return os.path.abspath(os.path.expanduser(FLAGS.hydra_config_dir))
+    return os.path.abspath(
         os.path.join(
             os.path.dirname(__file__),
-            "resources/learning/supervised/configs/yaml",
+            "../../../../resources/learning/supervised/configs/yaml",
         )
     )
-    with initialize_config_dir(version_base=None, config_dir=config_dir):
-        cfg = compose(
-            config_name="config",
-            overrides=[
-                "experiment=transformer_lm1b_8gb_testing",
-                # dodatkowe overrides...
-            ],
-        )
 
-    # 2) Wyciągnięcie sekcji "train" i resolvowanie wartości
+
+def compose_config():
+    try:
+        from hydra import compose, initialize_config_dir
+    except ImportError as exc:
+        raise ImportError(
+            "Hydra is required for --use_hydra. Install hydra-core."
+        ) from exc
+
+    overrides = FLAGS.hydra_overrides if FLAGS.hydra_overrides is not None else []
+    with initialize_config_dir(version_base=None, config_dir=config_dir()):
+        return compose(config_name=FLAGS.hydra_config_name, overrides=overrides)
+
+
+def output_dir_or_default(cfg):
+    if FLAGS.output_dir:
+        output_dir = FLAGS.output_dir
+        logging.info("Using --output_dir %s", output_dir)
+        return os.path.expanduser(output_dir)
+
+    from omegaconf import OmegaConf
+
+    dataset_name = (
+        OmegaConf.select(cfg, "data.data_streams.dataset_name")
+        or OmegaConf.select(cfg, "data.dataset_loader.dataset_name")
+        or OmegaConf.select(cfg, "dataset.dataset_name")
+        or "random"
+    )
+    model_target = OmegaConf.select(cfg, "train.model._target_")
+    if not model_target:
+        model_target = OmegaConf.select(cfg, "model.model_fn._target_")
+    if not model_target:
+        model_target = OmegaConf.select(cfg, "train.model")
+    model_name = (
+        str(model_target).split(".")[-1] if model_target is not None else "model"
+    )
+    output_name = "{model_name}_{dataset_name}_{timestamp}".format(
+        model_name=model_name,
+        dataset_name=dataset_name,
+        timestamp=datetime.datetime.now().strftime("%Y%m%d_%H%M"),
+    )
+    output_dir = os.path.join("~", "trax", output_name)
+    output_dir = os.path.expanduser(output_dir)
+    print()
+    logging.info("No --output_dir specified")
+    logging.info("Using default output_dir: %s", output_dir)
+    return output_dir
+
+
+def train_with_hydra(cfg, output_dir):
+    from hydra.utils import instantiate
+    from omegaconf import OmegaConf
+
     train_node = OmegaConf.select(cfg, "train")
     train_cfg = (
         OmegaConf.to_container(train_node, resolve=True)
@@ -33,7 +82,6 @@ def main():
     if not isinstance(train_cfg, dict):
         train_cfg = {}
 
-    # 3) instantiate kluczowych elementów (jak w _train_with_hydra)
     def _inst(path):
         node = OmegaConf.select(cfg, path)
         return None if node is None else instantiate(node)
@@ -55,9 +103,15 @@ def main():
     if lr_schedule_fn is not None:
         train_cfg["lr_schedule_fn"] = lr_schedule_fn
 
-    # 4) Uruchomienie treningu (train = supervised_trainer.train)
-    output_dir = "runs/my_run"
-    trax_trainer.train(output_dir=output_dir, **train_cfg)
+    ckpt_node = OmegaConf.select(cfg, "ckpt")
+    ckpt_cfg = (
+        OmegaConf.to_container(ckpt_node, resolve=True) if ckpt_node is not None else {}
+    )
+    if isinstance(ckpt_cfg, dict):
+        for key, value in ckpt_cfg.items():
+            if value is not None and value != {}:
+                train_cfg.setdefault(key, value)
 
-if __name__ == "__main__":
-    main()
+    from trax.learning.training import trainer as supervised_trainer
+
+    supervised_trainer.train(output_dir=output_dir, **train_cfg)
