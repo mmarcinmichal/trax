@@ -15,7 +15,7 @@
 import trax.data
 import trax.models.research.bert
 
-include 'bert/bert.gin'
+include 'resources/learning/supervised/configs/gini/bert/bert.gin'
 
 dataset_name = 'wiki40b'
 

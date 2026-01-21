@@ -17,7 +17,7 @@ import trax.models
 import trax.optimizers
 import trax.learning.training.trainer
 
-include 'data/c4_trax_data.gin'
+include 'resources/learning/supervised/configs/gini/data/c4_trax_data.gin'
 
 # Corresponds roughly to T5 'large' ~ 770m params, i.e. T5's `bi_v1_large.gin`.
 ff_chunk_size = 0

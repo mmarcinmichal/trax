@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import trax.data
-include 'transformer/transformer_c4_pretrain_16gb_adafactor.gin'
+include 'resources/learning/supervised/configs/gini/transformer/transformer_c4_pretrain_16gb_adafactor.gin'
 
 
 # Parameters for train:

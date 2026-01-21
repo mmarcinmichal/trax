@@ -14,7 +14,7 @@
 
 # -*-Python-*-
 
-include 'reformer/reformer_copy.gin'
+include 'resources/learning/supervised/configs/gini/reformer/reformer_copy.gin'
 
 import trax.data
 import trax.models

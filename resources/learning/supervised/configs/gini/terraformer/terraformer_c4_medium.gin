@@ -17,7 +17,7 @@ import trax.models
 import trax.optimizers
 import trax.learning.training.trainer
 
-include 'data/c4_trax_data.gin'
+include 'resources/learning/supervised/configs/gini/data/c4_trax_data.gin'
 
 ff_chunk_size = 512  # Decreasing can increase possible batch_size.
 

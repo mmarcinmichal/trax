@@ -14,7 +14,7 @@
 
 # -*-Python-*-
 
-include 'terraformer/terraformer_copy.gin'
+include 'resources/learning/supervised/configs/gini/terraformer/terraformer_copy.gin'
 
 import trax.models
 

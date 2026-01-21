@@ -21,7 +21,7 @@ import trax.learning.training.trainer
 import trax.models.research.bert
 import trax.layers.metrics
 
-include 'data/c4.gin'
+include 'resources/learning/supervised/configs/gini/data/c4.gin'
 
 # This config illustrates how to manage two eval tasks.
 
