@@ -70,16 +70,13 @@ then
   pytest tests/optimizers
   set_status
 
+  pytest tests/performance
+  set_status
+  
   pytest tests/tf
   set_status
 
-  pytest tests/trainers
-  set_status
-
-  pytest tests/utils/import_test.py
-  set_status
-
-  pytest tests/utils/shapes_test.py
+  pytest tests/utils
   set_status
 
 else
