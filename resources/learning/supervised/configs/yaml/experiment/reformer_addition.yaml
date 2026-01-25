@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "reformer_addition"
+    data: "reformer/reformer_addition"
   -
     model: "reformer_addition"
   -

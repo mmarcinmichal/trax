@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "terraformer_wmt_ende"
+    data: "terraformer/terraformer_wmt_ende"
   -
     model: "terraformer_wmt_ende"
   -

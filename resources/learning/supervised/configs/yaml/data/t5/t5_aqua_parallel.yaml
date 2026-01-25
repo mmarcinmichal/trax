@@ -1,0 +1,210 @@
+defaults:
+  - /data/base
+  - _self_
+
+data:
+  Tokenize:
+    _target_: "trax.data.Tokenize"
+    keys:
+      - 0
+      - 1
+    vocab_file: "en_32k.subword"
+  make_inputs:
+    _target_: "trax.data.make_inputs"
+    _partial_: true
+    eval_stream:
+      - "${data.eval.CreateAquaInputs}"
+      - "${data.Tokenize}"
+      - "${data.Shuffle}"
+      - "${data.PadToLength}"
+      - "${data.TruncateToLength}"
+      - "${data.Batch}"
+    train_stream: "${data.make_parallel_stream}"
+  train_cumulative_rationale_task:
+    make_additional_stream:
+      _target_: "trax.data.make_additional_stream"
+      _partial_: true
+      stream:
+        - "${data.train_cumulative_rationale_task.CreateAquaInputs}"
+        - "${data.Tokenize}"
+        - "${data.Shuffle}"
+        - "${data.PadToLength}"
+        - "${data.TruncateToLength}"
+        - "${data.Batch}"
+    CreateAquaInputs:
+      _target_: "trax.data.CreateAquaInputs"
+      dataset_path: "path_to_the_dataset"
+      train: true
+      cumulative: true
+  eval_cumulative_rationale_task:
+    make_additional_stream:
+      _target_: "trax.data.make_additional_stream"
+      stream:
+        - "${data.eval_cumulative_rationale_task.CreateAquaInputs}"
+        - "${data.Tokenize}"
+        - "${data.Shuffle}"
+        - "${data.PadToLength}"
+        - "${data.TruncateToLength}"
+        - "${data.Batch}"
+    CreateAquaInputs:
+      _target_: "trax.data.CreateAquaInputs"
+      dataset_path: "path_to_the_dataset"
+      train: false
+      cumulative: true
+  train_rationale_task:
+    make_additional_stream:
+      _target_: "trax.data.make_additional_stream"
+      _partial_: true
+      stream:
+        - "${data.train_rationale_task.CreateAquaInputs}"
+        - "${data.Tokenize}"
+        - "${data.Shuffle}"
+        - "${data.PadToLength}"
+        - "${data.TruncateToLength}"
+        - "${data.Batch}"
+    CreateAquaInputs:
+      _target_: "trax.data.CreateAquaInputs"
+      dataset_path: "path_to_the_dataset"
+      train: true
+      rationale: true
+  eval_rationale_task:
+    make_additional_stream:
+      _target_: "trax.data.make_additional_stream"
+      stream:
+        - "${data.eval_rationale_task.CreateAquaInputs}"
+        - "${data.Tokenize}"
+        - "${data.Shuffle}"
+        - "${data.PadToLength}"
+        - "${data.TruncateToLength}"
+        - "${data.Batch}"
+    CreateAquaInputs:
+      _target_: "trax.data.CreateAquaInputs"
+      dataset_path: "path_to_the_dataset"
+      train: false
+      rationale: true
+  train_correct_answer_task:
+    make_additional_stream:
+      _target_: "trax.data.make_additional_stream"
+      _partial_: true
+      stream:
+        - "${data.train_correct_answer_task.CreateAquaInputs}"
+        - "${data.Tokenize}"
+        - "${data.Shuffle}"
+        - "${data.PadToLength}"
+        - "${data.TruncateToLength}"
+        - "${data.Batch}"
+    CreateAquaInputs:
+      _target_: "trax.data.CreateAquaInputs"
+      dataset_path: "path_to_the_dataset"
+      train: true
+      correct_answer: true
+  eval_correct_answer_task:
+    make_additional_stream:
+      _target_: "trax.data.make_additional_stream"
+      stream:
+        - "${data.eval_correct_answer_task.CreateAquaInputs}"
+        - "${data.Tokenize}"
+        - "${data.Shuffle}"
+        - "${data.PadToLength}"
+        - "${data.TruncateToLength}"
+        - "${data.Batch}"
+    CreateAquaInputs:
+      _target_: "trax.data.CreateAquaInputs"
+      dataset_path: "path_to_the_dataset"
+      train: false
+      correct_answer: true
+  train_correct_answer_given_reasoning_task:
+    make_additional_stream:
+      _target_: "trax.data.make_additional_stream"
+      _partial_: true
+      stream:
+        - "${data.train_correct_answer_given_reasoning_task.CreateAquaInputs}"
+        - "${data.Tokenize}"
+        - "${data.Shuffle}"
+        - "${data.PadToLength}"
+        - "${data.TruncateToLength}"
+        - "${data.Batch}"
+    CreateAquaInputs:
+      _target_: "trax.data.CreateAquaInputs"
+      dataset_path: "path_to_the_dataset"
+      train: true
+      correct_answer_given_reasoning: true
+  eval_correct_answer_given_reasoning_task:
+    make_additional_stream:
+      _target_: "trax.data.make_additional_stream"
+      stream:
+        - "${data.eval_correct_answer_given_reasoning_task.CreateAquaInputs}"
+        - "${data.Tokenize}"
+        - "${data.Shuffle}"
+        - "${data.PadToLength}"
+        - "${data.TruncateToLength}"
+        - "${data.Batch}"
+    CreateAquaInputs:
+      _target_: "trax.data.CreateAquaInputs"
+      dataset_path: "path_to_the_dataset"
+      train: false
+      correct_answer_given_reasoning: true
+  train_order_prediction_task:
+    make_additional_stream:
+      _target_: "trax.data.make_additional_stream"
+      _partial_: true
+      stream:
+        - "${data.train_order_prediction_task.CreateAquaInputs}"
+        - "${data.Tokenize}"
+        - "${data.Shuffle}"
+        - "${data.PadToLength}"
+        - "${data.TruncateToLength}"
+        - "${data.Batch}"
+    CreateAquaInputs:
+      _target_: "trax.data.CreateAquaInputs"
+      dataset_path: "path_to_the_dataset"
+      train: true
+      order_prediction: true
+  eval_order_prediction_task:
+    make_additional_stream:
+      _target_: "trax.data.make_additional_stream"
+      stream:
+        - "${data.eval_order_prediction_task.CreateAquaInputs}"
+        - "${data.Tokenize}"
+        - "${data.Shuffle}"
+        - "${data.PadToLength}"
+        - "${data.TruncateToLength}"
+        - "${data.Batch}"
+    CreateAquaInputs:
+      _target_: "trax.data.CreateAquaInputs"
+      dataset_path: "path_to_the_dataset"
+      train: false
+      order_prediction: true
+  make_parallel_stream:
+    _target_: "trax.data.make_parallel_stream"
+    streams:
+      - "${data.train_cumulative_rationale_task.make_additional_stream}"
+      - "${data.train_rationale_task.make_additional_stream}"
+      - "${data.train_correct_answer_task.make_additional_stream}"
+      - "${data.train_correct_answer_given_reasoning_task.make_additional_stream}"
+      - "${data.train_order_prediction_task.make_additional_stream}"
+  eval:
+    CreateAquaInputs:
+      _target_: "trax.data.CreateAquaInputs"
+      dataset_path: "path_to_the_dataset"
+      train: false
+      cumulative: true
+  PadToLength:
+    _target_: "trax.data.PadToLength"
+    len_map:
+      0: 512
+      1: 512
+      2: 512
+    pad_value:
+      0: 0
+      1: 0
+      2: 0
+  TruncateToLength:
+    _target_: "trax.data.TruncateToLength"
+    len_map:
+      0: "(512,)"
+      1: "(512,)"
+      2: "(512,)"
+  Batch:
+    _target_: "trax.data.Batch"
+    batch_size: 4

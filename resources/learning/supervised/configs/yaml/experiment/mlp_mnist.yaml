@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "mlp_mnist"
+    data: "mlp/mlp_mnist"
   -
     model: "mlp_mnist"
   -

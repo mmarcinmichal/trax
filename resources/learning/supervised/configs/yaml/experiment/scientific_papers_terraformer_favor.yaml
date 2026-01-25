@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "scientific_papers_terraformer_favor"
+    data: "scientific_papers/scientific_papers_terraformer_favor"
   -
     model: "scientific_papers_terraformer_favor"
   -

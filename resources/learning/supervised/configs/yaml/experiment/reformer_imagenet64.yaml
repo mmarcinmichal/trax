@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "reformer_imagenet64"
+    data: "reformer/reformer_imagenet64"
   -
     model: "reformer_imagenet64"
   -

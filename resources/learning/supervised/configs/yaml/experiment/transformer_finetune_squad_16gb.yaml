@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "transformer_finetune_squad_16gb"
+    data: "transformer/transformer_finetune_squad_16gb"
   -
     model: "transformer_finetune_squad_16gb"
   -

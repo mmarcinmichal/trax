@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "scientific_papers_terraformer"
+    data: "scientific_papers/scientific_papers_terraformer"
   -
     model: "scientific_papers_terraformer"
   -

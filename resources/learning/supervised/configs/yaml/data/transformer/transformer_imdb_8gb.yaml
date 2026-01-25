@@ -1,0 +1,71 @@
+defaults:
+  - /data/base
+  - _self_
+
+data:
+  make_inputs:
+    _target_: "trax.data.make_inputs"
+    _partial_: true
+    train_stream:
+      - "${data.train.TFDS}"
+      - "${data.Tokenize}"
+      - "${data.Shuffle}"
+      - "${data.train.FilterByLength}"
+      - "${data.BucketByLength}"
+      - "${data.AddLossWeights}"
+    eval_stream:
+      - "${data.eval.TFDS}"
+      - "${data.Tokenize}"
+      - "${data.Shuffle}"
+      - "${data.eval.FilterByLength}"
+      - "${data.BucketByLength}"
+      - "${data.AddLossWeights}"
+  train:
+    TFDS:
+      _target_: "trax.data.TFDS"
+      dataset_name: "imdb_reviews"
+      keys: "('text', 'label')"
+    FilterByLength:
+      _target_: "trax.data.FilterByLength"
+      max_length: 1024
+      length_keys:
+        - 0
+  Tokenize:
+    _target_: "trax.data.Tokenize"
+    vocab_file: "en_8k.subword"
+    keys:
+      - 0
+  BucketByLength:
+    _target_: "trax.data.BucketByLength"
+    boundaries:
+      - 32
+      - 64
+      - 128
+      - 256
+      - 512
+      - 1024
+      - 2048
+    batch_sizes:
+      - 128
+      - 64
+      - 32
+      - 16
+      - 8
+      - 1
+      - 1
+      - 1
+    length_keys:
+      - 0
+  eval:
+    TFDS:
+      _target_: "trax.data.TFDS"
+      dataset_name: "imdb_reviews"
+      keys: "('text', 'label')"
+      train: false
+    FilterByLength:
+      _target_: "trax.data.FilterByLength"
+      max_length: 2048
+      length_keys:
+        - 0
+  AddLossWeights:
+    _target_: "trax.data.AddLossWeights"

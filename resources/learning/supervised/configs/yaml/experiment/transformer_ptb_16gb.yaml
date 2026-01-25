@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "transformer_ptb_16gb"
+    data: "transformer/transformer_ptb_16gb"
   -
     model: "transformer_ptb_16gb"
   -

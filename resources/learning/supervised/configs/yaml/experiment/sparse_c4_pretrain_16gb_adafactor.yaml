@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "sparse_c4_pretrain_16gb_adafactor"
+    data: "sparse/sparse_c4_pretrain_16gb_adafactor"
   -
     model: "sparse_c4_pretrain_16gb_adafactor"
   -

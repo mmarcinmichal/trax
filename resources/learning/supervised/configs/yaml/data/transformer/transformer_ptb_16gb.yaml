@@ -1,0 +1,27 @@
+defaults:
+  - /data/base
+  - _self_
+
+data:
+  batcher:
+    _target_: "trax.data.batcher"
+    data_streams: "${data.data_streams}"
+    batch_size_per_device: 64
+    eval_batch_size: 512
+    max_eval_length: 2048
+    id_to_mask: 0
+  data_streams:
+    _target_: "trax.data.tf_dataset_streams_serial"
+    _partial_: true
+    datasets: "${data.dataset_loader}"
+    preprocess_fn: "${data.LM1BFilterByLength}"
+  dataset_loader:
+    _target_: "trax.data.data_streams"
+    _partial_: true
+    data_dir: null
+    dataset_name: "t2t_languagemodel_ptb10k"
+  LM1BFilterByLength:
+    _target_: "trax.data.LM1BFilterByLength"
+    _partial_: true
+    max_target_length: 512
+    max_eval_target_length: 2048

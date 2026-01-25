@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "rse_addition"
+    data: "rse/rse_addition"
   -
     model: "rse_addition"
   -

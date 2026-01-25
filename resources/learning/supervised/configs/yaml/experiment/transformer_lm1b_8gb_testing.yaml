@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "transformer_lm1b_8gb_testing"
+    data: "transformer/transformer_lm1b_8gb_testing"
   -
     model: "transformer_lm1b_8gb_testing"
   -

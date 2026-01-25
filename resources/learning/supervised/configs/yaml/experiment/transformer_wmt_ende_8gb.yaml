@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "transformer_wmt_ende_8gb"
+    data: "transformer/transformer_wmt_ende_8gb"
   -
     model: "transformer_wmt_ende_8gb"
   -

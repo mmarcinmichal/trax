@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "reformer_bair_robot_pushing"
+    data: "reformer/reformer_bair_robot_pushing"
   -
     model: "reformer_bair_robot_pushing"
   -

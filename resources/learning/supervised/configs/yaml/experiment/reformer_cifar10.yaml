@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "reformer_cifar10"
+    data: "reformer/reformer_cifar10"
   -
     model: "reformer_cifar10"
   -

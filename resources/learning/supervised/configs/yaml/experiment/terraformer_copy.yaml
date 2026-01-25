@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "terraformer_copy"
+    data: "terraformer/terraformer_copy"
   -
     model: "terraformer_copy"
   -

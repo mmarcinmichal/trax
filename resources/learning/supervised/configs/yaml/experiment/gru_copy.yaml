@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "gru_copy"
+    data: "gru/gru_copy"
   -
     model: "gru_copy"
   -

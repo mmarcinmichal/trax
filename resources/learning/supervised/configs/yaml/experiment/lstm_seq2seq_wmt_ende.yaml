@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "lstm_seq2seq_wmt_ende"
+    data: "lstm/lstm_seq2seq_wmt_ende"
   -
     model: "lstm_seq2seq_wmt_ende"
   -

@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "scientific_papers_reformer_lm"
+    data: "scientific_papers/scientific_papers_reformer_lm"
   -
     model: "scientific_papers_reformer_lm"
   -

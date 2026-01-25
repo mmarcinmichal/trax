@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "transformer_lm_cnndailymail"
+    data: "transformer/transformer_lm_cnndailymail"
   -
     model: "transformer_lm_cnndailymail"
   -

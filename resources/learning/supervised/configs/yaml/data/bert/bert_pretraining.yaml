@@ -1,0 +1,33 @@
+defaults:
+  - bert
+  - _self_
+
+data:
+  make_inputs:
+    _target_: "trax.data.make_inputs"
+    train_stream:
+      - "${data.train.BertNextSentencePredictionInputs}"
+      - "${data.Tokenize}"
+      - "${data.CreateBertInputs}"
+      - "${data.Shuffle}"
+      - "${data.PadToLength}"
+      - "${data.TruncateToLength}"
+      - "${data.mask_random_tokens}"
+      - "${data.Batch}"
+    eval_stream:
+      - "${data.eval.BertNextSentencePredictionInputs}"
+      - "${data.Tokenize}"
+      - "${data.CreateBertInputs}"
+      - "${data.Shuffle}"
+      - "${data.PadToLength}"
+      - "${data.TruncateToLength}"
+      - "${data.mask_random_tokens}"
+      - "${data.Batch}"
+  train:
+    BertNextSentencePredictionInputs:
+      _target_: "trax.data.BertNextSentencePredictionInputs"
+      dataset_name: "wiki40b"
+  eval:
+    BertNextSentencePredictionInputs:
+      _target_: "trax.data.BertNextSentencePredictionInputs"
+      dataset_name: "wiki40b"

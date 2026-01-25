@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "resnet50_frn_imagenet_8gb"
+    data: "resnet/resnet50_frn_imagenet_8gb"
   -
     model: "resnet50_frn_imagenet_8gb"
   -

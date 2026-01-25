@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "terraformer_c4_medium"
+    data: "terraformer/terraformer_c4_medium"
   -
     model: "terraformer_c4_medium"
   -

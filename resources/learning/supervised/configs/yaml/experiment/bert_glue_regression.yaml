@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "bert_glue_regression"
+    data: "bert/bert_glue_regression"
   -
     model: "bert_glue_regression"
   -

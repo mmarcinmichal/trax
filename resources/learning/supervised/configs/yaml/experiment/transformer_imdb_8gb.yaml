@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "transformer_imdb_8gb"
+    data: "transformer/transformer_imdb_8gb"
   -
     model: "transformer_imdb_8gb"
   -

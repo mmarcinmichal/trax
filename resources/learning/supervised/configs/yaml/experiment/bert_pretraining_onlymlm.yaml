@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "bert_pretraining_onlymlm"
+    data: "bert/bert_pretraining_onlymlm"
   -
     model: "bert_pretraining_onlymlm"
   -

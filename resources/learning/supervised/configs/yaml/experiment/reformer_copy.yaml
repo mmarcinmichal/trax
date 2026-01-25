@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "reformer_copy"
+    data: "reformer/reformer_copy"
   -
     model: "reformer_copy"
   -

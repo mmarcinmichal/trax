@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "sparse_lm1b_pretrain_16gb"
+    data: "sparse/sparse_lm1b_pretrain_16gb"
   -
     model: "sparse_lm1b_pretrain_16gb"
   -

@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "terraformer_purelsh_copy"
+    data: "terraformer/terraformer_purelsh_copy"
   -
     model: "terraformer_purelsh_copy"
   -

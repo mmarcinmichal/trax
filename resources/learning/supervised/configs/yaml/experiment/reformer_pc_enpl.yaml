@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "reformer_pc_enpl"
+    data: "reformer/reformer_pc_enpl"
   -
     model: "reformer_pc_enpl"
   -

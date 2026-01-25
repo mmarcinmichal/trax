@@ -1,0 +1,60 @@
+defaults:
+  - /data/base
+  - _self_
+
+data:
+  make_inputs:
+    _target_: "trax.data.make_inputs"
+    _partial_: true
+    train_stream:
+      - "${data.train.TFDS}"
+      - "${data.C4Preprocess}"
+      - "${data.Shuffle}"
+      - "${data.train.BucketByLength}"
+      - "${data.AddLossWeights}"
+    eval_stream:
+      - "${data.eval.TFDS}"
+      - "${data.C4Preprocess}"
+      - "${data.eval.BucketByLength}"
+      - "${data.AddLossWeights}"
+  train:
+    TFDS:
+      _target_: "trax.data.TFDS"
+      dataset_name: "c4"
+      data_dir: null
+      keys: "('text',)"
+    BucketByLength:
+      _target_: "trax.data.BucketByLength"
+      boundaries:
+        - 1025
+      batch_sizes:
+        - 8
+        - 1
+      length_keys:
+        - 0
+        - 1
+  eval:
+    TFDS:
+      _target_: "trax.data.TFDS"
+      dataset_name: "c4"
+      data_dir: null
+      keys: "('text',)"
+      train: false
+    BucketByLength:
+      _target_: "trax.data.BucketByLength"
+      boundaries:
+        - 1025
+      batch_sizes:
+        - 8
+        - 1
+      length_keys:
+        - 0
+        - 1
+  C4Preprocess:
+    _target_: "trax.data.C4Preprocess"
+    _partial_: true
+    max_target_length: 1024
+    tokenization: "spc"
+  AddLossWeights:
+    _target_: "trax.data.AddLossWeights"
+    id_to_mask: 0

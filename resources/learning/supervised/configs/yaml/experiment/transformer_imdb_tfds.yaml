@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "transformer_imdb_tfds"
+    data: "transformer/transformer_imdb_tfds"
   -
     model: "transformer_imdb_tfds"
   -

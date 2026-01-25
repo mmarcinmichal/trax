@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "transformer_big_lm1b_8gb"
+    data: "transformer/transformer_big_lm1b_8gb"
   -
     model: "transformer_big_lm1b_8gb"
   -

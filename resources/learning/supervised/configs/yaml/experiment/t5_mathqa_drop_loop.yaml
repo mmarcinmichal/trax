@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "t5_mathqa_drop_loop"
+    data: "t5/t5_mathqa_drop_loop"
   -
     model: "t5_mathqa_drop_loop"
   -

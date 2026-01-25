@@ -1,0 +1,8 @@
+defaults:
+  - /data/data/c4_trax_data
+  - _self_
+
+data:
+  Batch:
+    _target_: "trax.data.Batch"
+    batch_size: 32

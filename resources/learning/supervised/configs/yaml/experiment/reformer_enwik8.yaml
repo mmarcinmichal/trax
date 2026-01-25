@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "reformer_enwik8"
+    data: "reformer/reformer_enwik8"
   -
     model: "reformer_enwik8"
   -

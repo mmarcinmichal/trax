@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "layerdrop_every_transformer_lm1b"
+    data: "transformer/layerdrop_every_transformer_lm1b"
   -
     model: "layerdrop_every_transformer_lm1b"
   -

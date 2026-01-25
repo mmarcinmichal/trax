@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "reformer_c4"
+    data: "reformer/reformer_c4"
   -
     model: "reformer_c4"
   -

@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "c4_trax_data"
+    data: "data/c4_trax_data"
   -
     model: "c4_trax_data"
   -

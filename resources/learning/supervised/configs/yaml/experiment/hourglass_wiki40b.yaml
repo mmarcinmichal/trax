@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "hourglass_wiki40b"
+    data: "hourglass/hourglass_wiki40b"
   -
     model: "hourglass_wiki40b"
   -

@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "reformer_wmt_ende_big"
+    data: "reformer/reformer_wmt_ende_big"
   -
     model: "reformer_wmt_ende_big"
   -

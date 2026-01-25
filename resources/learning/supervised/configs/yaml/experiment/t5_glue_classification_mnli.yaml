@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "t5_glue_classification_mnli"
+    data: "t5/t5_glue_classification_mnli"
   -
     model: "t5_glue_classification_mnli"
   -

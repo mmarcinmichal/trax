@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "bert"
+    data: "bert/bert"
   -
     model: "bert"
   -

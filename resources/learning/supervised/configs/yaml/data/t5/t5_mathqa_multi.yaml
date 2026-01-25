@@ -1,0 +1,109 @@
+defaults:
+  - /data/base
+  - mathqa_base
+  - _self_
+
+data:
+  Tokenize:
+    _target_: "trax.data.Tokenize"
+    keys:
+      - 0
+      - 1
+    vocab_file: "en_32k.subword"
+  eval_additional_task:
+    make_additional_stream:
+      _target_: "trax.data.make_additional_stream"
+      stream:
+        - "${data.eval_additional_task.CreateMathQAInputs}"
+        - "${data.Tokenize}"
+        - "${data.Shuffle}"
+        - "${data.PadToLength}"
+        - "${data.TruncateToLength}"
+        - "${data.Batch}"
+    CreateMathQAInputs:
+      _target_: "trax.data.CreateMathQAInputs"
+      dataset_path: "path_to_the_dataset"
+      train: false
+      tolerance: 0.01
+      cumulative: false
+  train_rationale_task:
+    make_additional_stream:
+      _target_: "trax.data.make_additional_stream"
+      stream:
+        - "${data.train_rationale_task.CreateMathQAInputs}"
+        - "${data.Tokenize}"
+        - "${data.Shuffle}"
+        - "${data.PadToLength}"
+        - "${data.TruncateToLength}"
+        - "${data.Batch}"
+    CreateMathQAInputs:
+      _target_: "trax.data.CreateMathQAInputs"
+      dataset_path: "path_to_the_dataset"
+      train: true
+      tolerance: 0.01
+      nlp_rationale: true
+      cumulative: false
+    TrainingTask:
+      _target_: "trax.learning.trainer.TrainingTask"
+      labeled_data: "${data.train_rationale_task.make_additional_stream}"
+      optimizer: "${optim.Adafactor}"
+      loss_layer: "${data.WeightedCategoryCrossEntropy}"
+      lr_schedule: "${schedule.multifactor}"
+  train_category_task:
+    make_additional_stream:
+      _target_: "trax.data.make_additional_stream"
+      stream:
+        - "${data.train_rationale_task.CreateMathQAInputs}"
+        - "${data.Tokenize}"
+        - "${data.Shuffle}"
+        - "${data.PadToLength}"
+        - "${data.TruncateToLength}"
+        - "${data.Batch}"
+    CreateMathQAInputs:
+      _target_: "trax.data.CreateMathQAInputs"
+      dataset_path: "path_to_the_dataset"
+      train: true
+      tolerance: 0.01
+      category: true
+      cumulative: false
+    TrainingTask:
+      _target_: "trax.learning.trainer.TrainingTask"
+      labeled_data: "${data.train_category_task.make_additional_stream}"
+      optimizer: "${optim.Adafactor}"
+      loss_layer: "${data.WeightedCategoryCrossEntropy}"
+      lr_schedule: "${schedule.multifactor}"
+  train:
+    CreateMathQAInputs:
+      _target_: "trax.data.CreateMathQAInputs"
+      dataset_path: "path_to_the_dataset"
+      train: true
+      tolerance: 0.01
+      cumulative: true
+  eval:
+    CreateMathQAInputs:
+      _target_: "trax.data.CreateMathQAInputs"
+      dataset_path: "path_to_the_dataset"
+      train: false
+      tolerance: 0.01
+      cumulative: true
+  PadToLength:
+    _target_: "trax.data.PadToLength"
+    len_map:
+      0: 512
+      1: 512
+      2: 512
+    pad_value:
+      0: 0
+      1: 0
+      2: 0
+  TruncateToLength:
+    _target_: "trax.data.TruncateToLength"
+    len_map:
+      0: "(256,)"
+      1: "(256,)"
+      2: "(256,)"
+  Batch:
+    _target_: "trax.data.Batch"
+    batch_size: 4
+  WeightedCategoryCrossEntropy:
+    _target_: "trax.layers.WeightedCategoryCrossEntropy"

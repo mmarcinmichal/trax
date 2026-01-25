@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "c4"
+    data: "data/c4"
   -
     model: "c4"
   -

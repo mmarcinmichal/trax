@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "hourglass_cifar10"
+    data: "hourglass/hourglass_cifar10"
   -
     model: "hourglass_cifar10"
   -

@@ -1,0 +1,22 @@
+defaults:
+  - /data/base
+  - _self_
+
+data:
+  batcher:
+    _target_: "trax.data.batcher"
+    data_streams: "${data.data_streams}"
+    batch_size_per_device: 4
+    eval_batch_size: 4
+    buckets: "([12288,], [4, 4])"
+    max_eval_length: 12288
+  data_streams:
+    _target_: "trax.data.tf_dataset_streams"
+    _partial_: true
+    datasets: "${data.dataset_loader}"
+    input_name: "targets"
+  dataset_loader:
+    _target_: "trax.data.data_streams"
+    _partial_: true
+    data_dir: null
+    dataset_name: "t2t_image_imagenet64_gen_flat_rev"

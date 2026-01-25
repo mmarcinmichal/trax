@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "bert_glue_classification"
+    data: "bert/bert_glue_classification"
   -
     model: "bert_glue_classification"
   -

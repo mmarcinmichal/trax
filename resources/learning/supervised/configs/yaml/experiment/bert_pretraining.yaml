@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "bert_pretraining"
+    data: "bert/bert_pretraining"
   -
     model: "bert_pretraining"
   -

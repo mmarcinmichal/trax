@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "c4_pretrain_16gb_adafactor"
+    data: "transformer/c4_pretrain_16gb_adafactor"
   -
     model: "c4_pretrain_16gb_adafactor"
   -

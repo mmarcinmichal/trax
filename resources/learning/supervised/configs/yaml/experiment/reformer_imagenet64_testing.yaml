@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "reformer_imagenet64_testing"
+    data: "reformer/reformer_imagenet64_testing"
   -
     model: "reformer_imagenet64_testing"
   -

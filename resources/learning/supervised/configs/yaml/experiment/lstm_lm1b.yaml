@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "lstm_lm1b"
+    data: "lstm/lstm_lm1b"
   -
     model: "lstm_lm1b"
   -

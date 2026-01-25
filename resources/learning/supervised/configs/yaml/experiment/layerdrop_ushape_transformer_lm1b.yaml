@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "layerdrop_ushape_transformer_lm1b"
+    data: "transformer/layerdrop_ushape_transformer_lm1b"
   -
     model: "layerdrop_ushape_transformer_lm1b"
   -

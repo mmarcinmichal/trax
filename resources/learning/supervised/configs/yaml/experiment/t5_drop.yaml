@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "t5_drop"
+    data: "t5/t5_drop"
   -
     model: "t5_drop"
   -

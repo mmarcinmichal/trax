@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "cond_skipping_transformer_lm1b"
+    data: "transformer/cond_skipping_transformer_lm1b"
   -
     model: "cond_skipping_transformer_lm1b"
   -

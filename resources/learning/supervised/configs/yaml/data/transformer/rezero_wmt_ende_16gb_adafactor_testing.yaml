@@ -1,0 +1,66 @@
+defaults:
+  - /data/base
+  - wmt_base
+  - _self_
+
+data:
+  train:
+    TFDS:
+      _target_: "trax.data.TFDS"
+      dataset_name: "t2t_translate_ende_wmt32k"
+      data_dir: null
+    BucketByLength:
+      _target_: "trax.data.BucketByLength"
+      boundaries:
+      - 8
+      - 16
+      - 32
+      - 64
+      - 128
+      - 256
+      - 512
+      batch_sizes:
+      - 512
+      - 256
+      - 128
+      - 64
+      - 32
+      - 16
+      - 8
+      - 1
+      length_keys:
+        - 0
+        - 1
+  eval:
+    TFDS:
+      _target_: "trax.data.TFDS"
+      dataset_name: "t2t_translate_ende_wmt32k"
+      data_dir: null
+      train: false
+    BucketByLength:
+      _target_: "trax.data.BucketByLength"
+      boundaries:
+      - 8
+      - 16
+      - 32
+      - 64
+      - 128
+      - 256
+      - 512
+      batch_sizes:
+      - 256
+      - 128
+      - 64
+      - 32
+      - 16
+      - 8
+      - 4
+      - 1
+      length_keys:
+        - 0
+        - 1
+  WMTPreprocess:
+    _target_: "trax.data.WMTPreprocess"
+    _partial_: true
+    max_length: 512
+    max_eval_length: 1024

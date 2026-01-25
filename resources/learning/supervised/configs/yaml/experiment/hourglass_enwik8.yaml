@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "hourglass_enwik8"
+    data: "hourglass/hourglass_enwik8"
   -
     model: "hourglass_enwik8"
   -

@@ -1,0 +1,22 @@
+defaults:
+  - /data/base
+  - _self_
+
+data:
+  batcher:
+    _target_: "trax.data.batcher"
+    data_streams: "${data.data_streams}"
+    batch_size_per_device: 32
+    bucket_length: 32
+    buckets: null
+    eval_batch_size: 32
+    variable_shapes: false
+  data_streams:
+    _target_: "trax.data.tf_dataset_streams"
+    _partial_: true
+    datasets: "${data.dataset_loader}"
+  dataset_loader:
+    _target_: "trax.data.data_streams"
+    _partial_: true
+    data_dir: null
+    dataset_name: "t2t_image_imagenet224"

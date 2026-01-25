@@ -1,0 +1,27 @@
+defaults:
+  - /data/base
+  - _self_
+
+data:
+  batcher:
+    _target_: "trax.data.batcher"
+    data_streams: "${data.data_streams}"
+    batch_size_per_device: 1
+    eval_batch_size: 8
+    max_eval_length: 3072
+    variable_shapes: false
+  data_streams:
+    _target_: "trax.data.tf_dataset_streams"
+    _partial_: true
+    datasets: "${data.dataset_loader}"
+    input_name: "image"
+    target_name: "image"
+    bare_preprocess_fn: "${data.DownsampledImagenetFlatten}"
+  dataset_loader:
+    _target_: "trax.data.data_streams"
+    _partial_: true
+    data_dir: null
+    dataset_name: "downsampled_imagenet/32x32"
+  DownsampledImagenetFlatten:
+    _target_: "trax.data.DownsampledImagenetFlatten"
+    _partial_: true

@@ -1,0 +1,63 @@
+defaults:
+  - /data/base
+  - _self_
+
+data:
+  make_inputs:
+    _target_: "trax.data.make_inputs"
+    _partial_: true
+    train_stream:
+      - "${data.training.TFDS}"
+      - "${data.SentencePieceTokenize}"
+      - "${data.generate_sequential_chunks}"
+      - "${data.FilterEmptyExamples}"
+      - "${data.PadToLength}"
+      - "${data.ConcatenateToLMInput}"
+      - "${data.AddLossWeights}"
+      - "${data.Shuffle}"
+      - "${data.Batch}"
+    eval_stream:
+      - "${data.validation.TFDS}"
+      - "${data.SentencePieceTokenize}"
+      - "${data.generate_sequential_chunks}"
+      - "${data.FilterEmptyExamples}"
+      - "${data.PadToLength}"
+      - "${data.ConcatenateToLMInput}"
+      - "${data.AddLossWeights}"
+      - "${data.Shuffle}"
+      - "${data.validation.Batch}"
+  TFDS:
+    _target_: "trax.data.TFDS"
+    dataset_name: "wiki40b/en"
+    keys: "('text',)"
+    shuffle_train: false
+  training:
+    TFDS:
+      _target_: "trax.data.TFDS"
+      train: true
+  validation:
+    TFDS:
+      _target_: "trax.data.TFDS"
+      train: false
+    Batch:
+      _target_: "trax.data.Batch"
+      batch_size: 8
+  generate_sequential_chunks:
+    _target_: "trax.data.generate_sequential_chunks"
+    max_length: 2048
+  AddLossWeights:
+    _target_: "trax.data.AddLossWeights"
+    id_to_mask: 0
+  PadToLength:
+    _target_: "trax.data.PadToLength"
+    len_map:
+      0: 2048
+    pad_value:
+      0: 0
+  Batch:
+    _target_: "trax.data.Batch"
+    batch_size: 128
+  SentencePieceTokenize:
+    _target_: "trax.data.SentencePieceTokenize"
+  ConcatenateToLMInput:
+    _target_: "trax.data.ConcatenateToLMInput"

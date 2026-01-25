@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "t5_glue_classification"
+    data: "t5/t5_glue_classification"
   -
     model: "t5_glue_classification"
   -

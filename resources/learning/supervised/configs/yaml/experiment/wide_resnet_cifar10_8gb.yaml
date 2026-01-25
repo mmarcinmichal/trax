@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "wide_resnet_cifar10_8gb"
+    data: "resnet/wide_resnet_cifar10_8gb"
   -
     model: "wide_resnet_cifar10_8gb"
   -

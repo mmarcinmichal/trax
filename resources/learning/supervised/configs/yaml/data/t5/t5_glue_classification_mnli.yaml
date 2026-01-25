@@ -1,0 +1,35 @@
+defaults:
+  - /data/base
+  - _self_
+
+data:
+  make_inputs:
+    _target_: "trax.data.make_inputs"
+    _partial_: true
+    train_stream: "${data.T5GlueTrainStream}"
+    eval_stream: "${data.T5GlueEvalStream}"
+  T5GlueTrainStream:
+    _target_: "trax.data.T5GlueTrainStream"
+    benchmark: "mnli"
+  T5GlueEvalStream:
+    _target_: "trax.data.T5GlueEvalStream"
+    benchmark: "mnli"
+  PadToLength:
+    _target_: "trax.data.PadToLength"
+    len_map:
+      0: 512
+      1: 512
+      2: 512
+    pad_value:
+      0: 0
+      1: 0
+      2: 0
+  TruncateToLength:
+    _target_: "trax.data.TruncateToLength"
+    len_map:
+      0: "(256,)"
+      1: "(256,)"
+      2: "(256,)"
+  Batch:
+    _target_: "trax.data.Batch"
+    batch_size: 4

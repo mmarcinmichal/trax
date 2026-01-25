@@ -1,0 +1,48 @@
+defaults:
+  - bert
+  - _self_
+
+data:
+  make_inputs:
+    _target_: "trax.data.make_inputs"
+    train_stream:
+      - "${data.train.TFDS}"
+      - "${data.RandomSplitText}"
+      - "${data.Tokenize}"
+      - "${data.CreateBertInputs}"
+      - "${data.Shuffle}"
+      - "${data.PadToLength}"
+      - "${data.TruncateToLength}"
+      - "${data.mask_random_tokens}"
+      - "${data.Batch}"
+    eval_stream:
+      - "${data.eval.TFDS}"
+      - "${data.RandomSplitText}"
+      - "${data.Tokenize}"
+      - "${data.CreateBertInputs}"
+      - "${data.Shuffle}"
+      - "${data.PadToLength}"
+      - "${data.TruncateToLength}"
+      - "${data.mask_random_tokens}"
+      - "${data.Batch}"
+  train:
+    TFDS:
+      _target_: "trax.data.TFDS"
+      dataset_name: "wiki40b"
+      keys:
+        - "text"
+      train: true
+  eval:
+    TFDS:
+      _target_: "trax.data.TFDS"
+      dataset_name: "wiki40b"
+      keys:
+        - "text"
+      train: false
+  RandomSplitText:
+    _target_: "trax.data.RandomSplitText"
+    text_key: 0
+  CreateBertInputs:
+    _target_: "trax.data.CreateBertInputs"
+    labeled: false
+    double_sentence: false

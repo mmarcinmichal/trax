@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "transformer_wmt_ende_16gb_adafactor_testing"
+    data: "transformer/transformer_wmt_ende_16gb_adafactor_testing"
   -
     model: "transformer_wmt_ende_16gb_adafactor_testing"
   -

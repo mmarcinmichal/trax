@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "resnet50_imagenet_8gb_testing"
+    data: "resnet/resnet50_imagenet_8gb_testing"
   -
     model: "resnet50_imagenet_8gb_testing"
   -

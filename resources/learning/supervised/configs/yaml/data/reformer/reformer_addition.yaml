@@ -1,0 +1,15 @@
+defaults:
+  - /data/base
+  - _self_
+
+data:
+  addition_inputs:
+    _target_: "trax.data.addition_inputs"
+    _partial_: true
+    vocab_size: 13
+    batch_size: 128
+    train_length: 129
+    eval_min_length: 257
+    eval_max_length: 301
+    pad_to_multiple: 32
+    encdec: false

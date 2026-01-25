@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "hourglass_imagenet64"
+    data: "hourglass/hourglass_imagenet64"
   -
     model: "hourglass_imagenet64"
   -

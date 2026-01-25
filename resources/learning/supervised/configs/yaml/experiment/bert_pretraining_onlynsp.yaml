@@ -1,6 +1,6 @@
 defaults:
   -
-    data: "bert_pretraining_onlynsp"
+    data: "bert/bert_pretraining_onlynsp"
   -
     model: "bert_pretraining_onlynsp"
   -
