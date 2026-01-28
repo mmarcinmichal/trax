@@ -3,19 +3,78 @@ defaults:
   - _self_
 
 data:
-  batcher:
-    _target_: "trax.data.batcher"
-    data_streams: "${data.data_streams}"
-    batch_size_per_device: 1
-    eval_batch_size: 8
-    max_eval_length: 12288
-  data_streams:
-    _target_: "trax.data.tf_dataset_streams"
+  make_inputs:
+    _target_: "trax.data.make_inputs"
     _partial_: true
-    datasets: "${data.dataset_loader}"
-    input_name: "targets"
+    train_stream:
+      - "${data.train.Stream}"
+      - "${data.train.BucketByLength}"
+      - "${data.AddLossWeights}"
+    eval_stream:
+      - "${data.eval.Stream}"
+      - "${data.eval.BucketByLength}"
+      - "${data.AddLossWeights}"
+  train:
+    Stream:
+      _target_: "trax.data.tf_dataset_streams_train"
+      datasets: "${data.dataset_loader}"
+      input_name: "targets"
+    BucketByLength:
+      _target_: "trax.data.BucketByLength"
+      boundaries:
+        - 8
+        - 16
+        - 32
+        - 64
+        - 128
+        - 256
+        - 512
+        - 1024
+      batch_sizes:
+        - 4
+        - 2
+        - 1
+        - 1
+        - 1
+        - 1
+        - 1
+        - 1
+      length_keys:
+        - 0
+        - 1
+  eval:
+    Stream:
+      _target_: "trax.data.tf_dataset_streams_eval"
+      datasets: "${data.dataset_loader}"
+      input_name: "targets"
+    BucketByLength:
+      _target_: "trax.data.BucketByLength"
+      boundaries:
+        - 8
+        - 16
+        - 32
+        - 64
+        - 128
+        - 256
+        - 512
+        - 1024
+      batch_sizes:
+        - 32
+        - 16
+        - 8
+        - 4
+        - 2
+        - 1
+        - 1
+        - 1
+      length_keys:
+        - 0
+        - 1
+  AddLossWeights:
+    _target_: "trax.data.add_loss_weights"
+    _partial_: true
   dataset_loader:
-    _target_: "trax.data.data_streams"
+    _target_: "trax.data.loader.tf.base.data_streams"
     _partial_: true
     data_dir: null
     dataset_name: "t2t_image_imagenet64_gen_flat_rev"

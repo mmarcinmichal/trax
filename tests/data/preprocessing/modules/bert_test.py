@@ -21,7 +21,6 @@ import tensorflow as tf
 
 from tests.data.utils import TEST_CORPUS
 from trax.data.preprocessing.inputs import NextSentencePrediction
-from trax.data.preprocessing.inputs import batcher  # noqa: F401
 from trax.data.preprocessing.modules import bert as modules_bert
 
 

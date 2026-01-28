@@ -72,6 +72,7 @@ def output_dir_or_default(cfg):
 def train_with_hydra(cfg, output_dir):
     from hydra.utils import instantiate
     from omegaconf import OmegaConf
+    import warnings
 
     def _inst(path):
         node = OmegaConf.select(cfg, path)
@@ -98,7 +99,7 @@ def train_with_hydra(cfg, output_dir):
     if not isinstance(train_cfg, dict):
         train_cfg = {}
 
-    inputs = train_cfg.get("inputs") or _inst("data.batcher") or _inst("data.make_inputs")
+    inputs = train_cfg.get("inputs") or _inst("data.make_inputs")
     model = train_cfg.get("model") or _inst("model.model_fn")
     optimizer = train_cfg.get("optimizer") or _inst("optim.optimizer")
     lr_schedule_fn = train_cfg.get("lr_schedule_fn")

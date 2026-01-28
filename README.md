@@ -26,6 +26,10 @@ We welcome **contributions** to Trax! We welcome PRs with code for new models an
 code and documentation. We especially love **notebooks** that explain how models work and show how to use them to solve
 problems!
 
+## Deprecations
+
+- `trax.data.batcher` has been removed; use `trax.data.make_inputs` for YAML configs and programmatic pipelines.
+
 Here are a few example notebooks:-
 
 * [**trax.data API explained**](https://github.com/google/trax/blob/master/trax/examples/trax_data_Explained.ipynb) :

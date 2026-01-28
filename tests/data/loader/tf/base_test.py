@@ -24,7 +24,6 @@ import tensorflow_datasets as tfds
 from tests.data.utils import TEST_CORPUS  # relative import
 from trax.data.loader.tf import base as ds
 from trax.data.preprocessing import inputs
-from trax.data.preprocessing.inputs import batcher  # noqa: F401
 
 
 class TFDatasetTest(tf.test.TestCase):

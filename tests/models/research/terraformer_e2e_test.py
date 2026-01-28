@@ -90,8 +90,7 @@ class TerraformerE2ETest(absltest.TestCase):
             os.path.join(_CONFIG_DIR, "terraformer/terraformer_copy.gin")
         )
 
-        gin.bind_parameter("batcher.batch_size_per_device", batch_size_per_device)
-        gin.bind_parameter("batcher.buckets", ([64], [1, 1]))  # batch size 1.
+        gin.bind_parameter("simple_sequence_copy_inputs.batch_size", batch_size_per_device)
         gin.bind_parameter("train.steps", steps)
         gin.bind_parameter("ConfigurableTerraformer.n_encoder_layers", n_layers)
         gin.bind_parameter("ConfigurableTerraformer.n_decoder_layers", n_layers)
@@ -110,8 +109,7 @@ class TerraformerE2ETest(absltest.TestCase):
             os.path.join(_CONFIG_DIR, "terraformer/terraformer_purelsh_copy.gin")
         )
 
-        gin.bind_parameter("batcher.batch_size_per_device", batch_size_per_device)
-        gin.bind_parameter("batcher.buckets", ([64], [1, 1]))  # batch size 1.
+        gin.bind_parameter("simple_sequence_copy_inputs.batch_size", batch_size_per_device)
         gin.bind_parameter("train.steps", steps)
         gin.bind_parameter("ConfigurableTerraformer.n_encoder_layers", n_layers)
         gin.bind_parameter("ConfigurableTerraformer.n_decoder_layers", n_layers)

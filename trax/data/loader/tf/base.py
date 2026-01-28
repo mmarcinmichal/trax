@@ -18,9 +18,8 @@
 import gin
 import numpy as np
 
-from trax.data.loader.tf import interface
-
 from trax import fastmath
+from trax.data.loader.tf import interface
 
 
 def dataset_to_stream(dataset, input_name):

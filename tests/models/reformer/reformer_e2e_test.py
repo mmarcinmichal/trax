@@ -87,7 +87,7 @@ class ReformerE2ETest(absltest.TestCase):
         gin.parse_config_file(os.path.join(_CONFIG_DIR, "reformer/reformer_copy.gin"))
 
         gin.bind_parameter("data_streams.data_dir", _TEST_CORPUS)
-        gin.bind_parameter("batcher.batch_size_per_device", batch_size_per_device)
+        gin.bind_parameter("sequence_copy_inputs.batch_size", batch_size_per_device)
         gin.bind_parameter("train.steps", steps)
         gin.bind_parameter("ReformerLM.n_layers", n_layers)
         gin.bind_parameter("ReformerLM.d_ff", d_ff)

@@ -18,14 +18,29 @@ import trax.optimizers
 import trax.learning.supervised.lr_schedules
 import trax.learning.training.trainer
 
-# Parameters for batcher:
+# Parameters for make_inputs:
 # ==============================================================================
-batcher.data_streams = @data.tf_dataset_streams
-tf_dataset_streams.datasets = @data.data_streams
-batcher.batch_size_per_device = 256
-batcher.eval_batch_size = 256
-batcher.variable_shapes = False
+make_inputs.train_stream = [
+  @data.tf_dataset_streams_train(),
+  @train/data.Batch(),
+  @data.AddLossWeights(),
+]
 
+make_inputs.eval_stream = [
+  @data.tf_dataset_streams_eval(),
+  @eval/data.Batch(),
+  @data.AddLossWeights(),
+]
+
+# Parameters for data streams:
+# ==============================================================================
+tf_dataset_streams_train.datasets = @data.data_streams
+tf_dataset_streams_eval.datasets = @data.data_streams
+
+# Parameters for Batch:
+# ==============================================================================
+train/data.Batch.batch_size = 256
+eval/data.Batch.batch_size = 256
 # Parameters for data.data_streams:
 # ==============================================================================
 data_streams.data_dir = None
@@ -49,3 +64,6 @@ train.steps = 2000
 train.checkpoint_highest = 'accuracy'
 train.lr_schedule_fn = @lr_schedules.constant
 
+# Parameters for train inputs:
+# ==============================================================================
+train.inputs = @trax.data.make_inputs

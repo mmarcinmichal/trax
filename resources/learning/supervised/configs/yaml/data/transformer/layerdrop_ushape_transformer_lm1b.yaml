@@ -3,20 +3,45 @@ defaults:
   - _self_
 
 data:
-  batcher:
-    _target_: "trax.data.batcher"
-    data_streams: "${data.data_streams}"
-    batch_size_per_device: 96
-    eval_batch_size: 128
-    max_eval_length: 2048
-    id_to_mask: 0
-  data_streams:
-    _target_: "trax.data.tf_dataset_streams_serial"
+  make_inputs:
+    _target_: "trax.data.make_inputs"
     _partial_: true
-    datasets: "${data.dataset_loader}"
-    preprocess_fn: "${data.LM1BFilterByLength}"
+    train_stream:
+      - "${data.train.Stream}"
+      - "${data.train.BucketByLength}"
+      - "${data.AddLossWeights}"
+    eval_stream:
+      - "${data.eval.Stream}"
+      - "${data.eval.BucketByLength}"
+      - "${data.AddLossWeights}"
+  train:
+    Stream:
+      _target_: "trax.data.tf_dataset_streams_serial_train"
+      datasets: "${data.dataset_loader}"
+      preprocess_fn: "${data.LM1BFilterByLength}"
+    BucketByLength:
+      _target_: "trax.data.BucketByLengthFromBatcher"
+      training: true
+      batch_size_per_device: 96
+      eval_batch_size: 128
+      max_eval_length: 2048
+  eval:
+    Stream:
+      _target_: "trax.data.tf_dataset_streams_serial_eval"
+      datasets: "${data.dataset_loader}"
+      preprocess_fn: "${data.LM1BFilterByLength}"
+    BucketByLength:
+      _target_: "trax.data.BucketByLengthFromBatcher"
+      training: false
+      batch_size_per_device: 96
+      eval_batch_size: 128
+      max_eval_length: 2048
+  AddLossWeights:
+    _target_: "trax.data.add_loss_weights"
+    _partial_: true
+    id_to_mask: 0
   dataset_loader:
-    _target_: "trax.data.data_streams"
+    _target_: "trax.data.loader.tf.base.data_streams"
     _partial_: true
     data_dir: null
     dataset_name: "t2t_languagemodel_lm1b32k"

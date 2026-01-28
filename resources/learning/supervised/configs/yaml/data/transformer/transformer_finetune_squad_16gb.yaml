@@ -3,11 +3,53 @@ defaults:
   - _self_
 
 data:
-  batcher:
-    _target_: "trax.data.batcher"
-    buckets: "([513,], [8, 8])"
-    strict_pad_on_len: true
-    buckets_include_inputs_in_length: true
+  make_inputs:
+    _target_: "trax.data.make_inputs"
+    _partial_: true
+    train_stream:
+      - "${data.train.Stream}"
+      - "${data.train.BucketByLength}"
+      - "${data.AddLossWeights}"
+    eval_stream:
+      - "${data.eval.Stream}"
+      - "${data.eval.BucketByLength}"
+      - "${data.AddLossWeights}"
+  train:
+    Stream:
+      _target_: "trax.data.tf_dataset_streams_serial_train"
+      datasets: "${data.dataset_loader}"
+      preprocess_fn: "${data.GenericTextPreprocess}"
+    BucketByLength:
+      _target_: "trax.data.BucketByLengthFromBatcher"
+      training: true
+      buckets:
+        - - 513
+        - - 8
+          - 8
+      strict_pad_on_len: true
+      buckets_include_inputs_in_length: true
+  eval:
+    Stream:
+      _target_: "trax.data.tf_dataset_streams_serial_eval"
+      datasets: "${data.dataset_loader}"
+      preprocess_fn: "${data.GenericTextPreprocess}"
+    BucketByLength:
+      _target_: "trax.data.BucketByLengthFromBatcher"
+      training: false
+      buckets:
+        - - 513
+        - - 8
+          - 8
+      strict_pad_on_len: true
+      buckets_include_inputs_in_length: true
+  AddLossWeights:
+    _target_: "trax.data.add_loss_weights"
+    _partial_: true
+  dataset_loader:
+    _target_: "trax.data.loader.tf.base.data_streams"
+    _partial_: true
+    data_dir: null
+    dataset_name: "squad/plain_text:1.0.0"
   GenericTextPreprocess:
     _target_: "trax.data.GenericTextPreprocess"
     _partial_: true

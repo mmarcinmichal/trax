@@ -1280,12 +1280,19 @@ def _prepare_tasks(
     )
 
 
+def _make_inputs_is_gin_configured() -> bool:
+    try:
+        gin.query_parameter("trax.data.make_inputs.train_stream")
+    except (ValueError, TypeError):
+        return False
+    return True
+
 @gin.configurable(module="trax.learning.trainer")
 def train(
     output_dir,
     model=gin.REQUIRED,
     loss_fn=tl.WeightedCategoryCrossEntropy(),
-    inputs=trax_inputs.batcher,
+    inputs=trax_inputs.make_inputs,
     optimizer=trax_opt.Adafactor,
     lr_schedule_fn=lr.multifactor,
     steps: int = 1000,
@@ -1316,6 +1323,11 @@ def train(
         )
 
     n_devices = num_devices() or fastmath.local_device_count()
+    if inputs is trax_inputs.make_inputs and not _make_inputs_is_gin_configured():
+        raise ValueError(
+            "train(inputs=trax.data.make_inputs) requires a configured "
+            "make_inputs (e.g. a partial from config) or an Inputs instance."
+        )
     if callable(inputs):
         inputs = inputs()
 

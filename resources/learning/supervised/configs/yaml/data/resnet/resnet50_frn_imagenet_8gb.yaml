@@ -3,20 +3,36 @@ defaults:
   - _self_
 
 data:
-  batcher:
-    _target_: "trax.data.batcher"
-    data_streams: "${data.data_streams}"
-    batch_size_per_device: 32
-    bucket_length: 32
-    buckets: null
-    eval_batch_size: 32
-    variable_shapes: false
-  data_streams:
-    _target_: "trax.data.tf_dataset_streams"
+  make_inputs:
+    _target_: "trax.data.make_inputs"
     _partial_: true
-    datasets: "${data.dataset_loader}"
+    train_stream:
+      - "${data.train.Stream}"
+      - "${data.BatchTrain}"
+      - "${data.AddLossWeights}"
+    eval_stream:
+      - "${data.eval.Stream}"
+      - "${data.BatchEval}"
+      - "${data.AddLossWeights}"
+  train:
+    Stream:
+      _target_: "trax.data.tf_dataset_streams_train"
+      datasets: "${data.dataset_loader}"
+  eval:
+    Stream:
+      _target_: "trax.data.tf_dataset_streams_eval"
+      datasets: "${data.dataset_loader}"
+  BatchTrain:
+    _target_: "trax.data.Batch"
+    batch_size: 32
+  BatchEval:
+    _target_: "trax.data.Batch"
+    batch_size: 32
+  AddLossWeights:
+    _target_: "trax.data.add_loss_weights"
+    _partial_: true
   dataset_loader:
-    _target_: "trax.data.data_streams"
+    _target_: "trax.data.loader.tf.base.data_streams"
     _partial_: true
     data_dir: null
     dataset_name: "t2t_image_imagenet224"

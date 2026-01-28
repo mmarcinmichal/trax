@@ -25,14 +25,37 @@ attn_type = @LSHSelfAttention  # @CausalFavor
 attn_kv = 64
 n_layers = 6
 
-# Parameters for batcher:
+# Parameters for make_inputs:
 # ==============================================================================
-batcher.data_streams = @data.tf_dataset_streams
-tf_dataset_streams.datasets = @data.data_streams
-batcher.batch_size_per_device = 1
-batcher.eval_batch_size = 8
-batcher.max_eval_length = 12288  # 64 * 64 * 3
+make_inputs.train_stream = [
+  @data.tf_dataset_streams_train(),
+  @train/data.BucketByLengthFromBatcher(),
+  @data.AddLossWeights(),
+]
 
+make_inputs.eval_stream = [
+  @data.tf_dataset_streams_eval(),
+  @eval/data.BucketByLengthFromBatcher(),
+  @data.AddLossWeights(),
+]
+
+# Parameters for data streams:
+# ==============================================================================
+tf_dataset_streams_train.datasets = @data.data_streams
+tf_dataset_streams_eval.datasets = @data.data_streams
+tf_dataset_streams_train.input_name = 'targets'
+tf_dataset_streams_eval.input_name = 'targets'
+
+# Parameters for BucketByLengthFromBatcher:
+# ==============================================================================
+train/data.BucketByLengthFromBatcher.training = True
+eval/data.BucketByLengthFromBatcher.training = False
+train/data.BucketByLengthFromBatcher.batch_size_per_device = 1
+eval/data.BucketByLengthFromBatcher.batch_size_per_device = 1
+train/data.BucketByLengthFromBatcher.eval_batch_size = 8
+eval/data.BucketByLengthFromBatcher.eval_batch_size = 8
+train/data.BucketByLengthFromBatcher.max_eval_length = 12288  # 64 * 64 * 3
+eval/data.BucketByLengthFromBatcher.max_eval_length = 12288  # 64 * 64 * 3
 # Parameters for data_streams:
 # ==============================================================================
 data_streams.data_dir = None
@@ -112,3 +135,6 @@ ReformerShortenLM.vocab_size = 256
 ReformerShortenLM.pos_axial_shape = (64, 64, 3)
 ReformerShortenLM.pos_d_axial_embs= (96, 96, 64)
 
+# Parameters for train inputs:
+# ==============================================================================
+train.inputs = @trax.data.make_inputs

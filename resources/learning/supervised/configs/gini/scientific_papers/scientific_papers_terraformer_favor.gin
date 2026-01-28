@@ -73,19 +73,6 @@ make_inputs.eval_stream = [
 eval/data.TFDS.dataset_name = 'scientific_papers/arxiv:1.1.1'
 eval/data.TFDS.keys = ('article', 'abstract')
 eval/data.TFDS.train = False
-
-
-# Parameters for batcher:
-# ==============================================================================
-batcher.data_streams = @data.tf_dataset_streams
-tf_dataset_streams.datasets = @data.data_streams
-batcher.max_eval_length = %max_len
-# batcher.buckets = ([16384], [8, 1])   # 2x2s
-batcher.buckets = ([16384], [32, 1])  # 4x4s
-batcher.strict_pad_on_len = False
-batcher.id_to_mask = 0
-
-
 # Parameters for multifactor:
 # ==============================================================================
 multifactor.constant = 1.0
@@ -141,5 +128,3 @@ ConfigurableTerraformer.encoder_attention_type = @Favor
 ConfigurableTerraformer.encoder_decoder_attention_type = @CausalFavor
 ConfigurableTerraformer.pos_type = 'fixed-base'
 ConfigurableTerraformer.pos_d_axial_embs = %pos_d_axial_embs
-
-

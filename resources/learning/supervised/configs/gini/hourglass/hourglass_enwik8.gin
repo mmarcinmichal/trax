@@ -19,14 +19,39 @@ import trax.optimizers
 import trax.learning.training.trainer
 
 
-# Parameters for batcher:
+# Parameters for make_inputs:
 # ==============================================================================
-batcher.data_streams = @data.tf_dataset_streams
-tf_dataset_streams.datasets = @data.data_streams
-batcher.max_eval_length = 2049
-batcher.buckets = ([2049], [8])
-batcher.id_to_mask = 0
+make_inputs.train_stream = [
+  @data.tf_dataset_streams_train(),
+  @train/data.BucketByLengthFromBatcher(),
+  @data.AddLossWeights(),
+]
 
+make_inputs.eval_stream = [
+  @data.tf_dataset_streams_eval(),
+  @eval/data.BucketByLengthFromBatcher(),
+  @data.AddLossWeights(),
+]
+
+# Parameters for data streams:
+# ==============================================================================
+tf_dataset_streams_train.datasets = @data.data_streams
+tf_dataset_streams_eval.datasets = @data.data_streams
+tf_dataset_streams_train.input_name = 'targets'
+tf_dataset_streams_eval.input_name = 'targets'
+
+# Parameters for BucketByLengthFromBatcher:
+# ==============================================================================
+train/data.BucketByLengthFromBatcher.training = True
+eval/data.BucketByLengthFromBatcher.training = False
+train/data.BucketByLengthFromBatcher.max_eval_length = 2049
+eval/data.BucketByLengthFromBatcher.max_eval_length = 2049
+train/data.BucketByLengthFromBatcher.buckets = ([2049], [8])
+eval/data.BucketByLengthFromBatcher.buckets = ([2049], [8])
+
+# Parameters for AddLossWeights:
+# ==============================================================================
+data.AddLossWeights.id_to_mask = 0
 # Parameters for data_streams:
 # ==============================================================================
 data_streams.data_dir = None
@@ -70,3 +95,6 @@ HourglassLM.vocab_size = 256
 HourglassLM.attention_upsampling_fn = @NaiveUpsampling
 HourglassLM.ff_activation = @trax.layers.FastGelu
 
+# Parameters for train inputs:
+# ==============================================================================
+train.inputs = @trax.data.make_inputs

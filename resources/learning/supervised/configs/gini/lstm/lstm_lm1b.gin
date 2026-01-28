@@ -17,15 +17,41 @@ import trax.models
 import trax.optimizers
 import trax.learning.training.trainer
 
-# Parameters for batcher:
+# Parameters for make_inputs:
 # ==============================================================================
-batcher.data_streams = @data.tf_dataset_streams_serial
-tf_dataset_streams_serial.datasets = @data.data_streams
-batcher.batch_size_per_device = 64
-batcher.eval_batch_size = 64
-batcher.max_eval_length = 2048
-batcher.id_to_mask = 0
+make_inputs.train_stream = [
+  @data.tf_dataset_streams_serial_train(),
+  @train/data.BucketByLengthFromBatcher(),
+  @data.AddLossWeights(),
+]
 
+make_inputs.eval_stream = [
+  @data.tf_dataset_streams_serial_eval(),
+  @eval/data.BucketByLengthFromBatcher(),
+  @data.AddLossWeights(),
+]
+
+# Parameters for data streams:
+# ==============================================================================
+tf_dataset_streams_serial_train.datasets = @data.data_streams
+tf_dataset_streams_serial_eval.datasets = @data.data_streams
+tf_dataset_streams_serial_train.preprocess_fn = @data.LM1BFilterByLength
+tf_dataset_streams_serial_eval.preprocess_fn = @data.LM1BFilterByLength
+
+# Parameters for BucketByLengthFromBatcher:
+# ==============================================================================
+train/data.BucketByLengthFromBatcher.training = True
+eval/data.BucketByLengthFromBatcher.training = False
+train/data.BucketByLengthFromBatcher.batch_size_per_device = 64
+eval/data.BucketByLengthFromBatcher.batch_size_per_device = 64
+train/data.BucketByLengthFromBatcher.eval_batch_size = 64
+eval/data.BucketByLengthFromBatcher.eval_batch_size = 64
+train/data.BucketByLengthFromBatcher.max_eval_length = 2048
+eval/data.BucketByLengthFromBatcher.max_eval_length = 2048
+
+# Parameters for AddLossWeights:
+# ==============================================================================
+data.AddLossWeights.id_to_mask = 0
 # Parameters for data_streams:
 # ==============================================================================
 data_streams.data_dir = None
@@ -60,3 +86,6 @@ RNNLM.dropout = 0.1
 RNNLM.n_layers = 2
 RNNLM.vocab_size = 32000
 
+# Parameters for train inputs:
+# ==============================================================================
+train.inputs = @trax.data.make_inputs

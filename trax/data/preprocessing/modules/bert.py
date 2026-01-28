@@ -20,8 +20,8 @@ import functools
 import gin
 import numpy as np
 
-from trax.data.preprocessing import inputs as preprocessing_inputs
 from trax.data.loader.tf.base import TFDS
+from trax.data.preprocessing import inputs as preprocessing_inputs
 
 
 @gin.configurable(module="trax.data")

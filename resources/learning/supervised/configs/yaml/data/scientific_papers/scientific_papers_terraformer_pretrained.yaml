@@ -10,6 +10,20 @@ data:
       dataset_name: "scientific_papers/arxiv:1.1.1"
       keys: "('article', 'abstract')"
       train: true
+    Stream:
+      _target_: "trax.data.tf_dataset_streams_train"
+      datasets: "${data.dataset_loader}"
+    BucketByLength:
+      _target_: "trax.data.BucketByLength"
+      boundaries:
+        - 16384
+      batch_sizes:
+        - 32
+        - 1
+      length_keys:
+        - 0
+        - 1
+      strict_pad_on_len: false
   Tokenize:
     _target_: "trax.data.Tokenize"
     vocab_file: "gs://t5-data/vocabs/cc_all.32000/sentencepiece.model"
@@ -46,20 +60,37 @@ data:
       dataset_name: "scientific_papers/arxiv:1.1.1"
       keys: "('article', 'abstract')"
       train: false
-  batcher:
-    _target_: "trax.data.batcher"
-    data_streams: "${data.data_streams}"
-    max_eval_length: 16384
-    buckets: "([16384], [32, 1])"
-    strict_pad_on_len: false
-    id_to_mask: 0
-  data_streams:
-    _target_: "trax.data.tf_dataset_streams"
+    Stream:
+      _target_: "trax.data.tf_dataset_streams_eval"
+      datasets: "${data.dataset_loader}"
+    BucketByLength:
+      _target_: "trax.data.BucketByLength"
+      boundaries:
+        - 16384
+      batch_sizes:
+        - 32
+        - 1
+      length_keys:
+        - 0
+        - 1
+      strict_pad_on_len: false
+  make_inputs:
+    _target_: "trax.data.make_inputs"
     _partial_: true
-    datasets: "${data.dataset_loader}"
-
+    train_stream:
+      - "${data.train.Stream}"
+      - "${data.train.BucketByLength}"
+      - "${data.AddLossWeights}"
+    eval_stream:
+      - "${data.eval.Stream}"
+      - "${data.eval.BucketByLength}"
+      - "${data.AddLossWeights}"
+  AddLossWeights:
+    _target_: "trax.data.add_loss_weights"
+    _partial_: true
+    id_to_mask: 0
   dataset_loader:
-    _target_: "trax.data.data_streams"
+    _target_: "trax.data.loader.tf.base.data_streams"
     _partial_: true
     data_dir: null
     dataset_name: "scientific_papers/arxiv:1.1.1"

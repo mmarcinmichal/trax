@@ -27,14 +27,41 @@ attn_kv = 64
 n_layers = 3
 dropout = 0.0
 
-# Parameters for batcher:
+# Parameters for make_inputs:
 # ==============================================================================
-batcher.data_streams = @data.tf_dataset_streams
-tf_dataset_streams.datasets = @data.data_streams
-batcher.batch_size_per_device = 1
-batcher.eval_batch_size = 8
-batcher.max_eval_length = 24576
+make_inputs.train_stream = [
+  @data.tf_dataset_streams_train(),
+  @train/data.BucketByLengthFromBatcher(),
+  @data.AddLossWeights(),
+]
 
+make_inputs.eval_stream = [
+  @data.tf_dataset_streams_eval(),
+  @eval/data.BucketByLengthFromBatcher(),
+  @data.AddLossWeights(),
+]
+
+# Parameters for data streams:
+# ==============================================================================
+tf_dataset_streams_train.datasets = @data.data_streams
+tf_dataset_streams_eval.datasets = @data.data_streams
+tf_dataset_streams_train.input_name = 'targets'
+tf_dataset_streams_eval.input_name = 'targets'
+tf_dataset_streams_train.preprocess_fn = @data.BairRobotPushingPreprocess
+tf_dataset_streams_eval.preprocess_fn = @data.BairRobotPushingPreprocess
+tf_dataset_streams_train.shuffle_buffer_size = 8
+tf_dataset_streams_eval.shuffle_buffer_size = 8
+
+# Parameters for BucketByLengthFromBatcher:
+# ==============================================================================
+train/data.BucketByLengthFromBatcher.training = True
+eval/data.BucketByLengthFromBatcher.training = False
+train/data.BucketByLengthFromBatcher.batch_size_per_device = 1
+eval/data.BucketByLengthFromBatcher.batch_size_per_device = 1
+train/data.BucketByLengthFromBatcher.eval_batch_size = 8
+eval/data.BucketByLengthFromBatcher.eval_batch_size = 8
+train/data.BucketByLengthFromBatcher.max_eval_length = 24576
+eval/data.BucketByLengthFromBatcher.max_eval_length = 24576
 # Parameters for data_streams:
 # ==============================================================================
 data_streams.data_dir = None

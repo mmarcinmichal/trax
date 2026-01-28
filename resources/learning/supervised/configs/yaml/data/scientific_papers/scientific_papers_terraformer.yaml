@@ -4,68 +4,55 @@ defaults:
   - _self_
 
 data:
-  train:
-    TFDS:
-      _target_: "trax.data.TFDS"
-      dataset_name: "scientific_papers/arxiv:1.1.1"
-      keys: "('article', 'abstract')"
-      train: true
-  Tokenize:
-    _target_: "trax.data.Tokenize"
-    vocab_file: "gs://t5-data/vocabs/cc_all.32000/sentencepiece.model"
-    keys:
-      - 0
-      - 1
-    vocab_type: "sentencepiece"
-  TruncateToLength:
-    _target_: "trax.data.TruncateToLength"
-    len_map:
-      0: "(15359, )"
-      1: "(1023, )"
-  AppendValue:
-    _target_: "trax.data.AppendValue"
-    val:
-      0:
-        - 0
-      1:
-        - 1
-  PadToLength:
-    _target_: "trax.data.PadToLength"
-    len_map:
-      0: 15360
-      1: 1024
-    pad_value:
-      0: 0
-      1: 0
-  Batch:
-    _target_: "trax.data.Batch"
-    batch_size: 32
-  eval:
-    TFDS:
-      _target_: "trax.data.TFDS"
-      dataset_name: "scientific_papers/arxiv:1.1.1"
-      keys: "('article', 'abstract')"
-      train: false
   Rekey:
     _target_: "trax.data.Rekey"
     _partial_: true
     key_map:
       inputs: "article"
       targets: "abstract"
-  batcher:
-    _target_: "trax.data.batcher"
-    data_streams: "${data.data_streams}"
-    max_eval_length: 16384
-    buckets: "([16384], [32, 1])"
-    strict_pad_on_len: false
-    id_to_mask: 0
-  data_streams:
-    _target_: "trax.data.tf_dataset_streams_serial"
+  make_inputs:
+    _target_: "trax.data.make_inputs"
     _partial_: true
-    datasets: "${data.dataset_loader}"
-    preprocess_fn: "${data.GenericTextPreprocess}"
+    train_stream:
+      - "${data.train.Stream}"
+      - "${data.train.BucketByLength}"
+      - "${data.AddLossWeights}"
+    eval_stream:
+      - "${data.eval.Stream}"
+      - "${data.eval.BucketByLength}"
+      - "${data.AddLossWeights}"
+  train:
+    Stream:
+      _target_: "trax.data.tf_dataset_streams_serial_train"
+      datasets: "${data.dataset_loader}"
+      preprocess_fn: "${data.GenericTextPreprocess}"
+    BucketByLength:
+      _target_: "trax.data.BucketByLengthFromBatcher"
+      training: true
+      buckets:
+        - - 16384
+        - - 32
+          - 1
+      strict_pad_on_len: false
+  eval:
+    Stream:
+      _target_: "trax.data.tf_dataset_streams_serial_eval"
+      datasets: "${data.dataset_loader}"
+      preprocess_fn: "${data.GenericTextPreprocess}"
+    BucketByLength:
+      _target_: "trax.data.BucketByLengthFromBatcher"
+      training: false
+      buckets:
+        - - 16384
+        - - 32
+          - 1
+      strict_pad_on_len: false
+  AddLossWeights:
+    _target_: "trax.data.add_loss_weights"
+    _partial_: true
+    id_to_mask: 0
   dataset_loader:
-    _target_: "trax.data.data_streams"
+    _target_: "trax.data.loader.tf.base.data_streams"
     _partial_: true
     data_dir: null
     dataset_name: "scientific_papers/arxiv:1.1.1"

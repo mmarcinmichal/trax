@@ -251,6 +251,54 @@ def tf_dataset_streams(  # pylint: disable=invalid-name
 
 
 @gin.configurable(module="trax.data")
+def tf_dataset_streams_train(  # pylint: disable=invalid-name
+    datasets=gin.REQUIRED,
+    preprocess_fn=_identity_preprocess,
+    bare_preprocess_fn=None,
+    shuffle_buffer_size=1024,
+    shuffle=True,
+    seed=None,
+    input_name=None,
+    target_name=None,
+):
+    train_stream, _ = tf_dataset_streams(
+        datasets=datasets,
+        preprocess_fn=preprocess_fn,
+        bare_preprocess_fn=bare_preprocess_fn,
+        shuffle_buffer_size=shuffle_buffer_size,
+        shuffle=shuffle,
+        seed=seed,
+        input_name=input_name,
+        target_name=target_name,
+    )
+    return lambda _: train_stream()
+
+
+@gin.configurable(module="trax.data")
+def tf_dataset_streams_eval(  # pylint: disable=invalid-name
+    datasets=gin.REQUIRED,
+    preprocess_fn=_identity_preprocess,
+    bare_preprocess_fn=None,
+    shuffle_buffer_size=1024,
+    shuffle=True,
+    seed=None,
+    input_name=None,
+    target_name=None,
+):
+    _, eval_stream = tf_dataset_streams(
+        datasets=datasets,
+        preprocess_fn=preprocess_fn,
+        bare_preprocess_fn=bare_preprocess_fn,
+        shuffle_buffer_size=shuffle_buffer_size,
+        shuffle=shuffle,
+        seed=seed,
+        input_name=input_name,
+        target_name=target_name,
+    )
+    return lambda _: eval_stream()
+
+
+@gin.configurable(module="trax.data")
 def tf_dataset_streams_serial(  # pylint: disable=invalid-name
     datasets=gin.REQUIRED,
     preprocess_fn=gin.REQUIRED,
@@ -269,6 +317,46 @@ def tf_dataset_streams_serial(  # pylint: disable=invalid-name
         seed=seed,
         map_to_stream=False,
     )
+
+
+@gin.configurable(module="trax.data")
+def tf_dataset_streams_serial_train(  # pylint: disable=invalid-name
+    datasets=gin.REQUIRED,
+    preprocess_fn=gin.REQUIRED,
+    bare_preprocess_fn=None,
+    shuffle_buffer_size=1024,
+    shuffle=True,
+    seed=None,
+):
+    train_stream, _ = tf_dataset_streams_serial(
+        datasets=datasets,
+        preprocess_fn=preprocess_fn,
+        bare_preprocess_fn=bare_preprocess_fn,
+        shuffle_buffer_size=shuffle_buffer_size,
+        shuffle=shuffle,
+        seed=seed,
+    )
+    return lambda _: train_stream()
+
+
+@gin.configurable(module="trax.data")
+def tf_dataset_streams_serial_eval(  # pylint: disable=invalid-name
+    datasets=gin.REQUIRED,
+    preprocess_fn=gin.REQUIRED,
+    bare_preprocess_fn=None,
+    shuffle_buffer_size=1024,
+    shuffle=True,
+    seed=None,
+):
+    _, eval_stream = tf_dataset_streams_serial(
+        datasets=datasets,
+        preprocess_fn=preprocess_fn,
+        bare_preprocess_fn=bare_preprocess_fn,
+        shuffle_buffer_size=shuffle_buffer_size,
+        shuffle=shuffle,
+        seed=seed,
+    )
+    return lambda _: eval_stream()
 
 
 def _tf_dataset_streams_serial(
@@ -1005,6 +1093,37 @@ def BucketByLength(
         return length_fn_(x, length_axis, length_keys)
     return lambda g: bucket_by_length(  # pylint: disable=g-long-lambda
         g, length_fn, boundaries, batch_sizes, strict_pad_on_len
+    )
+
+
+@gin.configurable(module="trax.data")
+def BucketByLengthFromBatcher(  # pylint: disable=invalid-name
+    bucket_length=32,
+    batch_size_per_device=32,
+    eval_batch_size=32,
+    max_eval_length=None,
+    buckets=None,
+    buckets_include_inputs_in_length=False,
+    training=True,
+    length_axis=0,
+    strict_pad_on_len=False,
+):
+    """Bucket by length using batcher-style heuristics."""
+    if buckets is None:
+        batch_size = batch_size_per_device if training else eval_batch_size
+        boundaries, batch_sizes = buckets_for_length(
+            bucket_length, batch_size, max_eval_length, n_devices=1, training=training
+        )
+    else:
+        boundaries, batch_sizes = buckets
+
+    length_keys = [0, 1] if buckets_include_inputs_in_length else [1]
+    return BucketByLength(
+        boundaries=boundaries,
+        batch_sizes=batch_sizes,
+        length_keys=length_keys,
+        length_axis=length_axis,
+        strict_pad_on_len=strict_pad_on_len,
     )
 
 
@@ -2508,108 +2627,6 @@ def make_inputs(train_stream=gin.REQUIRED, eval_stream=None):
         eval_stream = Serial(eval_stream)()
     eval_stream_fn = None if eval_stream is None else lambda _: eval_stream
     return Inputs(train_stream=lambda _: train_stream, eval_stream=eval_stream_fn)
-
-
-@gin.configurable(module="trax.data")
-def batcher(
-    data_streams=gin.REQUIRED,
-    variable_shapes=True,
-    batch_size_per_device=32,
-    batch_size=None,
-    eval_batch_size=32,
-    bucket_length=32,
-    buckets=None,
-    buckets_include_inputs_in_length=False,
-    batch_shuffle_size=None,
-    max_eval_length=None,
-    # TODO(afrozm): Unify padding logic.
-    id_to_mask=None,
-    strict_pad_on_len=False,
-):
-    """Batcher: create trax Inputs from single-example data-streams."""
-    # TODO(lukaszkaiser, jonni): revisit arguments, their semantics and naming.
-    # For now leaving the arguments as in batch_fn to reduce gin config changes.
-    if callable(data_streams):  # If we pass a function, e.g., through gin, call.
-        train_stream, eval_stream = data_streams()
-    else:
-        train_stream, eval_stream = data_streams
-    # pylint: disable=g-long-lambda
-    def batch_train_stream(n_devices):
-        return batch_fn(train_stream(), True, n_devices, variable_shapes, batch_size_per_device, batch_size, eval_batch_size, bucket_length, buckets, buckets_include_inputs_in_length, batch_shuffle_size, max_eval_length, id_to_mask, strict_pad_on_len)
-    def batch_eval_stream(n_devices):
-        return batch_fn(eval_stream(), False, n_devices, variable_shapes, batch_size_per_device, batch_size, eval_batch_size, bucket_length, buckets, buckets_include_inputs_in_length, batch_shuffle_size, max_eval_length, id_to_mask, strict_pad_on_len)
-    def batch_train_eval_stream(n_devices):
-        return batch_fn(train_stream(), False, n_devices, variable_shapes, batch_size_per_device, batch_size, eval_batch_size, bucket_length, buckets, buckets_include_inputs_in_length, batch_shuffle_size, max_eval_length, id_to_mask, strict_pad_on_len)
-    # pylint: enable=g-long-lambda
-    return Inputs(
-        train_stream=batch_train_stream,
-        eval_stream=batch_eval_stream,
-        train_eval_stream=batch_train_eval_stream,
-    )
-
-
-def batch_fn(
-    dataset,
-    training,
-    n_devices,
-    variable_shapes,
-    batch_size_per_device=32,
-    batch_size=None,
-    eval_batch_size=32,
-    bucket_length=32,
-    buckets=None,
-    buckets_include_inputs_in_length=False,
-    batch_shuffle_size=None,
-    max_eval_length=None,
-    id_to_mask=None,
-    strict_pad_on_len=False,
-):
-    """Batching function."""
-    # TODO(lukaszkaiser, jonni): revisit arguments, their semantics and naming.
-    # After that, create a proper doc-string; we may also not need to pass both
-    # training and eval arguments here, as batcher calls the function separately
-    # now and it's not under gin-config any more -- consider reducing args.
-    batch_size = batch_size or batch_size_per_device * n_devices
-    # If bucketing is not specified, check if target shapes are variable.
-    cur_batch_size = batch_size if training else eval_batch_size
-    # Make cur_batch_size divisible by n_devices.
-    cur_batch_size = max(cur_batch_size // n_devices, 1) * n_devices
-    # Create heuristic buckets if none are specified.
-    if buckets is None:
-        logging.info(
-            "Heuristically setting bucketing to %s based on shapes "
-            "of target tensors.",
-            variable_shapes,
-        )
-        if variable_shapes:
-            buckets = buckets_for_length(
-                bucket_length, cur_batch_size, max_eval_length, n_devices, training
-            )
-
-    if buckets:
-        logging.info("Bucketing with buckets %s.", str(buckets))
-
-        def example_length(x):
-            """The length function used by bucket_by_sequence_length to bucket."""
-            # The input x is a tuple to go on the stack, typically either
-            # (input, target) or (input, target, mask).
-            example_inputs, target = x[0], x[1]
-            # Length is the shape of axis 0 here (no batch yet).
-            other_length = 0  # We include input length only if asked.
-            if buckets_include_inputs_in_length:
-                other_length = example_inputs.shape[0]
-            return max(target.shape[0], other_length)
-
-        boundaries, batch_sizes = buckets
-        dataset = bucket_by_length(
-            dataset, example_length, boundaries, batch_sizes, strict_pad_on_len
-        )
-    else:
-        logging.info("Not Bucketing cur_batch_size %d.", cur_batch_size)
-        dataset = batch(dataset, cur_batch_size)
-    if training and batch_shuffle_size is not None:
-        dataset = shuffle(dataset, batch_shuffle_size)
-    return add_loss_weights(dataset, id_to_mask)
 
 
 @gin.configurable(module="trax.data")

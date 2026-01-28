@@ -29,3 +29,5 @@ data:
     BertNextSentencePredictionInputs:
       _target_: "trax.data.BertNextSentencePredictionInputs"
       dataset_name: "wiki40b"
+  CreateBertInputs:
+    _target_: "trax.data.CreateBertInputs"

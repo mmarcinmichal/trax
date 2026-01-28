@@ -19,12 +19,7 @@ import trax.learning.training.trainer
 
 # Module trax.data:
 # ==============================================================================
-batcher.data_streams = @data.tf_dataset_streams_serial
 tf_dataset_streams_serial.datasets = @data.data_streams
-batcher.batch_size_per_device = 128
-batcher.eval_batch_size = 128
-batcher.max_eval_length = 2048
-batcher.id_to_mask = 0
 
 data_streams.data_dir = None
 data_streams.dataset_name = 't2t_languagemodel_lm1b32k'
@@ -58,3 +53,6 @@ train.model = @trax.models.TransformerLM
 train.optimizer = @trax.optimizers.Adam
 train.steps = 100000
 
+# Parameters for train inputs:
+# ==============================================================================
+train.inputs = @trax.data.make_inputs

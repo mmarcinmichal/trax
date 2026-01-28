@@ -18,16 +18,29 @@ import trax.models
 import trax.optimizers
 import trax.learning.training.trainer
 
-# Parameters for batcher:
+# Parameters for make_inputs:
 # ==============================================================================
-batcher.data_streams = @data.tf_dataset_streams
-tf_dataset_streams.datasets = @data.data_streams
-batcher.batch_size_per_device = 32
-batcher.bucket_length = 32
-batcher.buckets = None
-batcher.eval_batch_size = 32
-batcher.variable_shapes = False
+make_inputs.train_stream = [
+  @data.tf_dataset_streams_train(),
+  @train/data.Batch(),
+  @data.AddLossWeights(),
+]
 
+make_inputs.eval_stream = [
+  @data.tf_dataset_streams_eval(),
+  @eval/data.Batch(),
+  @data.AddLossWeights(),
+]
+
+# Parameters for data streams:
+# ==============================================================================
+tf_dataset_streams_train.datasets = @data.data_streams
+tf_dataset_streams_eval.datasets = @data.data_streams
+
+# Parameters for Batch:
+# ==============================================================================
+train/data.Batch.batch_size = 32
+eval/data.Batch.batch_size = 32
 # Parameters for data_streams:
 # ==============================================================================
 data_streams.data_dir = None
@@ -63,3 +76,6 @@ train.model = @trax.models.Resnet50
 train.optimizer = @trax.optimizers.Momentum
 train.steps = 300000
 
+# Parameters for train inputs:
+# ==============================================================================
+train.inputs = @trax.data.make_inputs

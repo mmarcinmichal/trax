@@ -3,18 +3,33 @@ defaults:
   - _self_
 
 data:
-  batcher:
-    _target_: "trax.data.batcher"
-    data_streams: "${data.data_streams}"
-    batch_size_per_device: 256
-    eval_batch_size: 256
-    variable_shapes: false
-  data_streams:
-    _target_: "trax.data.tf_dataset_streams"
+  make_inputs:
+    _target_: "trax.data.make_inputs"
     _partial_: true
-    datasets: "${data.dataset_loader}"
+    train_stream:
+      - "${data.train.Stream}"
+      - "${data.Batch}"
+      - "${data.AddLossWeights}"
+    eval_stream:
+      - "${data.eval.Stream}"
+      - "${data.Batch}"
+      - "${data.AddLossWeights}"
+  train:
+    Stream:
+      _target_: "trax.data.tf_dataset_streams_train"
+      datasets: "${data.dataset_loader}"
+  eval:
+    Stream:
+      _target_: "trax.data.tf_dataset_streams_eval"
+      datasets: "${data.dataset_loader}"
+  Batch:
+    _target_: "trax.data.Batch"
+    batch_size: 256
+  AddLossWeights:
+    _target_: "trax.data.add_loss_weights"
+    _partial_: true
   dataset_loader:
-    _target_: "trax.data.data_streams"
+    _target_: "trax.data.loader.tf.base.data_streams"
     _partial_: true
     data_dir: null
     dataset_name: "mnist"

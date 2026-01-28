@@ -95,18 +95,6 @@ ref2_encoder/LSHSelfAttention.n_chunks_after = 1
 Rekey.key_map = {'inputs': 'article', 'targets': 'abstract'}
 
 
-# Parameters for batcher:
-# ==============================================================================
-batcher.data_streams = @data.tf_dataset_streams_serial
-tf_dataset_streams_serial.datasets = @data.data_streams
-tf_dataset_streams_serial.preprocess_fn = @data.GenericTextPreprocess
-batcher.max_eval_length = %max_len
-# batcher.buckets = ([16384], [8, 1])   # 2x2s
-batcher.buckets = ([16384], [32, 1])  # 4x4s
-batcher.strict_pad_on_len = False
-batcher.id_to_mask = 0
-
-
 # Parameters for data_streams:
 # ==============================================================================
 data_streams.data_dir = None
