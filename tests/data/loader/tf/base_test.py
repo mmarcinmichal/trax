@@ -23,7 +23,6 @@ import tensorflow_datasets as tfds
 
 from tests.data.utils import TEST_CORPUS  # relative import
 from trax.data.loader.tf import base as ds
-from trax.data.preprocessing import inputs
 
 
 class TFDatasetTest(tf.test.TestCase):
@@ -177,32 +176,6 @@ class TFDatasetTest(tf.test.TestCase):
         self.assertIsNotNone(streams.eval)
         # Some datasets (like C4) are unsupervised and do not expose keys.
         self.assertIn(streams.supervised_keys, (None, (["inputs"], ["targets"])))
-
-    def test_tf_dataset_streams_seeded_shuffle(self):
-        dataset = tf.data.Dataset.from_tensor_slices(
-            {
-                "inputs": np.arange(5, dtype=np.int64),
-                "targets": np.arange(5, dtype=np.int64),
-            }
-        )
-        datasets = (dataset, dataset, (["inputs"], ["targets"]))
-
-        train_stream1, _ = inputs.tf_dataset_streams(
-            datasets=datasets,
-            shuffle_buffer_size=5,
-            seed=123,
-        )
-        train_stream2, _ = inputs.tf_dataset_streams(
-            datasets=datasets,
-            shuffle_buffer_size=5,
-            seed=123,
-        )
-
-        first1 = next(train_stream1())
-        first2 = next(train_stream2())
-        np.testing.assert_array_equal(first1[0], first2[0])
-        np.testing.assert_array_equal(first1[1], first2[1])
-
 
 if __name__ == "__main__":
     tf.test.main()

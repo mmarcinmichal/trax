@@ -1,6 +1,6 @@
 data:
-  make_inputs:
-    _target_: "trax.data.make_inputs"
+  make_streams:
+    _target_: "trax.data.make_streams"
     _partial_: true
     train_stream:
       - "${data.train.CreateMathQAInputs}"

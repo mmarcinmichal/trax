@@ -30,6 +30,6 @@ data:
   Batch:
     _target_: "trax.data.Batch"
     batch_size: 16
-  make_inputs:
-    _target_: "trax.data.make_inputs"
+  make_streams:
+    _target_: "trax.data.make_streams"
     _partial_: true

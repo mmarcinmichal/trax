@@ -3,27 +3,39 @@ defaults:
   - _self_
 
 data:
-  make_inputs:
-    _target_: "trax.data.make_inputs"
+  make_streams:
+    _target_: "trax.data.make_streams"
     _partial_: true
     train_stream:
-      - "${data.train.Stream}"
+      - "${data.train.TFDS}"
+      - "${data.SqueezeTargets}"
+      - "${data.Shuffle}"
       - "${data.BatchTrain}"
       - "${data.AddLossWeights}"
     eval_stream:
-      - "${data.eval.Stream}"
+      - "${data.eval.TFDS}"
+      - "${data.SqueezeTargets}"
+      - "${data.Shuffle}"
       - "${data.BatchEval}"
       - "${data.AddLossWeights}"
   train:
-    Stream:
-      _target_: "trax.data.tf_dataset_streams_serial_train"
-      datasets: "${data.dataset_loader}"
-      preprocess_fn: "${data.SqueezeTargets}"
+    TFDS:
+      _target_: "trax.data.TFDS"
+      dataset_name: "t2t_image_imagenet224"
+      data_dir: null
+      train: true
+      keys:
+        - "image"
+        - "label"
   eval:
-    Stream:
-      _target_: "trax.data.tf_dataset_streams_serial_eval"
-      datasets: "${data.dataset_loader}"
-      preprocess_fn: "${data.SqueezeTargets}"
+    TFDS:
+      _target_: "trax.data.TFDS"
+      dataset_name: "t2t_image_imagenet224"
+      data_dir: null
+      train: false
+      keys:
+        - "image"
+        - "label"
   BatchTrain:
     _target_: "trax.data.Batch"
     batch_size: 32
@@ -33,11 +45,6 @@ data:
   AddLossWeights:
     _target_: "trax.data.add_loss_weights"
     _partial_: true
-  dataset_loader:
-    _target_: "trax.data.loader.tf.base.data_streams"
-    _partial_: true
-    data_dir: null
-    dataset_name: "t2t_image_imagenet224"
   SqueezeTargets:
     _target_: "trax.data.SqueezeTargets"
     _partial_: true

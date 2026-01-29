@@ -24,26 +24,23 @@ sequence_length = {'inputs': 512, 'targets': 512}
 mean_noise_span_length = 3.0
 noise_density = 0.15
 
-# Parameters for make_inputs:
+# Parameters for make_streams:
 # ==============================================================================
-make_inputs.train_stream = [
-  @data.tf_dataset_streams_serial_train(),
+make_streams.train_stream = [
+  @train/data.TFDS(),
+  @data.GenericTextPreprocess(),
+  @data.Shuffle(),
   @train/data.BucketByLengthFromBatcher(),
   @data.AddLossWeights(),
 ]
 
-make_inputs.eval_stream = [
-  @data.tf_dataset_streams_serial_eval(),
+make_streams.eval_stream = [
+  @eval/data.TFDS(),
+  @data.GenericTextPreprocess(),
+  @data.Shuffle(),
   @eval/data.BucketByLengthFromBatcher(),
   @data.AddLossWeights(),
 ]
-
-# Parameters for data streams:
-# ==============================================================================
-tf_dataset_streams_serial_train.datasets = @data.data_streams
-tf_dataset_streams_serial_eval.datasets = @data.data_streams
-tf_dataset_streams_serial_train.preprocess_fn = @data.GenericTextPreprocess
-tf_dataset_streams_serial_eval.preprocess_fn = @data.GenericTextPreprocess
 
 # Parameters for BucketByLengthFromBatcher:
 # ==============================================================================
@@ -59,11 +56,16 @@ train/data.BucketByLengthFromBatcher.max_eval_length = 512
 eval/data.BucketByLengthFromBatcher.max_eval_length = 512
 train/data.BucketByLengthFromBatcher.buckets_include_inputs_in_length = True
 eval/data.BucketByLengthFromBatcher.buckets_include_inputs_in_length = True
-# Parameters for data_streams:
+# Parameters for TFDS:
 # ==============================================================================
-data_streams.data_dir = None
-data_streams.eval_holdout_size = 0.1
-data_streams.dataset_name = 'para_crawl/enpl_plain_text'
+train/data.TFDS.dataset_name = 'para_crawl/enpl_plain_text'
+train/data.TFDS.data_dir = None
+train/data.TFDS.train = True
+train/data.TFDS.eval_holdout_size = 0.1
+eval/data.TFDS.dataset_name = 'para_crawl/enpl_plain_text'
+eval/data.TFDS.data_dir = None
+eval/data.TFDS.train = False
+eval/data.TFDS.eval_holdout_size = 0.1
 
 # Parameters for FilterByLengthMap:
 # ==============================================================================
@@ -130,4 +132,4 @@ Reformer.input_vocab_size = 8064
 
 # Parameters for train inputs:
 # ==============================================================================
-train.inputs = @trax.data.make_inputs
+train.inputs = @trax.data.make_streams

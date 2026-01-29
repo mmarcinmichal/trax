@@ -18,33 +18,36 @@ import trax.optimizers
 import trax.learning.supervised.lr_schedules
 import trax.learning.training.trainer
 
-# Parameters for make_inputs:
+# Parameters for make_streams:
 # ==============================================================================
-make_inputs.train_stream = [
-  @data.tf_dataset_streams_train(),
+make_streams.train_stream = [
+  @train/data.TFDS(),
+  @data.Shuffle(),
   @train/data.Batch(),
   @data.AddLossWeights(),
 ]
 
-make_inputs.eval_stream = [
-  @data.tf_dataset_streams_eval(),
+make_streams.eval_stream = [
+  @eval/data.TFDS(),
+  @data.Shuffle(),
   @eval/data.Batch(),
   @data.AddLossWeights(),
 ]
-
-# Parameters for data streams:
-# ==============================================================================
-tf_dataset_streams_train.datasets = @data.data_streams
-tf_dataset_streams_eval.datasets = @data.data_streams
 
 # Parameters for Batch:
 # ==============================================================================
 train/data.Batch.batch_size = 256
 eval/data.Batch.batch_size = 256
-# Parameters for data.data_streams:
+# Parameters for TFDS:
 # ==============================================================================
-data_streams.data_dir = None
-data_streams.dataset_name = 'mnist'
+train/data.TFDS.dataset_name = 'mnist'
+train/data.TFDS.data_dir = None
+train/data.TFDS.train = True
+train/data.TFDS.keys = ('image', 'label')
+eval/data.TFDS.dataset_name = 'mnist'
+eval/data.TFDS.data_dir = None
+eval/data.TFDS.train = False
+eval/data.TFDS.keys = ('image', 'label')
 
 # Parameters for MLP:
 # ==============================================================================
@@ -66,4 +69,4 @@ train.lr_schedule_fn = @lr_schedules.constant
 
 # Parameters for train inputs:
 # ==============================================================================
-train.inputs = @trax.data.make_inputs
+train.inputs = @trax.data.make_streams

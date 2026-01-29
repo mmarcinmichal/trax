@@ -15,9 +15,10 @@
 
 """Tests for CIFAR preprocessing modules."""
 
+from unittest import mock
+
 import numpy as np
 import tensorflow as tf
-from unittest import mock
 
 from trax.data.preprocessing.modules import cifar as modules_cifar
 

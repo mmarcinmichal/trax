@@ -18,35 +18,41 @@ import trax.models
 import trax.optimizers
 import trax.learning.training.trainer
 
-# Parameters for make_inputs:
+# Parameters for make_streams:
 # ==============================================================================
-make_inputs.train_stream = [
-  @data.tf_dataset_streams_serial_train(),
+make_streams.train_stream = [
+  @train/data.TFDS(),
+  @train/data.Cifar10Augmentation(),
+  @data.Shuffle(),
   @train/data.Batch(),
   @data.AddLossWeights(),
 ]
 
-make_inputs.eval_stream = [
-  @data.tf_dataset_streams_serial_eval(),
+make_streams.eval_stream = [
+  @eval/data.TFDS(),
+  @eval/data.Cifar10Augmentation(),
+  @data.Shuffle(),
   @eval/data.Batch(),
   @data.AddLossWeights(),
 ]
-
-# Parameters for data streams:
-# ==============================================================================
-tf_dataset_streams_serial_train.datasets = @data.data_streams
-tf_dataset_streams_serial_eval.datasets = @data.data_streams
-tf_dataset_streams_serial_train.preprocess_fn = @data.Cifar10Augmentation
-tf_dataset_streams_serial_eval.preprocess_fn = @data.Cifar10Augmentation
 
 # Parameters for Batch:
 # ==============================================================================
 train/data.Batch.batch_size = 256
 eval/data.Batch.batch_size = 512
-# Parameters for data_streams:
+# Parameters for TFDS:
 # ==============================================================================
-data_streams.data_dir = None
-data_streams.dataset_name = 'cifar10'
+train/data.TFDS.dataset_name = 'cifar10'
+train/data.TFDS.data_dir = None
+train/data.TFDS.train = True
+eval/data.TFDS.dataset_name = 'cifar10'
+eval/data.TFDS.data_dir = None
+eval/data.TFDS.train = False
+
+# Parameters for Cifar10Augmentation:
+# ==============================================================================
+train/data.Cifar10Augmentation.training = True
+eval/data.Cifar10Augmentation.training = False
 
 # Parameters for multifactor:
 # ==============================================================================
@@ -75,4 +81,4 @@ train.steps = 10000
 
 # Parameters for train inputs:
 # ==============================================================================
-train.inputs = @trax.data.make_inputs
+train.inputs = @trax.data.make_streams

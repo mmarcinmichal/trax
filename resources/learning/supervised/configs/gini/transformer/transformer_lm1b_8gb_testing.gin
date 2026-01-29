@@ -17,16 +17,52 @@ import trax.models
 import trax.optimizers
 import trax.learning.training.trainer
 
-# Module trax.data:
+# Parameters for make_streams:
 # ==============================================================================
-tf_dataset_streams_serial.datasets = @data.data_streams
+make_streams.train_stream = [
+  @train/data.TFDS(),
+  @data.DictToTuple(),
+  @train/data.LM1BFilterByLength(),
+  @data.Shuffle(),
+  @train/data.BucketByLengthFromBatcher(),
+  @data.AddLossWeights(),
+]
 
-data_streams.data_dir = None
-data_streams.dataset_name = 't2t_languagemodel_lm1b32k'
-tf_dataset_streams_serial.preprocess_fn = @data.LM1BFilterByLength
+make_streams.eval_stream = [
+  @eval/data.TFDS(),
+  @data.DictToTuple(),
+  @eval/data.LM1BFilterByLength(),
+  @data.Shuffle(),
+  @eval/data.BucketByLengthFromBatcher(),
+  @data.AddLossWeights(),
+]
 
+# Parameters for BucketByLengthFromBatcher:
+# ==============================================================================
+train/data.BucketByLengthFromBatcher.training = True
+eval/data.BucketByLengthFromBatcher.training = False
+train/data.BucketByLengthFromBatcher.batch_size_per_device = 128
+eval/data.BucketByLengthFromBatcher.batch_size_per_device = 128
+train/data.BucketByLengthFromBatcher.eval_batch_size = 128
+eval/data.BucketByLengthFromBatcher.eval_batch_size = 128
+train/data.BucketByLengthFromBatcher.max_eval_length = 2048
+eval/data.BucketByLengthFromBatcher.max_eval_length = 2048
+
+# Parameters for TFDS:
+# ==============================================================================
+train/data.TFDS.dataset_name = 't2t_languagemodel_lm1b32k'
+train/data.TFDS.data_dir = None
+train/data.TFDS.train = True
+eval/data.TFDS.dataset_name = 't2t_languagemodel_lm1b32k'
+eval/data.TFDS.data_dir = None
+eval/data.TFDS.train = False
+
+# Parameters for LM1BFilterByLength:
+# ==============================================================================
 LM1BFilterByLength.max_target_length = 512
 LM1BFilterByLength.max_eval_target_length = 2048
+train/data.LM1BFilterByLength.training = True
+eval/data.LM1BFilterByLength.training = False
 
 # Module trax.models.transformer:
 # ==============================================================================
@@ -55,4 +91,4 @@ train.steps = 100000
 
 # Parameters for train inputs:
 # ==============================================================================
-train.inputs = @trax.data.make_inputs
+train.inputs = @trax.data.make_streams

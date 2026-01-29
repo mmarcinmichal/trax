@@ -6,4 +6,4 @@ train:
     steps: 1000000
     optimizer: "${optim.Adafactor}"
     use_memory_efficient_trainer: false
-    inputs: "${data.make_inputs}"
+    inputs: "${data.make_streams}"

@@ -46,8 +46,8 @@ dec_attn_type = @CausalAttention
 
 # Parameters for training and eval data:
 # ==============================================================================
-make_inputs.train_stream = @data.T5GlueTrainStream()
-make_inputs.eval_stream = @data.T5GlueEvalStream()
+make_streams.train_stream = @data.T5GlueTrainStream()
+make_streams.eval_stream = @data.T5GlueEvalStream()
 T5GlueTrainStream.benchmark = 'qnli'
 T5GlueEvalStream.benchmark = 'qnli'
 
@@ -62,7 +62,7 @@ train.init_checkpoint = None
 train.optimizer = @trax.optimizers.Adafactor
 train.eval_frequency = 20
 train.eval_steps = 10
-train.inputs = @trax.data.make_inputs
+train.inputs = @trax.data.make_streams
 train.model = @trax.models.ConfigurableTransformer
 train.steps = 200000
 train.checkpoint_highest = 'accuracy'

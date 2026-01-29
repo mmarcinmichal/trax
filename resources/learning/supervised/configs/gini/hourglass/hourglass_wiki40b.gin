@@ -27,7 +27,7 @@ vocab_size = 32000
 
 # Parameters for TFDS data pipeline:
 # ==============================================================================
-make_inputs.train_stream = [
+make_streams.train_stream = [
   @training/data.TFDS(),
   @data.SentencePieceTokenize(),
   @data.generate_sequential_chunks(),
@@ -39,7 +39,7 @@ make_inputs.train_stream = [
   @data.Batch(),
 ]
 
-make_inputs.eval_stream = [
+make_streams.eval_stream = [
   @validation/data.TFDS(),
   @data.SentencePieceTokenize(),
   @data.generate_sequential_chunks(),
@@ -86,7 +86,7 @@ train.steps = 125000
 train.optimizer = @trax.optimizers.Adam
 train.permanent_checkpoints_at = [50000, 100000, 125000]
 train.checkpoint_lowest = 'loss'
-train.inputs = @data.make_inputs
+train.inputs = @data.make_streams
 
 # Parameters for Adam:
 # ==============================================================================

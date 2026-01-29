@@ -24,6 +24,7 @@ import tensorflow.compat.v2 as tf
 from absl.testing import absltest, parameterized
 
 from tests.fastmath.jax.config import config
+from trax import data as trax_data
 from trax import fastmath, models
 from trax import layers as tl
 from trax import optimizers as trax_opt
@@ -38,7 +39,7 @@ from trax.utils import test_utils
 
 
 def _test_inputs(n_classes, with_weights=False, input_shape=(6, 6, 3)):
-    """Make loop.inputs.Inputs."""
+    """Make stream bundle for tests."""
     batch_size = 2 * jax.device_count()
 
     def input_stream(n_devices):
@@ -60,11 +61,11 @@ def _test_inputs(n_classes, with_weights=False, input_shape=(6, 6, 3)):
     def input_stream_masked(n_devices):
         return inputs_lib.add_loss_weights(input_stream(n_devices))
 
-    return inputs_lib.Inputs(input_stream_masked)
+    return trax_data.make_streams(train_stream=input_stream_masked, eval_stream=None)
 
 
 def _test_inputs_lm(vocab_size, seq_len, per_device_batch_size=2):
-    """Make loop.inputs.Inputs for language model."""
+    """Make stream bundle for language model."""
     batch_size = per_device_batch_size * jax.device_count()
 
     def input_stream(_):
@@ -84,7 +85,7 @@ def _test_inputs_lm(vocab_size, seq_len, per_device_batch_size=2):
     def input_stream_masked(n_devices):
         return inputs_lib.add_loss_weights(input_stream(n_devices))
 
-    return inputs_lib.Inputs(input_stream_masked)
+    return trax_data.make_streams(train_stream=input_stream_masked, eval_stream=None)
 
 
 BACKENDS = [fastmath.Backend.JAX]

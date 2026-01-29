@@ -3,31 +3,43 @@ defaults:
   - _self_
 
 data:
-  make_inputs:
-    _target_: "trax.data.make_inputs"
+  make_streams:
+    _target_: "trax.data.make_streams"
     _partial_: true
     train_stream:
-      - "${data.train.Stream}"
+      - "${data.train.TFDS}"
+      - "${data.DownsampledImagenetFlatten}"
+      - "${data.DictToTupleImage}"
+      - "${data.Shuffle}"
       - "${data.BatchTrain}"
       - "${data.AddLossWeights}"
     eval_stream:
-      - "${data.eval.Stream}"
+      - "${data.eval.TFDS}"
+      - "${data.DownsampledImagenetFlatten}"
+      - "${data.DictToTupleImage}"
+      - "${data.Shuffle}"
       - "${data.BatchEval}"
       - "${data.AddLossWeights}"
   train:
-    Stream:
-      _target_: "trax.data.tf_dataset_streams_train"
-      datasets: "${data.dataset_loader}"
-      input_name: "image"
-      target_name: "image"
-      bare_preprocess_fn: "${data.DownsampledImagenetFlatten}"
+    TFDS:
+      _target_: "trax.data.TFDS"
+      dataset_name: "downsampled_imagenet/64x64"
+      data_dir: null
+      train: true
   eval:
-    Stream:
-      _target_: "trax.data.tf_dataset_streams_eval"
-      datasets: "${data.dataset_loader}"
-      input_name: "image"
-      target_name: "image"
-      bare_preprocess_fn: "${data.DownsampledImagenetFlatten}"
+    TFDS:
+      _target_: "trax.data.TFDS"
+      dataset_name: "downsampled_imagenet/64x64"
+      data_dir: null
+      train: false
+  DictToTupleImage:
+    _target_: "trax.data.DictToTuple"
+    keys:
+      - "image"
+      - "image"
+  Shuffle:
+    _target_: "trax.data.Shuffle"
+    queue_size: 1024
   BatchTrain:
     _target_: "trax.data.Batch"
     batch_size: 1
@@ -37,10 +49,5 @@ data:
   AddLossWeights:
     _target_: "trax.data.add_loss_weights"
     _partial_: true
-  dataset_loader:
-    _target_: "trax.data.loader.tf.base.data_streams"
-    _partial_: true
-    data_dir: null
-    dataset_name: "downsampled_imagenet/64x64"
   DownsampledImagenetFlatten:
     _target_: "trax.data.DownsampledImagenetFlatten"

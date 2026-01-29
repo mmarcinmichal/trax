@@ -51,6 +51,7 @@ ConfigurableTerraformer.encoder_decoder_attention_type = @PureLSHSelfAttentionWr
 
 # Parameters for train:
 # ==============================================================================
-train.inputs = @trax.data.simple_sequence_copy_inputs
+train.inputs = @trax.data.make_streams
+make_streams.train_stream = @trax.data.simple_sequence_copy_train_stream()
+make_streams.eval_stream = @trax.data.simple_sequence_copy_eval_stream()
 train.model = @trax.models.ConfigurableTerraformer
-

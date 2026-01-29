@@ -28,7 +28,8 @@ problems!
 
 ## Deprecations
 
-- `trax.data.batcher` has been removed; use `trax.data.make_inputs` for YAML configs and programmatic pipelines.
+- `trax.data.batcher` has been removed; use `trax.data.make_streams` for YAML configs and programmatic pipelines.
+- `trax.data.preprocessing.inputs.Inputs` has been removed; prefer `trax.data.make_streams`.
 
 Here are a few example notebooks:-
 

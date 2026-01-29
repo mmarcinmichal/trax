@@ -3,9 +3,20 @@ defaults:
   - _self_
 
 data:
-  sequence_copy_inputs:
-    _target_: "trax.data.sequence_copy_inputs"
-    _partial_: true
+  make_streams:
+    _target_: "trax.data.make_streams"
+    train_stream: "${data.sequence_copy_train_stream}"
+    eval_stream: "${data.sequence_copy_eval_stream}"
+  sequence_copy_train_stream:
+    _target_: "trax.data.sequence_copy_train_stream"
+    vocab_size: 32
+    batch_size: 512
+    train_length: 16
+    eval_min_length: 2
+    eval_max_length: 16
+    reverse: false
+  sequence_copy_eval_stream:
+    _target_: "trax.data.sequence_copy_eval_stream"
     vocab_size: 32
     batch_size: 512
     train_length: 16

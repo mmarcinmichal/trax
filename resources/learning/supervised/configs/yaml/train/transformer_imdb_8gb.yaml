@@ -4,5 +4,5 @@ train:
     eval_steps: 20
     model: "${model.TransformerEncoder}"
     steps: 10000
-    inputs: "${data.make_inputs}"
+    inputs: "${data.make_streams}"
     lr_schedule_fn: "${schedule.warmup_and_rsqrt_decay}"

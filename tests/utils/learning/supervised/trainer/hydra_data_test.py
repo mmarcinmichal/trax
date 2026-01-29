@@ -17,16 +17,17 @@
 
 import sys
 
-from pathlib import Path
 from contextlib import contextmanager
+from pathlib import Path
 from unittest import mock
+
+import numpy as np
+import tensorflow as tf
 
 from absl import flags
 from absl.testing import absltest
 from hydra.utils import instantiate
-import numpy as np
 from omegaconf import DictConfig, ListConfig, OmegaConf, open_dict
-import tensorflow as tf
 
 from trax import data as trax_data
 from trax.data.loader.tf.interface import DatasetStreams
@@ -206,26 +207,26 @@ def _build_inputs_from_cfg(cfg, tfds_patch, texts, tuple_len=1):
         tfds_patch,
         side_effect=_fake_tfds_stream(texts, tuple_len=tuple_len),
     ) as tfds_mock:
-        make_inputs_cfg = OmegaConf.select(cfg, "data.make_inputs")
+        make_inputs_cfg = OmegaConf.select(cfg, "data.make_streams")
         train_stream = _instantiate_stream(cfg, make_inputs_cfg.train_stream)
         eval_stream = _instantiate_stream(cfg, make_inputs_cfg.eval_stream)
-        inputs = trax_data.make_inputs(
+        inputs = trax_data.make_streams(
             train_stream=train_stream, eval_stream=eval_stream
         )
-        batch = next(inputs.train_stream(1))
+        batch = next(inputs.train_stream)
     return batch, tfds_mock
 
 
 def _make_inputs_from_cfg(cfg):
-    make_inputs_cfg = OmegaConf.select(cfg, "data.make_inputs")
+    make_inputs_cfg = OmegaConf.select(cfg, "data.make_streams")
     train_stream = _instantiate_stream(cfg, make_inputs_cfg.train_stream)
     eval_stream = _instantiate_stream(cfg, make_inputs_cfg.eval_stream)
-    return trax_data.make_inputs(train_stream=train_stream, eval_stream=eval_stream)
+    return trax_data.make_streams(train_stream=train_stream, eval_stream=eval_stream)
 
 
 def _assert_make_inputs_batch(cfg, expected_len=None, expected_batch_size=None):
     inputs = _make_inputs_from_cfg(cfg)
-    batch = next(inputs.train_stream(1))
+    batch = next(inputs.train_stream)
     if expected_len is not None:
         assert len(batch) == expected_len
     if expected_batch_size is not None:
@@ -267,13 +268,13 @@ class HydraDataTest(absltest.TestCase):
             "Batch.batch_size": 2,
             "Shuffle.queue_size": 2,
             "DummyStream._target_": "trax.data.loader.tf.base.TFDS",
-            "make_inputs.train_stream": [
+            "make_streams.train_stream": [
                 "${data.DummyStream}",
                 "${data.Tokenize}",
                 "${data.PadToLength}",
                 "${data.Batch}",
             ],
-            "make_inputs.eval_stream": [
+            "make_streams.eval_stream": [
                 "${data.DummyStream}",
                 "${data.Tokenize}",
                 "${data.PadToLength}",
@@ -921,12 +922,6 @@ class HydraDataTest(absltest.TestCase):
                 ),
                 "mapper": image_mapper,
                 "mapper_cfg": image_mapper_cfg,
-                "legacy_batcher_kwargs": {
-                    "batch_size_per_device": 2,
-                    "eval_batch_size": 2,
-                    "bucket_length": 4,
-                    "max_eval_length": 8,
-                },
                 "bucket_updates": {
                     "train.BucketByLength.bucket_length": 4,
                     "train.BucketByLength.batch_size_per_device": 2,
@@ -948,13 +943,6 @@ class HydraDataTest(absltest.TestCase):
                 ),
                 "mapper": inputs_mapper,
                 "mapper_cfg": inputs_mapper_cfg,
-                "legacy_batcher_kwargs": {
-                    "batch_size_per_device": 2,
-                    "eval_batch_size": 2,
-                    "bucket_length": 4,
-                    "max_eval_length": 8,
-                    "buckets_include_inputs_in_length": True,
-                },
                 "bucket_updates": {
                     "train.BucketByLength.bucket_length": 4,
                     "train.BucketByLength.batch_size_per_device": 2,
@@ -978,11 +966,6 @@ class HydraDataTest(absltest.TestCase):
                 ),
                 "mapper": article_mapper,
                 "mapper_cfg": article_mapper_cfg,
-                "legacy_batcher_kwargs": {
-                    "buckets": ([4], [2, 1]),
-                    "id_to_mask": 0,
-                    "strict_pad_on_len": False,
-                },
                 "bucket_updates": {
                     "train.BucketByLength.buckets": [[4], [2, 1]],
                     "eval.BucketByLength.buckets": [[4], [2, 1]],
@@ -998,11 +981,6 @@ class HydraDataTest(absltest.TestCase):
                 ),
                 "mapper": inputs_mapper,
                 "mapper_cfg": inputs_mapper_cfg,
-                "legacy_batcher_kwargs": {
-                    "buckets": ([4], [2, 2]),
-                    "strict_pad_on_len": True,
-                    "buckets_include_inputs_in_length": True,
-                },
                 "bucket_updates": {
                     "train.BucketByLength.buckets": [[4], [2, 2]],
                     "eval.BucketByLength.buckets": [[4], [2, 2]],
@@ -1067,7 +1045,7 @@ class HydraDataTest(absltest.TestCase):
                         continue
                     raise
                 try:
-                    if OmegaConf.select(cfg, "data.make_inputs") is None:
+                    if OmegaConf.select(cfg, "data.make_streams") is None:
                         continue
                     if OmegaConf.select(cfg, "data.train.Stream") is None:
                         continue

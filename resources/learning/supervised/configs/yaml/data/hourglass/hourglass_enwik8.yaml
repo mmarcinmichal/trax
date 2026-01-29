@@ -3,22 +3,27 @@ defaults:
   - _self_
 
 data:
-  make_inputs:
-    _target_: "trax.data.make_inputs"
+  make_streams:
+    _target_: "trax.data.make_streams"
     _partial_: true
     train_stream:
-      - "${data.train.Stream}"
+      - "${data.train.TFDS}"
+      - "${data.DictToTupleTargets}"
+      - "${data.Shuffle}"
       - "${data.train.BucketByLength}"
       - "${data.AddLossWeights}"
     eval_stream:
-      - "${data.eval.Stream}"
+      - "${data.eval.TFDS}"
+      - "${data.DictToTupleTargets}"
+      - "${data.Shuffle}"
       - "${data.eval.BucketByLength}"
       - "${data.AddLossWeights}"
   train:
-    Stream:
-      _target_: "trax.data.tf_dataset_streams_train"
-      datasets: "${data.dataset_loader}"
-      input_name: "targets"
+    TFDS:
+      _target_: "trax.data.TFDS"
+      dataset_name: "t2t_enwik8_l2k"
+      data_dir: null
+      train: true
     BucketByLength:
       _target_: "trax.data.BucketByLength"
       boundaries:
@@ -29,10 +34,11 @@ data:
         - 0
         - 1
   eval:
-    Stream:
-      _target_: "trax.data.tf_dataset_streams_eval"
-      datasets: "${data.dataset_loader}"
-      input_name: "targets"
+    TFDS:
+      _target_: "trax.data.TFDS"
+      dataset_name: "t2t_enwik8_l2k"
+      data_dir: null
+      train: false
     BucketByLength:
       _target_: "trax.data.BucketByLength"
       boundaries:
@@ -42,12 +48,15 @@ data:
       length_keys:
         - 0
         - 1
+  DictToTupleTargets:
+    _target_: "trax.data.DictToTuple"
+    keys:
+      - "targets"
+      - "targets"
+  Shuffle:
+    _target_: "trax.data.Shuffle"
+    queue_size: 1024
   AddLossWeights:
     _target_: "trax.data.add_loss_weights"
     _partial_: true
     id_to_mask: 0
-  dataset_loader:
-    _target_: "trax.data.loader.tf.base.data_streams"
-    _partial_: true
-    data_dir: null
-    dataset_name: "t2t_enwik8_l2k"

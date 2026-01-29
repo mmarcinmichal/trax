@@ -2,8 +2,9 @@
 """Flash attention implementation for Trax."""
 
 import jax
-from jax import lax
 import jax.numpy as jnp
+
+from jax import lax
 
 
 def flash_attention(q, k, v, *, block_size, mask=None):

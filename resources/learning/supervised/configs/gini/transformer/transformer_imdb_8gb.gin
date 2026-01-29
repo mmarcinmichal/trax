@@ -20,7 +20,7 @@ import trax.learning.training.trainer
 
 # Parameters for the inputs pipeline:
 # ==============================================================================
-make_inputs.train_stream = [
+make_streams.train_stream = [
   @train/data.TFDS(),
   @data.Tokenize(),
   @data.Shuffle(),
@@ -37,7 +37,7 @@ train/data.FilterByLength.length_keys = [0]
 data.BucketByLength.boundaries =  [32,  64, 128, 256, 512, 1024, 2048]
 data.BucketByLength.batch_sizes = [128, 64,  32,  16,   8,    1,    1, 1]
 data.BucketByLength.length_keys = [0]
-make_inputs.eval_stream = [
+make_streams.eval_stream = [
   @eval/data.TFDS(),
   @data.Tokenize(),
   @data.Shuffle(),
@@ -51,13 +51,6 @@ eval/data.TFDS.train = False
 eval/data.FilterByLength.max_length = 2048
 eval/data.FilterByLength.length_keys = [0]
 
-# Parameters for data_streams:
-# ==============================================================================
-data_streams.data_dir = None
-data_streams.dataset_name = 't2t_sentiment_imdb'
-tf_dataset_streams.datasets = @data.data_streams
-tf_dataset_streams.input_name = 'targets'
-
 # Parameters for warmup_and_rsqrt_decay:
 # ==============================================================================
 lr_schedules.warmup_and_rsqrt_decay.max_value = 0.01
@@ -69,7 +62,7 @@ train.eval_frequency = 500
 train.eval_steps = 20
 train.model = @trax.models.TransformerEncoder
 train.steps = 10000
-train.inputs = @trax.data.make_inputs
+train.inputs = @trax.data.make_streams
 train.lr_schedule_fn = @lr_schedules.warmup_and_rsqrt_decay
 
 # Parameters for TransformerEncoder:

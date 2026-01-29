@@ -43,7 +43,7 @@ train:
   Serial:
     _target_: "trax.layers.Serial"
   train:
-    inputs: "${data.addition_inputs}"
+    inputs: "${data.make_streams}"
     eval_frequency: 1000
     eval_steps: 50
     optimizer: "${optim.Adam}"

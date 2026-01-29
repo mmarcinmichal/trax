@@ -34,7 +34,7 @@ ff_chunk_size = 0
 # Parameters for TFDS data pipeline:
 # ==============================================================================
 # TODO(wgaj): Add shuffling.
-make_inputs.train_stream = [
+make_streams.train_stream = [
   @train/data.TFDS(),
   @data.ConvertToUnicode(),
   @data.Tokenize(),
@@ -59,7 +59,7 @@ data.PadToLength.pad_value = {0: 0, 1: 0}
 data.Batch.batch_size = 4  # set to the number of accelerators on machine
 data.AddLossWeights.id_to_mask = 0
 
-make_inputs.eval_stream = [
+make_streams.eval_stream = [
   @eval/data.TFDS(),
   @data.ConvertToUnicode(),
   @data.Tokenize(),
@@ -101,7 +101,7 @@ train.optimizer = @trax.optimizers.Adafactor
 train.checkpoint_highest = 'neg_log_perplexity'
 train.checkpoint_lowest = 'loss'
 train.use_memory_efficient_trainer = False
-train.inputs = @trax.data.make_inputs
+train.inputs = @trax.data.make_streams
 
 
 # We are using T5's 32k SPM model by default.

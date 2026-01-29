@@ -3,6 +3,6 @@ train:
     model: "${model.ReformerLM}"
     eval_frequency: 20
     eval_steps: 1
-    inputs: "${data.make_inputs}"
+    inputs: "${data.make_streams}"
     optimizer: "${optim.Adam}"
     steps: 100000

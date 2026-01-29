@@ -21,7 +21,7 @@ import gymnasium as gym
 import numpy as np
 
 from absl.testing import absltest, parameterized
-from trax.data.preprocessing import inputs as trax_input
+from trax import data as trax_data
 from jax import numpy as jnp
 
 from trax import models as trax_models
@@ -60,10 +60,7 @@ def signal_inputs(seq_len, batch_size, depth=1):
             mask = np.ones_like(x).astype(np.float32)
             yield (x, y, x, mask)
 
-    return trax_input.Inputs(
-        train_stream=stream_fn,
-        eval_stream=stream_fn,
-    )
+    return trax_data.make_streams(train_stream=stream_fn, eval_stream=stream_fn)
 
 
 class SerializationTest(parameterized.TestCase):

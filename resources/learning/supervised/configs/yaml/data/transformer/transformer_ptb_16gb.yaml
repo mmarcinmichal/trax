@@ -3,22 +3,35 @@ defaults:
   - _self_
 
 data:
-  make_inputs:
-    _target_: "trax.data.make_inputs"
+  make_streams:
+    _target_: "trax.data.make_streams"
     _partial_: true
     train_stream:
-      - "${data.train.Stream}"
+      - "${data.train.TFDS}"
+      - "${data.DictToTupleInputsTargets}"
+      - "${data.train.LM1BFilterByLength}"
+      - "${data.Shuffle}"
       - "${data.train.BucketByLength}"
       - "${data.AddLossWeights}"
     eval_stream:
-      - "${data.eval.Stream}"
+      - "${data.eval.TFDS}"
+      - "${data.DictToTupleInputsTargets}"
+      - "${data.eval.LM1BFilterByLength}"
+      - "${data.Shuffle}"
       - "${data.eval.BucketByLength}"
       - "${data.AddLossWeights}"
   train:
-    Stream:
-      _target_: "trax.data.tf_dataset_streams_serial_train"
-      datasets: "${data.dataset_loader}"
-      preprocess_fn: "${data.LM1BFilterByLength}"
+    TFDS:
+      _target_: "trax.data.TFDS"
+      dataset_name: "t2t_languagemodel_ptb10k"
+      data_dir: null
+      train: true
+    LM1BFilterByLength:
+      _target_: "trax.data.LM1BFilterByLength"
+      _partial_: true
+      training: true
+      max_target_length: 512
+      max_eval_target_length: 2048
     BucketByLength:
       _target_: "trax.data.BucketByLengthFromBatcher"
       training: true
@@ -26,10 +39,17 @@ data:
       eval_batch_size: 512
       max_eval_length: 2048
   eval:
-    Stream:
-      _target_: "trax.data.tf_dataset_streams_serial_eval"
-      datasets: "${data.dataset_loader}"
-      preprocess_fn: "${data.LM1BFilterByLength}"
+    TFDS:
+      _target_: "trax.data.TFDS"
+      dataset_name: "t2t_languagemodel_ptb10k"
+      data_dir: null
+      train: false
+    LM1BFilterByLength:
+      _target_: "trax.data.LM1BFilterByLength"
+      _partial_: true
+      training: false
+      max_target_length: 512
+      max_eval_target_length: 2048
     BucketByLength:
       _target_: "trax.data.BucketByLengthFromBatcher"
       training: false
@@ -40,13 +60,8 @@ data:
     _target_: "trax.data.add_loss_weights"
     _partial_: true
     id_to_mask: 0
-  dataset_loader:
-    _target_: "trax.data.loader.tf.base.data_streams"
-    _partial_: true
-    data_dir: null
-    dataset_name: "t2t_languagemodel_ptb10k"
-  LM1BFilterByLength:
-    _target_: "trax.data.LM1BFilterByLength"
-    _partial_: true
-    max_target_length: 512
-    max_eval_target_length: 2048
+  DictToTupleInputsTargets:
+    _target_: "trax.data.DictToTuple"
+    keys:
+      - "inputs"
+      - "targets"

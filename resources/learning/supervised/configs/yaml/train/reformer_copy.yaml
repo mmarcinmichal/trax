@@ -1,6 +1,6 @@
 train:
   train:
-    inputs: "${data.sequence_copy_inputs}"
+    inputs: "${data.make_streams}"
     eval_frequency: 100
     eval_steps: 10
     optimizer: "${optim.Adam}"

@@ -77,6 +77,7 @@ import pickle
 import random
 import time
 
+from dataclasses import dataclass
 from typing import Optional, Sequence, Union
 
 import gin
@@ -114,304 +115,12 @@ def _identity_preprocess(generator):
     return generator
 
 
-def _resolve_tf_datasets(datasets):
-    if isinstance(datasets, DatasetLoader):
-        datasets = datasets.datasets()
-    if callable(datasets):
-        datasets = datasets()
-    if isinstance(datasets, DatasetStreams):
-        return datasets.train, datasets.eval, datasets.supervised_keys
-    if isinstance(datasets, (list, tuple)) and len(datasets) == 3:
-        return datasets
-    raise ValueError(
-        "Expected DatasetLoader, DatasetStreams, or (train, eval, supervised_keys)."
-    )
-
-
-def _resolve_pipeline(fn, training):
-    if fn is None:
-        return _identity_preprocess
-    try:
-        return fn(training=training)
-    except TypeError:
-        return fn
-
-
 @gin.configurable(module="trax.data")
 def unsupervised_preprocessors(preprocessors=None):  # pylint: disable=invalid-name
     """Combines preprocessors into a Serial pipeline."""
     if preprocessors is None:
         return lambda g: g
     return Serial(*preprocessors)
-
-
-def _prepare_tf_dataset_for_serial(
-    dataset, training, shuffle_buffer_size, shuffle, seed
-):
-    dataset = dataset.repeat()
-    if training:
-        rng = random.Random(seed) if seed is not None else random
-        dataset = dataset.skip(rng.randint(0, _MAX_SKIP_EXAMPLES))
-    if shuffle and shuffle_buffer_size:
-        dataset = dataset.shuffle(shuffle_buffer_size, seed=seed)
-    return dataset.prefetch(8)
-
-
-def _append_targets_serial(example, target_names):
-    if target_names is None:
-        return example
-    if isinstance(example, dict):
-        if "targets" in example:
-            return example
-        if len(target_names) == 1:
-            example = dict(example)
-            example["targets"] = example[target_names[0]]
-            return example
-        targets = {name: example[name] for name in target_names}
-        example = dict(example)
-        example["targets"] = targets
-        return example
-    return example
-
-
-def _map_to_stream_tuple(
-    example, input_names=None, target_names=None, input_name=None, target_name=None
-):
-    if isinstance(example, (list, tuple)) and len(example) >= 2:
-        if isinstance(example[0], dict):
-            features = example[0]
-            targets = example[1]
-        else:
-            return example
-    elif isinstance(example, dict):
-        features = example
-        if target_name is not None:
-            targets = features[target_name]
-        elif "targets" in features:
-            targets = features["targets"]
-        elif target_names:
-            if len(target_names) == 1:
-                targets = features[target_names[0]]
-            else:
-                targets = {name: features[name] for name in target_names}
-        else:
-            raise ValueError(
-                "Target name must be provided when supervised keys are missing."
-            )
-    else:
-        return example
-
-    chosen_input = input_name
-    if chosen_input is None:
-        if "inputs" in features:
-            chosen_input = "inputs"
-        elif input_names:
-            chosen_input = input_names[0]
-
-    if chosen_input is None or chosen_input not in features:
-        raise KeyError(
-            f"Expected input feature '{chosen_input}' not found in features: {list(features.keys())}"
-        )
-
-    inp = np.asarray(features[chosen_input])
-    out = np.asarray(targets)
-    mask = features.get("mask") if isinstance(features, dict) else None
-    if isinstance(inp, np.uint8):
-        inp = inp.astype(np.int32)
-    if isinstance(out, np.uint8):
-        out = out.astype(np.int32)
-    if mask is None:
-        return inp, out
-    return inp, out, np.asarray(mask)
-
-
-@gin.configurable(module="trax.data")
-def tf_dataset_streams(  # pylint: disable=invalid-name
-    datasets=gin.REQUIRED,
-    preprocess_fn=_identity_preprocess,
-    bare_preprocess_fn=None,
-    shuffle_buffer_size=1024,
-    shuffle=True,
-    seed=None,
-    input_name=None,
-    target_name=None,
-):
-    """Serial-friendly dataset streams with input/target selection."""
-    return _tf_dataset_streams_serial(
-        datasets=datasets,
-        preprocess_fn=preprocess_fn,
-        bare_preprocess_fn=bare_preprocess_fn,
-        shuffle_buffer_size=shuffle_buffer_size,
-        shuffle=shuffle,
-        seed=seed,
-        input_name=input_name,
-        target_name=target_name,
-        map_to_stream=True,
-    )
-
-
-@gin.configurable(module="trax.data")
-def tf_dataset_streams_train(  # pylint: disable=invalid-name
-    datasets=gin.REQUIRED,
-    preprocess_fn=_identity_preprocess,
-    bare_preprocess_fn=None,
-    shuffle_buffer_size=1024,
-    shuffle=True,
-    seed=None,
-    input_name=None,
-    target_name=None,
-):
-    train_stream, _ = tf_dataset_streams(
-        datasets=datasets,
-        preprocess_fn=preprocess_fn,
-        bare_preprocess_fn=bare_preprocess_fn,
-        shuffle_buffer_size=shuffle_buffer_size,
-        shuffle=shuffle,
-        seed=seed,
-        input_name=input_name,
-        target_name=target_name,
-    )
-    return lambda _: train_stream()
-
-
-@gin.configurable(module="trax.data")
-def tf_dataset_streams_eval(  # pylint: disable=invalid-name
-    datasets=gin.REQUIRED,
-    preprocess_fn=_identity_preprocess,
-    bare_preprocess_fn=None,
-    shuffle_buffer_size=1024,
-    shuffle=True,
-    seed=None,
-    input_name=None,
-    target_name=None,
-):
-    _, eval_stream = tf_dataset_streams(
-        datasets=datasets,
-        preprocess_fn=preprocess_fn,
-        bare_preprocess_fn=bare_preprocess_fn,
-        shuffle_buffer_size=shuffle_buffer_size,
-        shuffle=shuffle,
-        seed=seed,
-        input_name=input_name,
-        target_name=target_name,
-    )
-    return lambda _: eval_stream()
-
-
-@gin.configurable(module="trax.data")
-def tf_dataset_streams_serial(  # pylint: disable=invalid-name
-    datasets=gin.REQUIRED,
-    preprocess_fn=gin.REQUIRED,
-    bare_preprocess_fn=None,
-    shuffle_buffer_size=1024,
-    shuffle=True,
-    seed=None,
-):
-    """Serial-friendly dataset streams without forced input/target mapping."""
-    return _tf_dataset_streams_serial(
-        datasets=datasets,
-        preprocess_fn=preprocess_fn,
-        bare_preprocess_fn=bare_preprocess_fn,
-        shuffle_buffer_size=shuffle_buffer_size,
-        shuffle=shuffle,
-        seed=seed,
-        map_to_stream=False,
-    )
-
-
-@gin.configurable(module="trax.data")
-def tf_dataset_streams_serial_train(  # pylint: disable=invalid-name
-    datasets=gin.REQUIRED,
-    preprocess_fn=gin.REQUIRED,
-    bare_preprocess_fn=None,
-    shuffle_buffer_size=1024,
-    shuffle=True,
-    seed=None,
-):
-    train_stream, _ = tf_dataset_streams_serial(
-        datasets=datasets,
-        preprocess_fn=preprocess_fn,
-        bare_preprocess_fn=bare_preprocess_fn,
-        shuffle_buffer_size=shuffle_buffer_size,
-        shuffle=shuffle,
-        seed=seed,
-    )
-    return lambda _: train_stream()
-
-
-@gin.configurable(module="trax.data")
-def tf_dataset_streams_serial_eval(  # pylint: disable=invalid-name
-    datasets=gin.REQUIRED,
-    preprocess_fn=gin.REQUIRED,
-    bare_preprocess_fn=None,
-    shuffle_buffer_size=1024,
-    shuffle=True,
-    seed=None,
-):
-    _, eval_stream = tf_dataset_streams_serial(
-        datasets=datasets,
-        preprocess_fn=preprocess_fn,
-        bare_preprocess_fn=bare_preprocess_fn,
-        shuffle_buffer_size=shuffle_buffer_size,
-        shuffle=shuffle,
-        seed=seed,
-    )
-    return lambda _: eval_stream()
-
-
-def _tf_dataset_streams_serial(
-    datasets,
-    preprocess_fn,
-    bare_preprocess_fn,
-    shuffle_buffer_size,
-    shuffle,
-    seed,
-    map_to_stream,
-    input_name=None,
-    target_name=None,
-):
-    train_ds, eval_ds, keys = _resolve_tf_datasets(datasets)
-    if train_ds is None:
-        raise ValueError("Training requested but train dataset is None.")
-
-    input_names = keys[0] if keys is not None else None
-    target_names = keys[1] if keys is not None else None
-    if target_name is not None:
-        target_names = [target_name]
-    if input_name is not None:
-        input_names = [input_name]
-
-    train_batches = _prepare_tf_dataset_for_serial(
-        train_ds, True, shuffle_buffer_size, shuffle, seed
-    )
-    eval_batches = _prepare_tf_dataset_for_serial(
-        eval_ds, False, shuffle_buffer_size, shuffle, seed
-    )
-
-    def stream(which):
-        dataset = eval_batches if which == "eval" else train_batches
-        generator = (
-            _append_targets_serial(example, target_names)
-            for example in fastmath.dataset_as_numpy(dataset)
-        )
-        bare_pipeline = _resolve_pipeline(bare_preprocess_fn, which != "eval")
-        preprocess_pipeline = _resolve_pipeline(preprocess_fn, which != "eval")
-        generator = bare_pipeline(generator)
-        generator = preprocess_pipeline(generator)
-        if map_to_stream:
-            generator = (
-                _map_to_stream_tuple(
-                    example,
-                    input_names=input_names,
-                    target_names=target_names,
-                    input_name=input_name,
-                    target_name=target_name,
-                )
-                for example in generator
-            )
-        return generator
-
-    return (lambda: stream("train")), (lambda: stream("eval"))
 
 
 @gin.configurable(module="trax.data")
@@ -2517,116 +2226,54 @@ def length_fn_(example, length_axis, length_keys):
     return example.shape[length_axis]
 
 
-#
-# Inputs class used by Trainer, and associated helper functions.
-#
-# Note: In the planned move from Trainer to Loop, the Inputs class should be
-# deprecated and finally removed.
-#
-class Inputs:
-    """Inputs bundle.
-
-    Inputs bundle holds input streams and shapes for a training run.
-    It contains stream-creating functions that return python generators
-    of (input_batch, target_batch) tuples.
-
-    * train_stream: training data that will be used for training
-        may include all the augmentation or selection the training wants
-        the shape of examples is [batch_fn.batch_size, ...]
-    * train_eval_stream: training data used for evaluation
-        examples from training data but usually without augmentation
-        the shape of examples is [batch_fn.eval_batch_size, ...]
-    * eval_stream: evaluation data stream
-        examples from evaluation data, usually without augmentation
-        the shape of examples is [batch_fn.eval_batch_size, ...]
-    * input_shape: the shape of inputs
-        the [...] above, without batch size
-    * input_dtype: the data type of inputs
-    * target_shape: the shape of targets
-        the [...] above, without batch size
-    * target_dtype: the data type of targets
-    """
-
-    def __init__(self, train_stream, eval_stream=None, train_eval_stream=None):
-        """Initialize a new set of inputs.
-
-        Args:
-          train_stream: a function taking n_devices (an int) and returning
-            a python generator of training batches.
-          eval_stream: a function taking n_devices (an int) and returning
-            a python generator of validation batches;
-            if None, then the training generator will be used for evaluation.
-          train_eval_stream: a function taking n_devices (an int) and returning
-            a python generator of batches from
-            the training set used for evaluation (if None, use train_stream).
-        """
-        if not callable(train_stream):
-            raise ValueError(
-                "Trax Inputs should be initialized with a function. "
-                "Did you forget the n_devices argument? If your inputs "
-                "do not use it, try lambda _: [your-inputs]."
-            )
-
-        self._train_stream = train_stream
-        self._eval_stream = eval_stream or self._train_stream
-
-        # TODO(lukaszkaiser): should we get rid of this one day?
-        self._train_eval_stream = train_eval_stream or self._train_stream
-
-        # Peek into the train stream to get an example shape.
-        example_train_batch = next(train_stream(1))
-
-        self._input_shape = tuple(example_train_batch[0].shape)[1:]
-        self._input_dtype = example_train_batch[0].dtype
-        self._target_shape = tuple(example_train_batch[-1].shape)[1:]
-        self._target_dtype = example_train_batch[-1].dtype
-        self._example_shape = [x.shape for x in example_train_batch]
-        self._example_dtype = [x.dtype for x in example_train_batch]
-
-    def train_stream(self, n_devices):
-        return self._train_stream(n_devices)
-
-    def eval_stream(self, n_devices):
-        return self._eval_stream(n_devices)
-
-    def train_eval_stream(self, n_devices):
-        return self._train_stream(n_devices)
-
-    @property
-    def input_shape(self):
-        """Example input shape, without batch dimension."""
-        return self._input_shape
-
-    @property
-    def target_shape(self):
-        """Example target shape, without batch dimension."""
-        return self._target_shape
-
-    @property
-    def input_dtype(self):
-        """Dtype of the input."""
-        return self._input_dtype
-
-    @property
-    def target_dtype(self):
-        """Dtype of the target."""
-        return self._target_dtype
-
-    @property
-    def example_shape_dtype(self):
-        """Shape and Dtype of an example batch."""
-        return self._example_shape, self._example_dtype
+@dataclass
+class StreamBundle:
+    """Container for pre-built train/eval streams."""
+    train_stream: object
+    eval_stream: Optional[object] = None
+    train_eval_stream: Optional[object] = None
 
 
 @gin.configurable(module="trax.data")
-def make_inputs(train_stream=gin.REQUIRED, eval_stream=None):
-    """Create Inputs from two streams; mostly for use in gin configs."""
+def make_streams(train_stream=gin.REQUIRED, eval_stream=None, train_eval_stream=None):
+    """Create a StreamBundle from train/eval streams."""
     if isinstance(train_stream, (list, tuple)):
         train_stream = Serial(train_stream)()
     if isinstance(eval_stream, (list, tuple)):
         eval_stream = Serial(eval_stream)()
-    eval_stream_fn = None if eval_stream is None else lambda _: eval_stream
-    return Inputs(train_stream=lambda _: train_stream, eval_stream=eval_stream_fn)
+    if isinstance(train_eval_stream, (list, tuple)):
+        train_eval_stream = Serial(train_eval_stream)()
+    if eval_stream is None:
+        eval_stream = train_stream
+    if train_eval_stream is None:
+        train_eval_stream = train_stream
+    return StreamBundle(
+        train_stream=train_stream,
+        eval_stream=eval_stream,
+        train_eval_stream=train_eval_stream,
+    )
+
+@gin.configurable(module="trax.data")
+def random_stream(
+    input_shape=gin.REQUIRED,
+    input_dtype=jnp.int32,
+    input_range=(0, 255),
+    output_shape=gin.REQUIRED,
+    output_dtype=jnp.int32,
+    output_range=(0, 9),
+):
+    """Random batch stream for debugging."""
+    if input_dtype in [jnp.float16, jnp.float32, jnp.float64]:
+        rand = np.random.uniform
+    else:
+        rand = np.random.random_integers
+
+    while True:
+        inp = rand(input_range[0], input_range[1], input_shape)
+        inp = inp.astype(input_dtype)
+        out = rand(output_range[0], output_range[1], output_shape)
+        out = out.astype(output_dtype)
+        yield inp, out
 
 
 @gin.configurable(module="trax.data")
@@ -2638,39 +2285,19 @@ def random_inputs(
     output_dtype=jnp.int32,
     output_range=(0, 9),
 ):
-    """Make random Inputs for debugging.
-
-    Args:
-      input_shape: the shape of inputs (including batch dimension).
-      input_dtype: the type of the inputs (int32 by default).
-      input_range: the range of inputs (defaults to (0, 255)).
-      output_shape: the shape of outputs (including batch dimension).
-      output_dtype: the type of the outputs (int32 by default).
-      output_range: the range of outputs (defaults to (0, 9)).
-
-    Returns:
-      trax.inputs.Inputs
-    """
-
-    def random_minibatches(n_devices):
-        """Generate a stream of random mini-batches."""
-        assert input_range[0] % n_devices == 0
-        if input_dtype in [jnp.float16, jnp.float32, jnp.float64]:
-            rand = np.random.uniform
-        else:
-            rand = np.random.random_integers
-        while True:
-            inp = rand(input_range[0], input_range[1], input_shape)
-            inp = inp.astype(input_dtype)
-            out = rand(output_range[0], output_range[1], output_shape)
-            out = out.astype(output_dtype)
-            yield inp, out
-
-    return Inputs(random_minibatches)
+    """Make random StreamBundle for debugging."""
+    return make_streams(train_stream=random_stream(
+        input_shape=input_shape,
+        input_dtype=input_dtype,
+        input_range=input_range,
+        output_shape=output_shape,
+        output_dtype=output_dtype,
+        output_range=output_range,
+    ))
 
 
 @gin.configurable(module="trax.data")
-def sequence_copy_inputs(
+def sequence_copy_streams(
     vocab_size=gin.REQUIRED,
     batch_size=gin.REQUIRED,
     train_length=gin.REQUIRED,
@@ -2679,20 +2306,7 @@ def sequence_copy_inputs(
     reverse=False,
     pad_to_multiple=32,
 ):
-    """Inputs for the sequence copy problem: 0w0w for w in [1..vocab_size-1]*.
-
-    Args:
-      vocab_size: how many symbols to use.
-      batch_size: how large are the batches.
-      train_length: maximum length of w for training.
-      eval_min_length: minimum length of w for eval.
-      eval_max_length : maximum length of w for eval.
-      reverse: bool (optional, false by default): reverse the second sequence.
-      pad_to_multiple: int, pad length to be multiple of this number.
-
-    Returns:
-      trax.inputs.Inputs
-    """
+    """Streams for the sequence copy problem: 0w0w for w in [1..vocab_size-1]*."""
 
     def random_minibatches(length_list):
         """Generate a stream of random mini-batches."""
@@ -2718,14 +2332,59 @@ def sequence_copy_inputs(
 
     train_lengths = [2 * (i + 2) for i in range(train_length - 1)]
     eval_lengths = [2 * (i + 1) for i in range(eval_min_length, eval_max_length)]
-    return Inputs(
-        train_stream=lambda _: random_minibatches(train_lengths),
-        eval_stream=lambda _: random_minibatches(eval_lengths),
-    )
+    return random_minibatches(train_lengths), random_minibatches(eval_lengths)
 
 
 @gin.configurable(module="trax.data")
-def simple_sequence_copy_inputs(
+def sequence_copy_train_stream(
+    vocab_size=gin.REQUIRED,
+    batch_size=gin.REQUIRED,
+    train_length=gin.REQUIRED,
+    eval_min_length=gin.REQUIRED,
+    eval_max_length=gin.REQUIRED,
+    reverse=False,
+    pad_to_multiple=32,
+):
+    """Train stream for the sequence copy problem."""
+    train_stream, _ = sequence_copy_streams(
+        vocab_size=vocab_size,
+        batch_size=batch_size,
+        train_length=train_length,
+        eval_min_length=eval_min_length,
+        eval_max_length=eval_max_length,
+        reverse=reverse,
+        pad_to_multiple=pad_to_multiple,
+    )
+    return train_stream
+
+
+@gin.configurable(module="trax.data")
+def sequence_copy_eval_stream(
+    vocab_size=gin.REQUIRED,
+    batch_size=gin.REQUIRED,
+    train_length=gin.REQUIRED,
+    eval_min_length=gin.REQUIRED,
+    eval_max_length=gin.REQUIRED,
+    reverse=False,
+    pad_to_multiple=32,
+):
+    """Eval stream for the sequence copy problem."""
+    _, eval_stream = sequence_copy_streams(
+        vocab_size=vocab_size,
+        batch_size=batch_size,
+        train_length=train_length,
+        eval_min_length=eval_min_length,
+        eval_max_length=eval_max_length,
+        reverse=reverse,
+        pad_to_multiple=pad_to_multiple,
+    )
+    return eval_stream
+
+
+
+
+@gin.configurable(module="trax.data")
+def simple_sequence_copy_streams(
     vocab_size=gin.REQUIRED,
     batch_size=gin.REQUIRED,
     train_length=gin.REQUIRED,
@@ -2733,19 +2392,7 @@ def simple_sequence_copy_inputs(
     eval_max_length=gin.REQUIRED,
     pad_to_multiple=32,
 ):
-    """Inputs for the sequence copy problem: w for w in [1..vocab_size-1]*.
-
-    Args:
-      vocab_size: how many symbols to use.
-      batch_size: how large are the batches.
-      train_length: maximum length of w for training.
-      eval_min_length: minimum length of w for eval.
-      eval_max_length : maximum length of w for eval.
-      pad_to_multiple: int, pad length to be multiple of this number.
-
-    Returns:
-      trax.inputs.Inputs
-    """
+    """Streams for the sequence copy problem: w for w in [1..vocab_size-1]*."""
 
     def random_minibatches(length_list):
         """Generate a stream of random mini-batches."""
@@ -2759,14 +2406,55 @@ def simple_sequence_copy_inputs(
 
     train_lengths = list(range(1, train_length + 1))
     eval_lengths = list(range(eval_min_length, eval_max_length + 1))
-    return Inputs(
-        train_stream=lambda _: random_minibatches(train_lengths),
-        eval_stream=lambda _: random_minibatches(eval_lengths),
-    )
+    return random_minibatches(train_lengths), random_minibatches(eval_lengths)
 
 
 @gin.configurable(module="trax.data")
-def addition_inputs(
+def simple_sequence_copy_train_stream(
+    vocab_size=gin.REQUIRED,
+    batch_size=gin.REQUIRED,
+    train_length=gin.REQUIRED,
+    eval_min_length=gin.REQUIRED,
+    eval_max_length=gin.REQUIRED,
+    pad_to_multiple=32,
+):
+    """Train stream for the simple sequence copy problem."""
+    train_stream, _ = simple_sequence_copy_streams(
+        vocab_size=vocab_size,
+        batch_size=batch_size,
+        train_length=train_length,
+        eval_min_length=eval_min_length,
+        eval_max_length=eval_max_length,
+        pad_to_multiple=pad_to_multiple,
+    )
+    return train_stream
+
+
+@gin.configurable(module="trax.data")
+def simple_sequence_copy_eval_stream(
+    vocab_size=gin.REQUIRED,
+    batch_size=gin.REQUIRED,
+    train_length=gin.REQUIRED,
+    eval_min_length=gin.REQUIRED,
+    eval_max_length=gin.REQUIRED,
+    pad_to_multiple=32,
+):
+    """Eval stream for the simple sequence copy problem."""
+    _, eval_stream = simple_sequence_copy_streams(
+        vocab_size=vocab_size,
+        batch_size=batch_size,
+        train_length=train_length,
+        eval_min_length=eval_min_length,
+        eval_max_length=eval_max_length,
+        pad_to_multiple=pad_to_multiple,
+    )
+    return eval_stream
+
+
+
+
+@gin.configurable(module="trax.data")
+def addition_streams(
     vocab_size=gin.REQUIRED,
     batch_size=gin.REQUIRED,
     train_length=gin.REQUIRED,
@@ -2775,20 +2463,7 @@ def addition_inputs(
     pad_to_multiple=32,
     encdec=False,
 ):
-    """Inputs for the add problem: <S>x+y<S>(x+y).
-
-    Args:
-      vocab_size: how many symbols to use.
-      batch_size: how large are the batches.
-      train_length: maximal length of w for training.
-      eval_min_length: minimal length of w for eval.
-      eval_max_length: maximal length of w for eval.
-      pad_to_multiple: int, pad length to be multiple of this number.
-      encdec: bool, if True return encoder-decoder style inputs (default: False)
-
-    Returns:
-      trax.inputs.Inputs
-    """
+    """Streams for the add problem: <S>x+y<S>(x+y)."""
     train_stream = addition_input_stream(
         vocab_size, batch_size, 3, train_length, pad_to_multiple, encdec
     )
@@ -2800,31 +2475,66 @@ def addition_inputs(
         pad_to_multiple,
         encdec,
     )
-    return Inputs(
-        train_stream=lambda _: train_stream, eval_stream=lambda _: eval_stream
-    )
+    return train_stream, eval_stream
 
 
 @gin.configurable(module="trax.data")
-def sine_inputs(
+def addition_train_stream(
+    vocab_size=gin.REQUIRED,
+    batch_size=gin.REQUIRED,
+    train_length=gin.REQUIRED,
+    eval_min_length=gin.REQUIRED,
+    eval_max_length=gin.REQUIRED,
+    pad_to_multiple=32,
+    encdec=False,
+):
+    """Train stream for the add problem."""
+    train_stream, _ = addition_streams(
+        vocab_size=vocab_size,
+        batch_size=batch_size,
+        train_length=train_length,
+        eval_min_length=eval_min_length,
+        eval_max_length=eval_max_length,
+        pad_to_multiple=pad_to_multiple,
+        encdec=encdec,
+    )
+    return train_stream
+
+
+@gin.configurable(module="trax.data")
+def addition_eval_stream(
+    vocab_size=gin.REQUIRED,
+    batch_size=gin.REQUIRED,
+    train_length=gin.REQUIRED,
+    eval_min_length=gin.REQUIRED,
+    eval_max_length=gin.REQUIRED,
+    pad_to_multiple=32,
+    encdec=False,
+):
+    """Eval stream for the add problem."""
+    _, eval_stream = addition_streams(
+        vocab_size=vocab_size,
+        batch_size=batch_size,
+        train_length=train_length,
+        eval_min_length=eval_min_length,
+        eval_max_length=eval_max_length,
+        pad_to_multiple=pad_to_multiple,
+        encdec=encdec,
+    )
+    return eval_stream
+
+
+
+
+@gin.configurable(module="trax.data")
+def sine_stream(
     batch_size=gin.REQUIRED,
     length=gin.REQUIRED,
     max_phase=(2 * math.pi),
     min_period=0.1,
     max_period=10.0,
 ):
-    """Sinusoids of random period and phase.
-
-    Args:
-      batch_size (int): Number of examples in a batch.
-      length (int): Length of each sequence.
-      max_phase (float): Maximum phase of the sinusoids.
-      min_period (float): Minimum period of the sinusoids.
-      max_period (float): Maximum period of the sinusoids.
-
-    Returns:
-      trax.inputs.Inputs
-    """
+    """Sinusoids of random period and phase."""
 
     def random_series():
         while True:
@@ -2833,18 +2543,53 @@ def sine_inputs(
             x = np.arange(length)
             yield np.sin((x - phase) / period)
 
-    def random_minibatches(_):
-        minibatch = []
-        for series in random_series():
-            minibatch.append(series)
-            if len(minibatch) == batch_size:
-                obs = np.stack(minibatch)
-                minibatch.clear()
-                act = np.zeros_like(obs, dtype=np.int32)
-                mask = np.ones_like(obs)
-                yield (obs, act, obs, mask)
+    minibatch = []
+    for series in random_series():
+        minibatch.append(series)
+        if len(minibatch) == batch_size:
+            obs = np.stack(minibatch)
+            minibatch.clear()
+            act = np.zeros_like(obs, dtype=np.int32)
+            mask = np.ones_like(obs)
+            yield (obs, act, obs, mask)
 
-    return Inputs(train_stream=random_minibatches, eval_stream=random_minibatches)
+
+@gin.configurable(module="trax.data")
+def sine_train_stream(
+    batch_size=gin.REQUIRED,
+    length=gin.REQUIRED,
+    max_phase=(2 * math.pi),
+    min_period=0.1,
+    max_period=10.0,
+):
+    """Train stream for sine waves."""
+    return sine_stream(
+        batch_size=batch_size,
+        length=length,
+        max_phase=max_phase,
+        min_period=min_period,
+        max_period=max_period,
+    )
+
+
+@gin.configurable(module="trax.data")
+def sine_eval_stream(
+    batch_size=gin.REQUIRED,
+    length=gin.REQUIRED,
+    max_phase=(2 * math.pi),
+    min_period=0.1,
+    max_period=10.0,
+):
+    """Eval stream for sine waves."""
+    return sine_stream(
+        batch_size=batch_size,
+        length=length,
+        max_phase=max_phase,
+        min_period=min_period,
+        max_period=max_period,
+    )
+
+
 
 
 def _pad_to_multiple_of(x, y, axis):

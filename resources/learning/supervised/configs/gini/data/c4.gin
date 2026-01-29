@@ -29,7 +29,7 @@ spm_path = None
 
 # Parameters for TFDS data pipeline:
 # ==============================================================================
-make_inputs.train_stream = [
+make_streams.train_stream = [
   @training/data.TFDS(),
   @data.CountAndSkip(),
   @data.SentencePieceTokenize(),
@@ -43,7 +43,7 @@ make_inputs.train_stream = [
   @data.Batch(),
 ]
 
-make_inputs.eval_stream = [
+make_streams.eval_stream = [
   @validation/data.TFDS(),
   @data.SentencePieceTokenize(),
   @data.MLM(),
@@ -102,4 +102,4 @@ validation/data.Batch.batch_size = 64
 
 # Parameters for train:
 # ==============================================================================
-train.inputs = @trax.data.make_inputs
+train.inputs = @trax.data.make_streams

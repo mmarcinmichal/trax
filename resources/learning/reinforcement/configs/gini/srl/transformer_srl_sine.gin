@@ -21,12 +21,16 @@ import trax.optimizers
 import trax.learning.training.trainer
 import trax.learning.supervised.callbacks
 
-# Module trax.data.inputs:
+# Module trax.data:
 # ==============================================================================
-sine_inputs.batch_size = 64
-sine_inputs.length = 100
-sine_inputs.min_period = 0.1
-sine_inputs.max_period = 10
+sine_train_stream.batch_size = 64
+sine_train_stream.length = 100
+sine_train_stream.min_period = 0.1
+sine_train_stream.max_period = 10
+sine_eval_stream.batch_size = 64
+sine_eval_stream.length = 100
+sine_eval_stream.min_period = 0.1
+sine_eval_stream.max_period = 10
 
 # Module trax.models.transformer:
 # ==============================================================================
@@ -55,7 +59,9 @@ trax.learning.supervised.lr_schedules.multifactor.warmup_steps = 1000
 
 # Module trax.learning.trainer:
 # ==============================================================================
-train.inputs = @trax.data.sine_inputs
+train.inputs = @trax.data.make_streams
+make_streams.train_stream = @trax.data.sine_train_stream()
+make_streams.eval_stream = @trax.data.sine_eval_stream()
 train.eval_frequency = 1000
 train.eval_steps = 10
 train.model = @trax.rl.TimeSeriesModel

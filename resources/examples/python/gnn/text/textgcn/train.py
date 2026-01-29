@@ -77,7 +77,7 @@ def build_adj_csr_jax(csr_data, csr_indices, csr_indptr, shape):
 
 def build_model(num_nodes, num_docs, num_classes, adj_csr, mode="train"):
     """TextGCN: embedding nodes + 2-layer GCN + logits for documents only."""
-    hidden_dim = 1024+124
+    hidden_dim = 512
 
     def take_docs(h):
         # h: (N, C) -> (num_docs, C)
@@ -86,10 +86,12 @@ def build_model(num_nodes, num_docs, num_classes, adj_csr, mode="train"):
     return tl.Serial(
         # input: indices [0..N-1] -> (N, hidden_dim)
         tl.Embedding(num_nodes, hidden_dim),
-        tl.Dropout(0.9, mode=mode),
+        tl.Dropout(0.5, mode=mode),
         # 2-layer GCN on the full graph
-        GraphConvSparse(adj_csr, hidden_dim, activation=tl.Relu),
-        tl.Dropout(0.9, mode=mode),
+        GraphConvSparse(adj_csr, 124, activation=tl.Relu),
+        tl.Dropout(0.5, mode=mode),
+        GraphConvSparse(adj_csr, 64, activation=tl.Relu),
+        tl.Dropout(0.1, mode=mode),
         GraphConvSparse(adj_csr, num_classes, activation=tl.Serial),
         # slice to document nodes
         tl.Fn("TakeDocs", take_docs, n_out=1),
@@ -164,21 +166,21 @@ def main():
     )
     initialize_model(model_with_loss, example_batch)
 
-    optimizer = optimizers.Adam(0.0002)
+    optimizer = optimizers.Adam(0.002)
     trainer = trainers.TrainingEngine(model_with_loss, optimizer)
 
     eval_model = build_model(num_nodes, num_docs, num_classes, adj_csr, mode="eval")
     initialize_model(eval_model, example_batch)
 
-    key = jax.random.PRNGKey(0)
-    base_rng = fastmath.random.get_prng(
-        fastmath.random.randint(key, shape=(), minval=1, maxval=200)
-    )
-
     # full-batch training – cały graf w jednym kroku
     train_gen = full_batch_generator(node_indices, labels_docs, train_mask_docs)
 
-    for epoch in range(1, 600):
+    for epoch in range(1, 1_600):
+        key = jax.random.PRNGKey(epoch)
+        base_rng = fastmath.random.get_prng(
+            fastmath.random.randint(key, shape=(), minval=1, maxval=200)
+        )
+
         train_model(
             trainer,
             train_gen,

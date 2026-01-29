@@ -20,35 +20,36 @@ import trax.learning.training.trainer
 
 train_steps = 100000
 
-# Parameters for make_inputs:
+# Parameters for make_streams:
 # ==============================================================================
-make_inputs.train_stream = [
-  @data.tf_dataset_streams_serial_train(),
+make_streams.train_stream = [
+  @train/data.TFDS(),
+  @data.Cifar10FlattenNoAugmentation(),
+  @data.Shuffle(),
   @train/data.Batch(),
   @data.AddLossWeights(),
 ]
 
-make_inputs.eval_stream = [
-  @data.tf_dataset_streams_serial_eval(),
+make_streams.eval_stream = [
+  @eval/data.TFDS(),
+  @data.Cifar10FlattenNoAugmentation(),
+  @data.Shuffle(),
   @eval/data.Batch(),
   @data.AddLossWeights(),
 ]
-
-# Parameters for data streams:
-# ==============================================================================
-tf_dataset_streams_serial_train.datasets = @data.data_streams
-tf_dataset_streams_serial_eval.datasets = @data.data_streams
-tf_dataset_streams_serial_train.preprocess_fn = @data.Cifar10FlattenNoAugmentation
-tf_dataset_streams_serial_eval.preprocess_fn = @data.Cifar10FlattenNoAugmentation
 
 # Parameters for Batch:
 # ==============================================================================
 train/data.Batch.batch_size = 1
 eval/data.Batch.batch_size = 8
-# Parameters for data_streams:
+# Parameters for TFDS:
 # ==============================================================================
-data_streams.data_dir = None
-data_streams.dataset_name = 'cifar10'
+train/data.TFDS.dataset_name = 'cifar10'
+train/data.TFDS.data_dir = None
+train/data.TFDS.train = True
+eval/data.TFDS.dataset_name = 'cifar10'
+eval/data.TFDS.data_dir = None
+eval/data.TFDS.train = False
 
 # Parameters for multifactor: # ================================================
 trax.learning.supervised.lr_schedules.multifactor.constant = 1e-3
@@ -88,4 +89,4 @@ HourglassLM.attention_upsampling_fn = @LinearUpsampling
 
 # Parameters for train inputs:
 # ==============================================================================
-train.inputs = @trax.data.make_inputs
+train.inputs = @trax.data.make_streams

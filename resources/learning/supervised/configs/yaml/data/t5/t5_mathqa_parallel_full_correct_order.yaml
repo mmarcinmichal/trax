@@ -9,8 +9,8 @@ data:
       - 0
       - 1
     vocab_file: "en_32k.subword"
-  make_inputs:
-    _target_: "trax.data.make_inputs"
+  make_streams:
+    _target_: "trax.data.make_streams"
     _partial_: true
     eval_stream:
       - "${data.eval.CreateMathQAInputs}"

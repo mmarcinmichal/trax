@@ -5,4 +5,4 @@ train:
     model: "${model.HourglassLM}"
     steps: 125000
     optimizer: "${optim.Adam}"
-    inputs: "${data.make_inputs}"
+    inputs: "${data.make_streams}"

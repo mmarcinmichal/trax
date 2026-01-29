@@ -24,15 +24,25 @@ batch_size = 128
 Adam = @trax.optimizers.Adam
 Adafactor = @trax.optimizers.Adafactor
 
-# Parameters for addition_inputs:
+# Parameters for addition_train_stream:
 # ==============================================================================
-addition_inputs.vocab_size = %vocab_size
-addition_inputs.batch_size = %batch_size
-addition_inputs.train_length = 64
-addition_inputs.eval_min_length = 128
-addition_inputs.eval_max_length = 128
-addition_inputs.pad_to_multiple = 64
-addition_inputs.encdec = True
+addition_train_stream.vocab_size = %vocab_size
+addition_train_stream.batch_size = %batch_size
+addition_train_stream.train_length = 64
+addition_train_stream.eval_min_length = 128
+addition_train_stream.eval_max_length = 128
+addition_train_stream.pad_to_multiple = 64
+addition_train_stream.encdec = True
+
+# Parameters for addition_eval_stream:
+# ==============================================================================
+addition_eval_stream.vocab_size = %vocab_size
+addition_eval_stream.batch_size = %batch_size
+addition_eval_stream.train_length = 64
+addition_eval_stream.eval_min_length = 128
+addition_eval_stream.eval_max_length = 128
+addition_eval_stream.pad_to_multiple = 64
+addition_eval_stream.encdec = True
 
 trax.learning.trainer.EvaluationTask.export_prefix = 'len128'
 
@@ -90,7 +100,9 @@ WeightedCategoryCrossEntropy.label_smoothing = 0.01
 
 # Parameters for train:
 # ==============================================================================
-train.inputs = @trax.data.addition_inputs
+train.inputs = @trax.data.make_streams
+make_streams.train_stream = @trax.data.addition_train_stream()
+make_streams.eval_stream = @trax.data.addition_eval_stream()
 train.eval_frequency = 1000
 train.eval_steps = 50
 train.optimizer = %Adam

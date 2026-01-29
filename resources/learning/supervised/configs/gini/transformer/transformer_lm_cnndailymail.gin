@@ -19,7 +19,7 @@ import trax.learning.training.trainer
 
 # Parameters for the inputs pipeline:
 # ==============================================================================
-make_inputs.train_stream = [
+make_streams.train_stream = [
   @train/data.TFDS(),
   @data.WMTConcatPreprocess(),
   @data.Shuffle(),
@@ -31,7 +31,7 @@ train/data.TFDS.data_dir = None
 train/data.BucketByLength.boundaries = [128, 256, 512, 1024, 2048, 4096, 8192]
 train/data.BucketByLength.batch_sizes = [8, 4, 2, 1, 1, 1, 1, 1]
 train/data.BucketByLength.length_keys = [0, 1]
-make_inputs.eval_stream = [
+make_streams.eval_stream = [
   @eval/data.TFDS(),
   @data.WMTConcatPreprocess(),
   @eval/data.BucketByLength(),
@@ -68,7 +68,7 @@ WMTConcatPreprocess.max_eval_length = 4095
 
 # Parameters for train:
 # ==============================================================================
-train.inputs = @trax.data.make_inputs
+train.inputs = @trax.data.make_streams
 train.eval_frequency = 1000
 train.eval_steps = 10
 train.model = @trax.models.TransformerLM

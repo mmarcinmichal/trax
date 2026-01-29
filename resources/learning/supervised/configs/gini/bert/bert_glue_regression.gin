@@ -26,8 +26,8 @@ include 'resources/learning/supervised/configs/gini/bert/bert.gin'
 #
 # Training on WNLI with this setup is not recommended and will likely result in
 # lower than baseline accuracy.
-make_inputs.train_stream = @data.BertGlueTrainStream
-make_inputs.eval_stream = @data.BertGlueEvalStream
+make_streams.train_stream = @data.BertGlueTrainStream()
+make_streams.eval_stream = @data.BertGlueEvalStream()
 BertGlueTrainStream.benchmark = 'stsb'
 BertGlueEvalStream.benchmark = 'stsb'
 

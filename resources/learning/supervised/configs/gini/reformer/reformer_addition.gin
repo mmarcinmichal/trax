@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import trax.data
 import trax.data.loader.tf.base
 import trax.models
 import trax.optimizers
@@ -24,25 +25,45 @@ vocab_size = 13  #  For addition, base = vocab_size - 3.
 data_streams.data_dir = None
 data_streams.dataset_name = 'addition'
 
-# Parameters for sequence_copy_inputs:
+# Parameters for sequence_copy_train_stream:
 # ==============================================================================
-sequence_copy_inputs.vocab_size = %vocab_size
-sequence_copy_inputs.batch_size = 128
-sequence_copy_inputs.train_length = 64
-sequence_copy_inputs.eval_min_length = 128
-sequence_copy_inputs.eval_max_length = 160
-sequence_copy_inputs.reverse = False
-sequence_copy_inputs.pad_to_multiple = 32
+sequence_copy_train_stream.vocab_size = %vocab_size
+sequence_copy_train_stream.batch_size = 128
+sequence_copy_train_stream.train_length = 64
+sequence_copy_train_stream.eval_min_length = 128
+sequence_copy_train_stream.eval_max_length = 160
+sequence_copy_train_stream.reverse = False
+sequence_copy_train_stream.pad_to_multiple = 32
 
-# Parameters for addition_inputs:
+# Parameters for sequence_copy_eval_stream:
 # ==============================================================================
-addition_inputs.vocab_size = %vocab_size
-addition_inputs.batch_size = 128  # lower to e.g. 2 to test MixedLSHAttention
-addition_inputs.train_length = 129
-addition_inputs.eval_min_length = 257
-addition_inputs.eval_max_length = 301
-addition_inputs.pad_to_multiple = 32
-addition_inputs.encdec = False  # True
+sequence_copy_eval_stream.vocab_size = %vocab_size
+sequence_copy_eval_stream.batch_size = 128
+sequence_copy_eval_stream.train_length = 64
+sequence_copy_eval_stream.eval_min_length = 128
+sequence_copy_eval_stream.eval_max_length = 160
+sequence_copy_eval_stream.reverse = False
+sequence_copy_eval_stream.pad_to_multiple = 32
+
+# Parameters for addition_train_stream:
+# ==============================================================================
+addition_train_stream.vocab_size = %vocab_size
+addition_train_stream.batch_size = 128  # lower to e.g. 2 to test MixedLSHAttention
+addition_train_stream.train_length = 129
+addition_train_stream.eval_min_length = 257
+addition_train_stream.eval_max_length = 301
+addition_train_stream.pad_to_multiple = 32
+addition_train_stream.encdec = False  # True
+
+# Parameters for addition_eval_stream:
+# ==============================================================================
+addition_eval_stream.vocab_size = %vocab_size
+addition_eval_stream.batch_size = 128  # lower to e.g. 2 to test MixedLSHAttention
+addition_eval_stream.train_length = 129
+addition_eval_stream.eval_min_length = 257
+addition_eval_stream.eval_max_length = 301
+addition_eval_stream.pad_to_multiple = 32
+addition_eval_stream.encdec = False  # True
 
 # Parameters for multifactor:
 # ==============================================================================
@@ -145,8 +166,12 @@ ConfigurableTerraformer.pos_max_offset_to_add = 300
 
 # Parameters for train:
 # ==============================================================================
-# train.inputs = @trax.data.sequence_copy_inputs
-train.inputs = @trax.data.addition_inputs
+# train.inputs = @trax.data.make_streams
+# make_streams.train_stream = @trax.data.sequence_copy_train_stream()
+# make_streams.eval_stream = @trax.data.sequence_copy_eval_stream()
+train.inputs = @trax.data.make_streams
+make_streams.train_stream = @trax.data.addition_train_stream()
+make_streams.eval_stream = @trax.data.addition_eval_stream()
 train.eval_frequency = 1000
 train.eval_steps = 50
 train.optimizer = @trax.optimizers.Adam

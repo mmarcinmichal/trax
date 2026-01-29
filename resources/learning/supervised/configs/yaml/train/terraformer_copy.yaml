@@ -1,4 +1,4 @@
 train:
   train:
-    inputs: "${data.simple_sequence_copy_inputs}"
+    inputs: "${data.make_streams}"
     model: "${model.ConfigurableTerraformer}"

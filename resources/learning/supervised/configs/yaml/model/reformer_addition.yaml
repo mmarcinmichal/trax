@@ -7,15 +7,6 @@ model:
     _target_: "trax.models.data_streams"
     data_dir: null
     dataset_name: "addition"
-  sequence_copy_inputs:
-    _target_: "trax.models.sequence_copy_inputs"
-    vocab_size: 13
-    batch_size: 128
-    train_length: 64
-    eval_min_length: 128
-    eval_max_length: 160
-    reverse: false
-    pad_to_multiple: 32
   Adafactor:
     _target_: "trax.models.Adafactor"
     weight_decay_rate: 0.0

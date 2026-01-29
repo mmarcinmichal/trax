@@ -25,7 +25,7 @@ import gin
 import numpy as onp
 import tensorflow_datasets as tfds
 
-from trax.data.preprocessing.inputs import Inputs
+from trax.data.preprocessing import inputs as trax_inputs
 
 
 def _tfds_stream(
@@ -80,7 +80,7 @@ def tfds_inputs(
     """Tensorflow Datasets input pipeline, with pure-python preprocessing."""
     if eval_batch_size is None:
         eval_batch_size = batch_size
-    return Inputs(
+    return trax_inputs.make_streams(
         train_stream=functools.partial(
             _tfds_stream,
             dataset_name=dataset_name,

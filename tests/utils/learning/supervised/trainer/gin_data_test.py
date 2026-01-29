@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for gin data configs using make_inputs."""
+"""Tests for gin data configs using make_streams."""
 
 from pathlib import Path
 
@@ -70,8 +70,8 @@ class GinDataTest(absltest.TestCase):
                 self.assertNotIn("batcher.", text)
                 self.assertNotIn("make_inputs_from_data_streams.", text)
                 self.assertTrue(
-                    "train.inputs = @trax.data.make_inputs" in text
-                    or "train.inputs = @data.make_inputs" in text
+                    "train.inputs = @trax.data.make_streams" in text
+                    or "train.inputs = @data.make_streams" in text
                 )
 
 

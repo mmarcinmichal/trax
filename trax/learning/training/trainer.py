@@ -1244,7 +1244,7 @@ def epochs(total_steps: int, steps_to_skip: int, epoch_steps: Iterable[int]):
 
 
 def _prepare_tasks(
-    inputs: trax_inputs.Inputs,
+    inputs,
     loss_fn,
     optimizer,
     lr_schedule_fn,
@@ -1280,9 +1280,9 @@ def _prepare_tasks(
     )
 
 
-def _make_inputs_is_gin_configured() -> bool:
+def _make_streams_is_gin_configured() -> bool:
     try:
-        gin.query_parameter("trax.data.make_inputs.train_stream")
+        gin.query_parameter("trax.data.make_streams.train_stream")
     except (ValueError, TypeError):
         return False
     return True
@@ -1292,7 +1292,7 @@ def train(
     output_dir,
     model=gin.REQUIRED,
     loss_fn=tl.WeightedCategoryCrossEntropy(),
-    inputs=trax_inputs.make_inputs,
+    inputs=trax_inputs.make_streams,
     optimizer=trax_opt.Adafactor,
     lr_schedule_fn=lr.multifactor,
     steps: int = 1000,
@@ -1323,10 +1323,10 @@ def train(
         )
 
     n_devices = num_devices() or fastmath.local_device_count()
-    if inputs is trax_inputs.make_inputs and not _make_inputs_is_gin_configured():
+    if inputs is trax_inputs.make_streams and not _make_streams_is_gin_configured():
         raise ValueError(
-            "train(inputs=trax.data.make_inputs) requires a configured "
-            "make_inputs (e.g. a partial from config) or an Inputs instance."
+            "train(inputs=trax.data.make_streams) requires a configured "
+            "make_streams (e.g. a partial from config) or a StreamBundle."
         )
     if callable(inputs):
         inputs = inputs()

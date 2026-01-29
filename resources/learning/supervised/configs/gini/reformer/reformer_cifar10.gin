@@ -24,26 +24,23 @@ train.model = @trax.models.ReformerLM
 attn_kv = 64
 n_layers = 9
 
-# Parameters for make_inputs:
+# Parameters for make_streams:
 # ==============================================================================
-make_inputs.train_stream = [
-  @data.tf_dataset_streams_serial_train(),
+make_streams.train_stream = [
+  @train/data.TFDS(),
+  @train/data.Cifar10AugmentationFlatten(),
+  @data.Shuffle(),
   @train/data.BucketByLengthFromBatcher(),
   @data.AddLossWeights(),
 ]
 
-make_inputs.eval_stream = [
-  @data.tf_dataset_streams_serial_eval(),
+make_streams.eval_stream = [
+  @eval/data.TFDS(),
+  @eval/data.Cifar10AugmentationFlatten(),
+  @data.Shuffle(),
   @eval/data.BucketByLengthFromBatcher(),
   @data.AddLossWeights(),
 ]
-
-# Parameters for data streams:
-# ==============================================================================
-tf_dataset_streams_serial_train.datasets = @data.data_streams
-tf_dataset_streams_serial_eval.datasets = @data.data_streams
-tf_dataset_streams_serial_train.preprocess_fn = @data.Cifar10AugmentationFlatten
-tf_dataset_streams_serial_eval.preprocess_fn = @data.Cifar10AugmentationFlatten
 
 # Parameters for BucketByLengthFromBatcher:
 # ==============================================================================
@@ -55,10 +52,19 @@ train/data.BucketByLengthFromBatcher.eval_batch_size = 8
 eval/data.BucketByLengthFromBatcher.eval_batch_size = 8
 train/data.BucketByLengthFromBatcher.max_eval_length = 12288  # 64 * 64 * 3
 eval/data.BucketByLengthFromBatcher.max_eval_length = 12288  # 64 * 64 * 3
-# Parameters for data_streams:
+# Parameters for TFDS:
 # ==============================================================================
-data_streams.data_dir = None
-data_streams.dataset_name = 'cifar10'
+train/data.TFDS.dataset_name = 'cifar10'
+train/data.TFDS.data_dir = None
+train/data.TFDS.train = True
+eval/data.TFDS.dataset_name = 'cifar10'
+eval/data.TFDS.data_dir = None
+eval/data.TFDS.train = False
+
+# Parameters for Cifar10AugmentationFlatten:
+# ==============================================================================
+train/data.Cifar10AugmentationFlatten.training = True
+eval/data.Cifar10AugmentationFlatten.training = False
 
 # Parameters for multifactor:
 # ==============================================================================
@@ -92,4 +98,4 @@ ReformerLM.vocab_size = 256
 
 # Parameters for train inputs:
 # ==============================================================================
-train.inputs = @trax.data.make_inputs
+train.inputs = @trax.data.make_streams

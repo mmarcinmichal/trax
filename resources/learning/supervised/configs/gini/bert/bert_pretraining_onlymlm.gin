@@ -21,7 +21,7 @@ dataset_name = 'wiki40b'
 
 # Parameters for TFDS data pipeline:
 # ==============================================================================
-make_inputs.train_stream = [
+make_streams.train_stream = [
   @train/data.TFDS(),
   @data.RandomSplitText(),
   @data.Tokenize(),
@@ -32,7 +32,7 @@ make_inputs.train_stream = [
   @data.mask_random_tokens,
   @data.Batch()
 ]
-make_inputs.eval_stream = [
+make_streams.eval_stream = [
   @eval/data.TFDS(),
   @data.RandomSplitText(),
   @data.Tokenize(),

@@ -3,9 +3,21 @@ defaults:
   - _self_
 
 data:
-  addition_inputs:
-    _target_: "trax.data.addition_inputs"
-    _partial_: true
+  make_streams:
+    _target_: "trax.data.make_streams"
+    train_stream: "${data.addition_train_stream}"
+    eval_stream: "${data.addition_eval_stream}"
+  addition_train_stream:
+    _target_: "trax.data.addition_train_stream"
+    vocab_size: 13
+    batch_size: 128
+    train_length: 129
+    eval_min_length: 257
+    eval_max_length: 301
+    pad_to_multiple: 32
+    encdec: false
+  addition_eval_stream:
+    _target_: "trax.data.addition_eval_stream"
     vocab_size: 13
     batch_size: 128
     train_length: 129

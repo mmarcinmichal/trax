@@ -26,8 +26,8 @@ import numpy as np
 from absl.testing import absltest, parameterized
 
 from tests.layers import test_utils as tl_test_utils
+from trax import data as trax_data
 from trax import models
-from trax.data.preprocessing import inputs
 from trax.learning.reinforcement import serialization_utils, space_serializer
 from trax.learning.supervised import callbacks, lr_schedules
 from trax.learning.training import task, trainer
@@ -43,10 +43,7 @@ def random_inputs(seq_len, batch_size):
             mask = np.ones_like(x).astype(np.float32)
             yield (x, y, x, mask)
 
-    return inputs.Inputs(
-        train_stream=stream_fn,
-        eval_stream=stream_fn,
-    )
+    return trax_data.make_streams(train_stream=stream_fn, eval_stream=stream_fn)
 
 
 def make_multibonacci_modulo(history_length, limit):

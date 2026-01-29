@@ -8,11 +8,10 @@ data:
     TFDS:
       _target_: "trax.data.TFDS"
       dataset_name: "scientific_papers/arxiv:1.1.1"
-      keys: "('article', 'abstract')"
+      keys:
+        - "article"
+        - "abstract"
       train: true
-    Stream:
-      _target_: "trax.data.tf_dataset_streams_train"
-      datasets: "${data.dataset_loader}"
     BucketByLength:
       _target_: "trax.data.BucketByLength"
       boundaries:
@@ -58,11 +57,10 @@ data:
     TFDS:
       _target_: "trax.data.TFDS"
       dataset_name: "scientific_papers/arxiv:1.1.1"
-      keys: "('article', 'abstract')"
+      keys:
+        - "article"
+        - "abstract"
       train: false
-    Stream:
-      _target_: "trax.data.tf_dataset_streams_eval"
-      datasets: "${data.dataset_loader}"
     BucketByLength:
       _target_: "trax.data.BucketByLength"
       boundaries:
@@ -74,23 +72,20 @@ data:
         - 0
         - 1
       strict_pad_on_len: false
-  make_inputs:
-    _target_: "trax.data.make_inputs"
+  make_streams:
+    _target_: "trax.data.make_streams"
     _partial_: true
     train_stream:
-      - "${data.train.Stream}"
+      - "${data.train.TFDS}"
+      - "${data.Shuffle}"
       - "${data.train.BucketByLength}"
       - "${data.AddLossWeights}"
     eval_stream:
-      - "${data.eval.Stream}"
+      - "${data.eval.TFDS}"
+      - "${data.Shuffle}"
       - "${data.eval.BucketByLength}"
       - "${data.AddLossWeights}"
   AddLossWeights:
     _target_: "trax.data.add_loss_weights"
     _partial_: true
     id_to_mask: 0
-  dataset_loader:
-    _target_: "trax.data.loader.tf.base.data_streams"
-    _partial_: true
-    data_dir: null
-    dataset_name: "scientific_papers/arxiv:1.1.1"

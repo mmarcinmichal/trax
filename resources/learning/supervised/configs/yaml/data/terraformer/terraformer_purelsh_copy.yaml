@@ -3,6 +3,13 @@ defaults:
   - _self_
 
 data:
-  simple_sequence_copy_inputs:
-    _target_: "trax.data.simple_sequence_copy_inputs"
+  make_streams:
+    _target_: "trax.data.make_streams"
+    train_stream: "${data.simple_sequence_copy_train_stream}"
+    eval_stream: "${data.simple_sequence_copy_eval_stream}"
+  simple_sequence_copy_train_stream:
+    _target_: "trax.data.simple_sequence_copy_train_stream"
+    _partial_: true
+  simple_sequence_copy_eval_stream:
+    _target_: "trax.data.simple_sequence_copy_eval_stream"
     _partial_: true

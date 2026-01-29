@@ -25,26 +25,23 @@ attn_type = @LSHSelfAttention  # @CausalFavor
 attn_kv = 64
 n_layers = 6
 
-# Parameters for make_inputs:
+# Parameters for make_streams:
 # ==============================================================================
-make_inputs.train_stream = [
-  @data.tf_dataset_streams_train(),
+make_streams.train_stream = [
+  @train/data.TFDS(),
+  @data.DictToTuple(),
+  @data.Shuffle(),
   @train/data.BucketByLengthFromBatcher(),
   @data.AddLossWeights(),
 ]
 
-make_inputs.eval_stream = [
-  @data.tf_dataset_streams_eval(),
+make_streams.eval_stream = [
+  @eval/data.TFDS(),
+  @data.DictToTuple(),
+  @data.Shuffle(),
   @eval/data.BucketByLengthFromBatcher(),
   @data.AddLossWeights(),
 ]
-
-# Parameters for data streams:
-# ==============================================================================
-tf_dataset_streams_train.datasets = @data.data_streams
-tf_dataset_streams_eval.datasets = @data.data_streams
-tf_dataset_streams_train.input_name = 'targets'
-tf_dataset_streams_eval.input_name = 'targets'
 
 # Parameters for BucketByLengthFromBatcher:
 # ==============================================================================
@@ -56,11 +53,18 @@ train/data.BucketByLengthFromBatcher.eval_batch_size = 8
 eval/data.BucketByLengthFromBatcher.eval_batch_size = 8
 train/data.BucketByLengthFromBatcher.max_eval_length = 12288  # 64 * 64 * 3
 eval/data.BucketByLengthFromBatcher.max_eval_length = 12288  # 64 * 64 * 3
-# Parameters for data_streams:
+# Parameters for TFDS:
 # ==============================================================================
-data_streams.data_dir = None
-data_streams.dataset_name = 't2t_image_imagenet64_gen_flat_rev'
-tf_dataset_streams.input_name = 'targets'
+train/data.TFDS.dataset_name = 't2t_image_imagenet64_gen_flat_rev'
+train/data.TFDS.data_dir = None
+train/data.TFDS.train = True
+eval/data.TFDS.dataset_name = 't2t_image_imagenet64_gen_flat_rev'
+eval/data.TFDS.data_dir = None
+eval/data.TFDS.train = False
+
+# Parameters for DictToTuple:
+# ==============================================================================
+DictToTuple.keys = ('targets', 'targets')
 
 # Parameters for multifactor:
 # ==============================================================================
@@ -137,4 +141,4 @@ ReformerShortenLM.pos_d_axial_embs= (96, 96, 64)
 
 # Parameters for train inputs:
 # ==============================================================================
-train.inputs = @trax.data.make_inputs
+train.inputs = @trax.data.make_streams

@@ -22,42 +22,42 @@ import trax.learning.training.trainer
 # ==============================================================================
 vanilla_attn_type = @PureLSHSelfAttentionWrapper # @trax.layers.SelfAttention
 
-# Parameters for make_inputs:
+# Parameters for make_streams:
 # ==============================================================================
-make_inputs.train_stream = [
-  @data.tf_dataset_streams_train(),
+make_streams.train_stream = [
+  @train/data.TFDS(),
+  @data.DownsampledImagenetFlatten(),
+  @data.DictToTuple(),
+  @data.Shuffle(),
   @train/data.Batch(),
   @data.AddLossWeights(),
 ]
 
-make_inputs.eval_stream = [
-  @data.tf_dataset_streams_eval(),
+make_streams.eval_stream = [
+  @eval/data.TFDS(),
+  @data.DownsampledImagenetFlatten(),
+  @data.DictToTuple(),
+  @data.Shuffle(),
   @eval/data.Batch(),
   @data.AddLossWeights(),
 ]
-
-# Parameters for data streams:
-# ==============================================================================
-tf_dataset_streams_train.datasets = @data.data_streams
-tf_dataset_streams_eval.datasets = @data.data_streams
-tf_dataset_streams_train.input_name = 'image'
-tf_dataset_streams_eval.input_name = 'image'
-tf_dataset_streams_train.target_name = 'image'
-tf_dataset_streams_eval.target_name = 'image'
-tf_dataset_streams_train.bare_preprocess_fn = @data.DownsampledImagenetFlatten
-tf_dataset_streams_eval.bare_preprocess_fn = @data.DownsampledImagenetFlatten
 
 # Parameters for Batch:
 # ==============================================================================
 train/data.Batch.batch_size = 1
 eval/data.Batch.batch_size = 8
-# Parameters for data_streams:
+# Parameters for TFDS:
 # ==============================================================================
-data_streams.data_dir = None
-data_streams.dataset_name = 'downsampled_imagenet/64x64'
-tf_dataset_streams.input_name = 'image'
-tf_dataset_streams.target_name = 'image'
-tf_dataset_streams.bare_preprocess_fn = @data.DownsampledImagenetFlatten
+train/data.TFDS.dataset_name = 'downsampled_imagenet/64x64'
+train/data.TFDS.data_dir = None
+train/data.TFDS.train = True
+eval/data.TFDS.dataset_name = 'downsampled_imagenet/64x64'
+eval/data.TFDS.data_dir = None
+eval/data.TFDS.train = False
+
+# Parameters for DictToTuple:
+# ==============================================================================
+DictToTuple.keys = ('image', 'image')
 
 # Parameters for multifactor:
 # ==============================================================================
@@ -123,4 +123,4 @@ HourglassLM.upsampling_fn = @LinearUpsampling
 
 # Parameters for train inputs:
 # ==============================================================================
-train.inputs = @trax.data.make_inputs
+train.inputs = @trax.data.make_streams

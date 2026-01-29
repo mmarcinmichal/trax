@@ -51,8 +51,8 @@ dec_attn_type = @CausalAttention
 #
 # See https://www.tensorflow.org/datasets/catalog/glue for a description
 # of the MNLI dataset.
-make_inputs.train_stream = @data.T5GlueTrainStream()
-make_inputs.eval_stream = @data.T5GlueEvalStream()
+make_streams.train_stream = @data.T5GlueTrainStream()
+make_streams.eval_stream = @data.T5GlueEvalStream()
 data.T5GlueTrainStream.benchmark = 'mnli'
 data.T5GlueEvalStream.benchmark = 'mnli'
 data.T5GlueEvalTasks.benchmark_list = ['mnli_e2']
@@ -68,7 +68,7 @@ train.init_checkpoint = None
 train.optimizer = @trax.optimizers.Adafactor
 train.eval_frequency = 20
 train.eval_steps = 10
-train.inputs = @trax.data.make_inputs
+train.inputs = @trax.data.make_streams
 train.model = @trax.models.ConfigurableTransformer
 train.steps = 200000
 train.checkpoint_highest = 'accuracy'

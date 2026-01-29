@@ -56,7 +56,7 @@ trax.data.Tokenize.vocab_file = 'en_32k.subword'
 
 # Parameters for TFDS data pipeline:
 # ==============================================================================
-make_inputs.eval_stream = [
+make_streams.eval_stream = [
   @eval/data.CreateMathQAInputs(),
   @data.Tokenize(),
   @data.Shuffle(),
@@ -134,7 +134,7 @@ make_parallel_stream.streams = [
   @train_category_task/make_additional_stream,
   @train_full_inference/make_additional_stream
 ]
-make_inputs.train_stream = @make_parallel_stream()
+make_streams.train_stream = @make_parallel_stream()
 
 # This eval is not going to be very useful - it gives numbers for a mix of
 # tasks. Separate evals take care of specfic tasks
@@ -214,7 +214,7 @@ train.init_checkpoint = None
 train.optimizer = @trax.optimizers.Adafactor
 train.eval_frequency = 20
 train.eval_steps = 10
-train.inputs = @trax.data.make_inputs
+train.inputs = @trax.data.make_streams
 train.model = @trax.models.ConfigurableTransformer
 train.steps = 200000
 train.checkpoint_highest = 'accuracy'

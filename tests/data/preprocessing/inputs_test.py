@@ -65,174 +65,21 @@ class InputsTest(parameterized.TestCase):
         )
         self.assertEqual(legacy_text, serial[0]["text"])
 
-    def test_tf_dataset_streams_matches_legacy(self):
-        def legacy_tf_dataset_streams(
-            datasets,
-            preprocess_fn,
-            bare_preprocess_fn=None,
-            shuffle_buffer_size=1024,
-            shuffle=False,
-            seed=None,
-            input_name=None,
-            target_name=None,
-        ):
-            train_ds, eval_ds, keys = datasets
-            input_names = (
-                [input_name]
-                if input_name is not None
-                else keys[0]
-                if keys is not None
-                else [None]
-            )
-            target_names = (
-                [target_name]
-                if target_name is not None
-                else keys[1]
-                if keys is not None
-                else [None]
-            )
-            if target_names == [None]:
-                raise ValueError("Target name must be provided when supervised keys are missing.")
+    def test_make_streams_builds_streams(self):
+        def source(_):
+            while True:
+                yield {
+                    "inputs": np.array([1, 2], dtype=np.int32),
+                    "targets": np.array([3, 4], dtype=np.int32),
+                }
 
-            def _append_targets(example):
-                if len(target_names) == 1:
-                    return (example, example[target_names[0]])
-                targets = {name: example[name] for name in target_names}
-                return (example, targets)
-
-            def _prepare(dataset, training):
-                if bare_preprocess_fn is not None:
-                    dataset = bare_preprocess_fn(dataset, training)
-                dataset = dataset.map(lambda x: _append_targets(x))
-                dataset = dataset.repeat()
-                if training:
-                    rng = random.Random(seed) if seed is not None else random
-                    dataset = dataset.skip(rng.randint(0, 100_000))
-                dataset = preprocess_fn(dataset, training)
-                if shuffle and shuffle_buffer_size:
-                    dataset = dataset.shuffle(shuffle_buffer_size, seed=seed)
-                return dataset.prefetch(8)
-
-            train_batches = _prepare(train_ds, True)
-            eval_batches = _prepare(eval_ds, False)
-            input_name_c = input_names[0]
-
-            def dataset_to_stream(dataset):
-                for example in fastmath.dataset_as_numpy(dataset):
-                    features = example[0]
-                    chosen_input = (
-                        input_name_c if input_name_c in features else "inputs"
-                    )
-                    inp = np.asarray(features[chosen_input])
-                    out = np.asarray(example[1])
-                    yield inp, out
-
-            def stream(which):
-                dataset = eval_batches if which == "eval" else train_batches
-                return dataset_to_stream(dataset)
-
-            return lambda: stream("train"), lambda: stream("eval")
-
-        dataset = tf.data.Dataset.from_tensor_slices(
-            {
-                "inputs": [np.array([1, 2], dtype=np.int32)],
-                "targets": [np.array([3, 4], dtype=np.int32)],
-            }
-        )
-        datasets = (dataset, dataset, (["inputs"], ["targets"]))
-
-        legacy_train, legacy_eval = legacy_tf_dataset_streams(
-            datasets,
-            preprocess_fn=lambda ds, training: ds,
-            shuffle=False,
-            shuffle_buffer_size=0,
-        )
-        new_train, new_eval = data.tf_dataset_streams(
-            datasets=datasets,
-            preprocess_fn=lambda g: g,
-            shuffle=False,
-            shuffle_buffer_size=0,
-        )
-
-        np.testing.assert_array_equal(next(legacy_eval())[0], next(new_eval())[0])
-        np.testing.assert_array_equal(next(legacy_eval())[1], next(new_eval())[1])
-
-    def test_tf_dataset_streams_serial_matches_legacy(self):
-        def legacy_tf_dataset_streams_serial(
-            datasets,
-            preprocess_fn,
-            shuffle_buffer_size=1024,
-            shuffle=False,
-            seed=None,
-        ):
-            train_ds, eval_ds, _ = datasets
-
-            def _prepare(dataset, training):
-                dataset = dataset.repeat()
-                if training:
-                    rng = random.Random(seed) if seed is not None else random
-                    dataset = dataset.skip(rng.randint(0, 100_000))
-                if shuffle and shuffle_buffer_size:
-                    dataset = dataset.shuffle(shuffle_buffer_size, seed=seed)
-                return dataset.prefetch(8)
-
-            train_batches = _prepare(train_ds, True)
-            eval_batches = _prepare(eval_ds, False)
-
-            def _normalize_example(example):
-                if isinstance(example, (list, tuple)) and len(example) == 2:
-                    features, targets = example
-                    if isinstance(features, dict):
-                        normalized = dict(features)
-                        if "targets" not in normalized:
-                            normalized["targets"] = targets
-                        return normalized
-                return example
-
-            def _resolve_pipeline(training):
-                try:
-                    pipeline = preprocess_fn(training=training)
-                except TypeError:
-                    pipeline = preprocess_fn
-                return pipeline
-
-            def stream(which):
-                dataset = eval_batches if which == "eval" else train_batches
-                pipeline = _resolve_pipeline(which != "eval")
-                generator = (
-                    _normalize_example(example)
-                    for example in fastmath.dataset_as_numpy(dataset)
-                )
-                return pipeline(generator)
-
-            return lambda: stream("train"), lambda: stream("eval")
-
-        dataset = tf.data.Dataset.from_tensor_slices(
-            {
-                "inputs": [np.array([1, 2], dtype=np.int32)],
-                "targets": [np.array([3, 4], dtype=np.int32)],
-            }
-        )
-        datasets = (dataset, dataset, (["inputs"], ["targets"]))
-
-        legacy_train, legacy_eval = legacy_tf_dataset_streams_serial(
-            datasets,
-            preprocess_fn=lambda g: g,
-            shuffle=False,
-            shuffle_buffer_size=0,
-        )
-        new_train, new_eval = data.tf_dataset_streams_serial(
-            datasets=datasets,
-            preprocess_fn=lambda g: g,
-            shuffle=False,
-            shuffle_buffer_size=0,
-        )
-
-        legacy_example = next(legacy_eval())
-        new_example = next(new_eval())
-        self.assertEqual(legacy_example.keys(), new_example.keys())
-        np.testing.assert_array_equal(legacy_example["inputs"], new_example["inputs"])
-        np.testing.assert_array_equal(legacy_example["targets"], new_example["targets"])
+        stream = data.Serial(
+            source, data.DictToTuple(keys=("inputs", "targets"))
+        )()
+        inputs = data.make_streams(train_stream=stream)
+        batch = next(inputs.train_stream)
+        np.testing.assert_array_equal(batch[0], np.array([1, 2], dtype=np.int32))
+        np.testing.assert_array_equal(batch[1], np.array([3, 4], dtype=np.int32))
 
     def test_convert_to_unicode(self):
         def dataset1():
@@ -769,13 +616,13 @@ class InputsTest(parameterized.TestCase):
         ("encdec_on", True),
         ("encdec_off", False),
     )
-    def test_addition_inputs_exceptions(self, encdec):
+    def test_addition_stream_exceptions(self, encdec):
         vocab_size = 5
         batch_size = 256
         seq_length = 64
         # Check if max/min lengths are validated for train stream
         with self.assertRaises(ValueError):
-            inputs = data.addition_inputs(
+            stream = data.addition_train_stream(
                 vocab_size=vocab_size,
                 batch_size=batch_size,
                 train_length=2,
@@ -784,13 +631,12 @@ class InputsTest(parameterized.TestCase):
                 pad_to_multiple=seq_length,
                 encdec=encdec,
             )
-            train_stream = inputs.train_stream(n_devices=1)
             for _ in range(10):
-                next(train_stream)
+                next(stream)
 
         # Check if max/min lengths are validated for eval stream
         with self.assertRaises(ValueError):
-            inputs = data.addition_inputs(
+            stream = data.addition_eval_stream(
                 vocab_size=vocab_size,
                 batch_size=batch_size,
                 train_length=seq_length,
@@ -799,15 +645,23 @@ class InputsTest(parameterized.TestCase):
                 pad_to_multiple=seq_length,
                 encdec=True,
             )
-            eval_stream = inputs.eval_stream(n_devices=1)
             for _ in range(10):
-                next(eval_stream)
+                next(stream)
 
-    def test_addition_inputs_constraints(self):
+    def test_addition_stream_constraints(self):
         vocab_size = 5
         batch_size = 256
         seq_length = 64
-        inputs = data.addition_inputs(
+        train_stream = data.addition_train_stream(
+            vocab_size=vocab_size,
+            batch_size=batch_size,
+            train_length=seq_length,
+            eval_min_length=seq_length,
+            eval_max_length=seq_length,
+            pad_to_multiple=seq_length,
+            encdec=True,
+        )
+        eval_stream = data.addition_eval_stream(
             vocab_size=vocab_size,
             batch_size=batch_size,
             train_length=seq_length,
@@ -818,7 +672,6 @@ class InputsTest(parameterized.TestCase):
         )
 
         # Check if max length is respected for train stream
-        train_stream = inputs.train_stream(n_devices=1)
         for _ in range(10):
             x, y, weights = next(train_stream)
             self.assertEqual(x.shape[1], seq_length)
@@ -826,7 +679,6 @@ class InputsTest(parameterized.TestCase):
             self.assertEqual(weights.shape[1], seq_length)
 
         # Check if max length is respected for eval stream
-        eval_stream = inputs.eval_stream(n_devices=1)
         for _ in range(10):
             x, y, weights = next(eval_stream)
             self.assertEqual(x.shape[1], seq_length)
@@ -1310,9 +1162,8 @@ class InputsTest(parameterized.TestCase):
         self.assertLen(examples, 3 + 4)
 
     def test_sine_shape(self):
-        inputs = data.sine_inputs(batch_size=3, length=5)
-        train_batch = next(inputs.train_stream(n_devices=1))
-        eval_batch = next(inputs.eval_stream(n_devices=1))
+        train_batch = next(data.sine_train_stream(batch_size=3, length=5))
+        eval_batch = next(data.sine_eval_stream(batch_size=3, length=5))
         # (observations, actions, observations, mask)
         self.assertLen(train_batch, 4)
         self.assertLen(eval_batch, 4)

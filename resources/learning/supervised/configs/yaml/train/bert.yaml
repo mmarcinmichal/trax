@@ -3,6 +3,6 @@ train:
     optimizer: "${optim.Adam}"
     eval_frequency: 20
     eval_steps: 10
-    inputs: "${data.make_inputs}"
+    inputs: "${data.make_streams}"
     model: "${model.BERT}"
     steps: 200000

@@ -47,7 +47,7 @@ train:
     optimizer: "${optim.Adafactor}"
     eval_frequency: 20
     eval_steps: 10
-    inputs: "${data.make_inputs}"
+    inputs: "${data.make_streams}"
     model: "${model.ConfigurableTransformer}"
     steps: 200000
     additional_eval_tasks:

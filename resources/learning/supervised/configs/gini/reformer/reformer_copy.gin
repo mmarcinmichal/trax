@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import trax.data
 import trax.data.loader.tf.base
-import trax.data.preprocessing.inputs
 import trax.models
 import trax.optimizers
 import trax.learning.training.trainer
@@ -28,33 +28,61 @@ twice_max_len = 64
 data_streams.data_dir = None
 data_streams.dataset_name = 'copy'
 
-# Parameters for sequence_copy_inputs:
+# Parameters for sequence_copy_train_stream:
 # ==============================================================================
-sequence_copy_inputs.vocab_size = %vocab_size
-sequence_copy_inputs.batch_size = 128
-sequence_copy_inputs.train_length = 64
-sequence_copy_inputs.eval_min_length = 4
-sequence_copy_inputs.eval_max_length = 64
-sequence_copy_inputs.reverse = False
-sequence_copy_inputs.pad_to_multiple = %max_len
+sequence_copy_train_stream.vocab_size = %vocab_size
+sequence_copy_train_stream.batch_size = 128
+sequence_copy_train_stream.train_length = 64
+sequence_copy_train_stream.eval_min_length = 4
+sequence_copy_train_stream.eval_max_length = 64
+sequence_copy_train_stream.reverse = False
+sequence_copy_train_stream.pad_to_multiple = %max_len
 
-# Parameters for simple_sequence_copy_inputs:
+# Parameters for sequence_copy_eval_stream:
 # ==============================================================================
-simple_sequence_copy_inputs.vocab_size = %vocab_size
-simple_sequence_copy_inputs.batch_size = 128
-simple_sequence_copy_inputs.train_length = %max_len
-simple_sequence_copy_inputs.eval_min_length = 4
-simple_sequence_copy_inputs.eval_max_length = %max_len
-simple_sequence_copy_inputs.pad_to_multiple = %max_len
+sequence_copy_eval_stream.vocab_size = %vocab_size
+sequence_copy_eval_stream.batch_size = 128
+sequence_copy_eval_stream.train_length = 64
+sequence_copy_eval_stream.eval_min_length = 4
+sequence_copy_eval_stream.eval_max_length = 64
+sequence_copy_eval_stream.reverse = False
+sequence_copy_eval_stream.pad_to_multiple = %max_len
 
-# Parameters for addition_inputs:
+# Parameters for simple_sequence_copy_train_stream:
 # ==============================================================================
-addition_inputs.vocab_size = %vocab_size
-addition_inputs.batch_size = 128
-addition_inputs.train_length = 64
-addition_inputs.eval_min_length = 32
-addition_inputs.eval_max_length = 64
-addition_inputs.pad_to_multiple = 32
+simple_sequence_copy_train_stream.vocab_size = %vocab_size
+simple_sequence_copy_train_stream.batch_size = 128
+simple_sequence_copy_train_stream.train_length = %max_len
+simple_sequence_copy_train_stream.eval_min_length = 4
+simple_sequence_copy_train_stream.eval_max_length = %max_len
+simple_sequence_copy_train_stream.pad_to_multiple = %max_len
+
+# Parameters for simple_sequence_copy_eval_stream:
+# ==============================================================================
+simple_sequence_copy_eval_stream.vocab_size = %vocab_size
+simple_sequence_copy_eval_stream.batch_size = 128
+simple_sequence_copy_eval_stream.train_length = %max_len
+simple_sequence_copy_eval_stream.eval_min_length = 4
+simple_sequence_copy_eval_stream.eval_max_length = %max_len
+simple_sequence_copy_eval_stream.pad_to_multiple = %max_len
+
+# Parameters for addition_train_stream:
+# ==============================================================================
+addition_train_stream.vocab_size = %vocab_size
+addition_train_stream.batch_size = 128
+addition_train_stream.train_length = 64
+addition_train_stream.eval_min_length = 32
+addition_train_stream.eval_max_length = 64
+addition_train_stream.pad_to_multiple = 32
+
+# Parameters for addition_eval_stream:
+# ==============================================================================
+addition_eval_stream.vocab_size = %vocab_size
+addition_eval_stream.batch_size = 128
+addition_eval_stream.train_length = 64
+addition_eval_stream.eval_min_length = 32
+addition_eval_stream.eval_max_length = 64
+addition_eval_stream.pad_to_multiple = 32
 
 # Parameters for multifactor:
 # ==============================================================================
@@ -101,8 +129,11 @@ TransformerLM.vocab_size = %vocab_size
 
 # Parameters for train:
 # ==============================================================================
-train.inputs = @sequence_copy_inputs
-# train.inputs = @addition_inputs
+train.inputs = @trax.data.make_streams
+make_streams.train_stream = @trax.data.sequence_copy_train_stream()
+make_streams.eval_stream = @trax.data.sequence_copy_eval_stream()
+# make_streams.train_stream = @trax.data.addition_train_stream()
+# make_streams.eval_stream = @trax.data.addition_eval_stream()
 train.eval_frequency = 100
 train.eval_steps = 10
 train.optimizer = @trax.optimizers.Adam

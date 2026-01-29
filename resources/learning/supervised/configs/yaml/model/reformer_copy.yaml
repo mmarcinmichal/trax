@@ -7,22 +7,6 @@ model:
     _target_: "trax.models.data_streams"
     data_dir: null
     dataset_name: "copy"
-  simple_sequence_copy_inputs:
-    _target_: "trax.models.simple_sequence_copy_inputs"
-    vocab_size: 13
-    batch_size: 128
-    train_length: 32
-    eval_min_length: 4
-    eval_max_length: 32
-    pad_to_multiple: 32
-  addition_inputs:
-    _target_: "trax.models.addition_inputs"
-    vocab_size: 13
-    batch_size: 128
-    train_length: 64
-    eval_min_length: 32
-    eval_max_length: 64
-    pad_to_multiple: 32
   LSHSelfAttention:
     _target_: "trax.layers.LSHSelfAttention"
     _partial_: true

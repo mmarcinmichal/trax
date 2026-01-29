@@ -38,26 +38,25 @@ vocab_size = 32000
 
 max_length = 2048
 
-# Parameters for make_inputs:
+# Parameters for make_streams:
 # ==============================================================================
-make_inputs.train_stream = [
-  @data.tf_dataset_streams_serial_train(),
+make_streams.train_stream = [
+  @train/data.TFDS(),
+  @data.DictToTuple(),
+  @train/data.LM1BFilterByLength(),
+  @data.Shuffle(),
   @train/data.BucketByLengthFromBatcher(),
   @data.AddLossWeights(),
 ]
 
-make_inputs.eval_stream = [
-  @data.tf_dataset_streams_serial_eval(),
+make_streams.eval_stream = [
+  @eval/data.TFDS(),
+  @data.DictToTuple(),
+  @eval/data.LM1BFilterByLength(),
+  @data.Shuffle(),
   @eval/data.BucketByLengthFromBatcher(),
   @data.AddLossWeights(),
 ]
-
-# Parameters for data streams:
-# ==============================================================================
-tf_dataset_streams_serial_train.datasets = @data.data_streams
-tf_dataset_streams_serial_eval.datasets = @data.data_streams
-tf_dataset_streams_serial_train.preprocess_fn = @data.LM1BFilterByLength
-tf_dataset_streams_serial_eval.preprocess_fn = @data.LM1BFilterByLength
 
 # Parameters for BucketByLengthFromBatcher:
 # ==============================================================================
@@ -73,11 +72,14 @@ eval/data.BucketByLengthFromBatcher.max_eval_length = 2048
 # Parameters for AddLossWeights:
 # ==============================================================================
 data.AddLossWeights.id_to_mask = 0
-# Parameters for data_streams:
+# Parameters for TFDS:
 # ==============================================================================
-data_streams.data_dir = None
-data_streams.dataset_name = 't2t_languagemodel_lm1b32k'
-tf_dataset_streams_serial.preprocess_fn = @data.LM1BFilterByLength
+train/data.TFDS.dataset_name = 't2t_languagemodel_lm1b32k'
+train/data.TFDS.data_dir = None
+train/data.TFDS.train = True
+eval/data.TFDS.dataset_name = 't2t_languagemodel_lm1b32k'
+eval/data.TFDS.data_dir = None
+eval/data.TFDS.train = False
 
 # Parameters for multifactor:
 # ==============================================================================
@@ -94,6 +96,8 @@ Adafactor.weight_decay_n_steps = 100000
 # ==============================================================================
 LM1BFilterByLength.max_target_length = 512
 LM1BFilterByLength.max_eval_target_length = 2048
+train/data.LM1BFilterByLength.training = True
+eval/data.LM1BFilterByLength.training = False
 
 # Parameters for train:
 # ==============================================================================
@@ -140,4 +144,4 @@ ReformerLM.loss_sparsity = %loss_sparsity
 
 # Parameters for train inputs:
 # ==============================================================================
-train.inputs = @trax.data.make_inputs
+train.inputs = @trax.data.make_streams

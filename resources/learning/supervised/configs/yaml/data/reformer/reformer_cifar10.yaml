@@ -3,22 +3,31 @@ defaults:
   - _self_
 
 data:
-  make_inputs:
-    _target_: "trax.data.make_inputs"
+  make_streams:
+    _target_: "trax.data.make_streams"
     _partial_: true
     train_stream:
-      - "${data.train.Stream}"
+      - "${data.train.TFDS}"
+      - "${data.train.Cifar10AugmentationFlatten}"
+      - "${data.Shuffle}"
       - "${data.train.BucketByLength}"
       - "${data.AddLossWeights}"
     eval_stream:
-      - "${data.eval.Stream}"
+      - "${data.eval.TFDS}"
+      - "${data.eval.Cifar10AugmentationFlatten}"
+      - "${data.Shuffle}"
       - "${data.eval.BucketByLength}"
       - "${data.AddLossWeights}"
   train:
-    Stream:
-      _target_: "trax.data.tf_dataset_streams_serial_train"
-      datasets: "${data.dataset_loader}"
-      preprocess_fn: "${data.Cifar10AugmentationFlatten}"
+    TFDS:
+      _target_: "trax.data.TFDS"
+      dataset_name: "cifar10"
+      data_dir: null
+      train: true
+    Cifar10AugmentationFlatten:
+      _target_: "trax.data.Cifar10AugmentationFlatten"
+      _partial_: true
+      training: true
     BucketByLength:
       _target_: "trax.data.BucketByLengthFromBatcher"
       training: true
@@ -26,10 +35,15 @@ data:
       eval_batch_size: 8
       max_eval_length: 12288
   eval:
-    Stream:
-      _target_: "trax.data.tf_dataset_streams_serial_eval"
-      datasets: "${data.dataset_loader}"
-      preprocess_fn: "${data.Cifar10AugmentationFlatten}"
+    TFDS:
+      _target_: "trax.data.TFDS"
+      dataset_name: "cifar10"
+      data_dir: null
+      train: false
+    Cifar10AugmentationFlatten:
+      _target_: "trax.data.Cifar10AugmentationFlatten"
+      _partial_: true
+      training: false
     BucketByLength:
       _target_: "trax.data.BucketByLengthFromBatcher"
       training: false
@@ -38,12 +52,4 @@ data:
       max_eval_length: 12288
   AddLossWeights:
     _target_: "trax.data.add_loss_weights"
-    _partial_: true
-  dataset_loader:
-    _target_: "trax.data.loader.tf.base.data_streams"
-    _partial_: true
-    data_dir: null
-    dataset_name: "cifar10"
-  Cifar10AugmentationFlatten:
-    _target_: "trax.data.Cifar10AugmentationFlatten"
     _partial_: true

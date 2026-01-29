@@ -33,14 +33,14 @@ dataset_loader:
 ## Preprocessing (Serial pipelines)
 
 - Use `trax.data.Serial` with stream inputs from `trax.data.TFDS`.
-- Build train/eval pipelines with `trax.data.make_inputs`.
+- Build train/eval pipelines with `trax.data.make_streams`.
 - BERT helpers are exposed via `trax.data.BertNextSentencePredictionInputs` and
   `trax.data.CreateBertInputs` in module pipelines.
 
 Example (gin):
 
 ```gin
-make_inputs.train_stream = [
+make_streams.train_stream = [
   @training/data.TFDS(),
   @data.NextSentencePrediction(),
   @data.SentencePieceTokenize(),
@@ -54,7 +54,7 @@ make_inputs.train_stream = [
   @data.Batch(),
 ]
 
-make_inputs.eval_stream = [
+make_streams.eval_stream = [
   @validation/data.TFDS(),
   @data.NextSentencePrediction(),
   @data.SentencePieceTokenize(),
@@ -72,10 +72,10 @@ data.TFDS.keys = ('text',)
 training/data.TFDS.train = True
 validation/data.TFDS.train = False
 
-train.inputs = @trax.data.make_inputs
+train.inputs = @trax.data.make_streams
 ```
 
 ## Migration mapping
 
-- `tf_dataset_streams` pipelines -> `make_inputs` + `Serial` steps
+- `tf_dataset_streams` pipelines -> `make_streams` + `Serial` steps
 - `preprocess_fn`/`bare_preprocess_fn` -> `Serial` steps like `Tokenize`, `MLM`, `FilterByLength`

@@ -36,6 +36,15 @@ def default_metrics():
     }
 
 
+def _resolve_stream(stream, n_devices):
+    if callable(stream):
+        try:
+            return stream(n_devices)
+        except TypeError:
+            return stream()
+    return stream
+
+
 def create_train_task(
     inputs,
     loss_layer,
@@ -55,7 +64,7 @@ def create_train_task(
         opt = optimizer()
 
     return TrainingTask(
-        inputs.train_stream(n_devices),
+        _resolve_stream(inputs.train_stream, n_devices),
         loss_layer=loss_layer,
         optimizer=opt,
         lr_schedule=lr_schedule_fn(),
@@ -69,11 +78,13 @@ def create_eval_task(stream_or_inputs, metrics_dict, eval_steps, n_devices, expo
 
     names, metrics = zip(*metrics_dict.items())
     if hasattr(stream_or_inputs, "eval_stream"):
-        stream = stream_or_inputs.eval_stream(n_devices)
+        stream = _resolve_stream(stream_or_inputs.eval_stream, n_devices)
+    elif hasattr(stream_or_inputs, "train_stream"):
+        stream = _resolve_stream(stream_or_inputs.train_stream, n_devices)
     elif hasattr(stream_or_inputs, "stream"):
-        stream = stream_or_inputs.stream
+        stream = _resolve_stream(stream_or_inputs.stream, n_devices)
     else:
-        stream = stream_or_inputs
+        stream = _resolve_stream(stream_or_inputs, n_devices)
     return EvaluationTask(
         stream,
         metrics,

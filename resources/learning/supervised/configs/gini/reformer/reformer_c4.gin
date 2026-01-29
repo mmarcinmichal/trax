@@ -49,7 +49,7 @@ LSHSelfAttention.n_hashes = 2
 
 # Parameters for the inputs pipeline:
 # ==============================================================================
-make_inputs.train_stream = [
+make_streams.train_stream = [
   @train/data.TFDS(),
   @data.C4Preprocess(),
   @data.Shuffle(),
@@ -62,7 +62,7 @@ train/data.TFDS.keys = ('text',)
 train/data.BucketByLength.boundaries = %BUCKET_BOUNDARIES
 train/data.BucketByLength.batch_sizes = %BUCKET_BATCH_SIZES
 train/data.BucketByLength.length_keys = [0, 1]
-make_inputs.eval_stream = [
+make_streams.eval_stream = [
   @eval/data.TFDS(),
   @data.C4Preprocess(),
   @eval/data.BucketByLength(),
@@ -98,7 +98,7 @@ Adam.eps = 1e-9
 
 # Parameters for train:
 # ==============================================================================
-train.inputs = @trax.data.make_inputs
+train.inputs = @trax.data.make_streams
 train.eval_frequency = 500
 train.eval_steps = 8
 train.model = @trax.models.ReformerLM

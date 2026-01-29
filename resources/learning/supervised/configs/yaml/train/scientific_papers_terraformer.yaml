@@ -5,4 +5,4 @@ train:
     model: "${model.ConfigurableTerraformer}"
     steps: 1000000
     optimizer: "${optim.Adafactor}"
-    inputs: "${data.make_inputs}"
+    inputs: "${data.make_streams}"
