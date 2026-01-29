@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "reformer/reformer_wmt_ende"
+  -
+    model: "reformer/reformer_wmt_ende"
+  -
+    optim: "shared/adam_b1_0_9_b2_0_98_eps_1e-09"
+  -
+    schedule: "shared/constant_0_088_warmup_8000_rsqrtd"
+  -
+    train: "reformer/reformer_wmt_ende"
+  -
+    ckpt: "shared/checkpoints_100k_500k"
+  - "_self_"

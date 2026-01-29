@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "bert/bert_pretraining"
+  -
+    model: "bert/bert_pretraining"
+  -
+    optim: "shared/empty"
+  -
+    schedule: "shared/empty"
+  -
+    train: "bert/bert_pretraining"
+  -
+    ckpt: "shared/empty"
+  - "_self_"

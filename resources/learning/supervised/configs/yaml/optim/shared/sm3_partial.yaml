@@ -1,0 +1,8 @@
+defaults:
+  - /optim/base
+  - _self_
+
+optim:
+  SM3:
+    _target_: "trax.optimizers.SM3"
+    _partial_: true

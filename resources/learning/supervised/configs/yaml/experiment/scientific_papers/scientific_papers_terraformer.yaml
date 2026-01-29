@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "scientific_papers/scientific_papers_terraformer"
+  -
+    model: "scientific_papers/scientific_papers_terraformer"
+  -
+    optim: "shared/adafactor_decay_0_9"
+  -
+    schedule: "shared/constant_1_0_warmup_10000_rsqrtd"
+  -
+    train: "scientific_papers/scientific_papers_terraformer"
+  -
+    ckpt: "shared/neg_log_perplexity_loss"
+  - "_self_"

@@ -1,0 +1,52 @@
+defaults:
+  - /model/base
+  - _self_
+
+model:
+  PureLSHSelfAttention:
+    _target_: "trax.layers.PureLSHSelfAttention"
+    _partial_: true
+    attention_dropout: 0.2
+    chunk_len: 128
+    n_buckets: 128
+    n_chunks_after: 0
+    n_chunks_before: 1
+    n_hashes: 2
+    n_parallel_heads: 1
+    predict_drop_len: 16384
+    predict_mem_len: 16384
+  ref2_encoder:
+    PureLSHSelfAttention:
+      _target_: "trax.layers.PureLSHSelfAttention"
+      _partial_: true
+      n_chunks_after: 1
+    PureLSHSelfAttentionWrapper:
+      _target_: "trax.layers.PureLSHSelfAttentionWrapper"
+      _partial_: true
+      pure_lsh_implementation: "${model.ref2_encoder.PureLSHSelfAttention}"
+  PureLSHSelfAttentionWrapper:
+    _target_: "trax.layers.PureLSHSelfAttentionWrapper"
+    _partial_: true
+    pure_lsh_implementation: "${model.PureLSHSelfAttention}"
+  ConfigurableTerraformer:
+    _target_: "trax.models.ConfigurableTerraformer"
+    _partial_: true
+    d_model: 1024
+    d_ff: 4096
+    dropout: 0.2
+    ff_activation: "${model.Relu}"
+    ff_dropout: 0.1
+    ff_chunk_size: 0
+    max_len: 32768
+    n_heads: 16
+    n_encoder_layers: 24
+    n_decoder_layers: 24
+    input_vocab_size: 32000
+    d_attention_key: 64
+    d_attention_value: 64
+    encoder_attention_type: "${model.ref2_encoder.PureLSHSelfAttentionWrapper}"
+    encoder_decoder_attention_type: "${model.PureLSHSelfAttentionWrapper}"
+    use_two_swaps_per_encoder_block: false
+    reversible_encoder: true
+    pos_type: null
+    pos_d_axial_embs: "(512, 512)"

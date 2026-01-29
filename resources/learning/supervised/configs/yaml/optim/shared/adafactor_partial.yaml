@@ -1,0 +1,7 @@
+defaults:
+  - /optim/base
+  - _self_
+
+optim:
+  Adafactor:
+    _partial_: true

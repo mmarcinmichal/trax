@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "transformer/transformer_lm_cnndailymail"
+  -
+    model: "transformer/transformer_lm_cnndailymail"
+  -
+    optim: "shared/adafactor_decay_0_8"
+  -
+    schedule: "shared/constant_1_0_warmup_10000_rsqrtd"
+  -
+    train: "transformer/transformer_lm_cnndailymail"
+  -
+    ckpt: "shared/empty"
+  - "_self_"

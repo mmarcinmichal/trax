@@ -1,0 +1,11 @@
+defaults:
+  - /model/base
+  - _self_
+
+model:
+  BERT:
+    _target_: "trax.models.BERT"
+    head: "${model.BERTRegressionHead}"
+  BERTRegressionHead:
+    _target_: "trax.models.research.bert.BERTRegressionHead"
+    _partial_: true

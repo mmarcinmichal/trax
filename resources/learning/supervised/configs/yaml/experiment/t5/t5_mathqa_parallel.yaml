@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "t5/t5_mathqa_parallel"
+  -
+    model: "t5/t5_mathqa_parallel"
+  -
+    optim: "shared/adafactor_partial"
+  -
+    schedule: "shared/constant_0_001"
+  -
+    train: "t5/t5_mathqa_parallel"
+  -
+    ckpt: "shared/accuracy_init"
+  - "_self_"

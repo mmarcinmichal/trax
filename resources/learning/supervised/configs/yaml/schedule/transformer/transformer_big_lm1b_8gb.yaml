@@ -1,0 +1,9 @@
+defaults:
+  - /schedule/base
+  - _self_
+
+schedule:
+  multifactor:
+    constant: 0.1
+    factors: "constant * linear_warmup"
+    warmup_steps: 16000

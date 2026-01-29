@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "reformer/reformer_cifar10"
+  -
+    model: "reformer/reformer_cifar10"
+  -
+    optim: "shared/adafactor_partial"
+  -
+    schedule: "shared/constant_1_0_warmup_8000_rsqrtd"
+  -
+    train: "reformer/reformer_cifar10"
+  -
+    ckpt: "shared/checkpoints_1k_500k_sparse"
+  - "_self_"

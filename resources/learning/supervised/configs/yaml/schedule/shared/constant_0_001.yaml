@@ -1,0 +1,8 @@
+defaults:
+  - /schedule/base
+  - _self_
+
+schedule:
+  multifactor:
+    constant: 0.001
+    factors: "constant"

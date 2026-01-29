@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "reformer/reformer_imagenet64_testing"
+  -
+    model: "reformer/reformer_imagenet64_testing"
+  -
+    optim: "shared/adam_b1_0_9_b2_0_98_eps_1e-09_wd_0"
+  -
+    schedule: "reformer/reformer_imagenet64_testing"
+  -
+    train: "reformer/reformer_imagenet64_testing"
+  -
+    ckpt: "shared/empty"
+  - "_self_"

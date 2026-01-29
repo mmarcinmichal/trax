@@ -1,9 +1,0 @@
-defaults:
-  - base
-  - _self_
-
-model:
-  BERT:
-    _target_: "trax.models.BERT"
-    _partial_: true
-    init_checkpoint: "bert-base-uncased"

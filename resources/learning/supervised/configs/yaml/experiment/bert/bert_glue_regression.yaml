@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "bert/bert_glue_regression"
+  -
+    model: "bert/bert_glue_regression"
+  -
+    optim: "shared/empty"
+  -
+    schedule: "shared/empty"
+  -
+    train: "bert/bert_glue_regression"
+  -
+    ckpt: "shared/empty"
+  - "_self_"

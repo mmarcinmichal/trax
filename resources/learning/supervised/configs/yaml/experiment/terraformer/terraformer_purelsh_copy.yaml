@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "terraformer/terraformer_purelsh_copy"
+  -
+    model: "terraformer/terraformer_purelsh_copy"
+  -
+    optim: "shared/empty"
+  -
+    schedule: "shared/empty"
+  -
+    train: "terraformer/terraformer_purelsh_copy"
+  -
+    ckpt: "shared/empty"
+  - "_self_"

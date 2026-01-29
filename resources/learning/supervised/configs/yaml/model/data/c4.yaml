@@ -1,0 +1,5 @@
+defaults:
+  - /model/base
+  - _self_
+
+model:

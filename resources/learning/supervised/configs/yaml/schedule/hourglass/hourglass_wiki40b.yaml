@@ -1,0 +1,10 @@
+defaults:
+  - /schedule/base
+  - _self_
+
+schedule:
+  multifactor:
+    constant: 0.001
+    factors: "constant * linear_warmup * cosine_decay"
+    warmup_steps: 10000
+    steps_per_cycle: 125000

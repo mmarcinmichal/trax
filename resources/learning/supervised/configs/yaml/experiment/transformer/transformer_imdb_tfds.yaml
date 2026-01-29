@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "transformer/transformer_imdb_tfds"
+  -
+    model: "transformer/transformer_imdb_tfds"
+  -
+    optim: "shared/empty"
+  -
+    schedule: "shared/constant_0_1_warmup_8000_rsqrtd"
+  -
+    train: "transformer/transformer_imdb_tfds"
+  -
+    ckpt: "shared/empty"
+  - "_self_"

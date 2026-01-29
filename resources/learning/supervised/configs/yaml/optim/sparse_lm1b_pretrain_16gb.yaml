@@ -1,9 +1,0 @@
-defaults:
-  - base
-  - _self_
-
-optim:
-  Adafactor:
-    _partial_: true
-    weight_decay_rate: 0.0001
-    weight_decay_n_steps: 100000

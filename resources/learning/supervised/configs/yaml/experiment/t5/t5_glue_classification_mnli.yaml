@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "t5/t5_glue_classification_mnli"
+  -
+    model: "t5/t5_glue_classification_mnli"
+  -
+    optim: "shared/adafactor_wd_1e-05_decay_0_8"
+  -
+    schedule: "shared/constant_0_001_warmup_1000"
+  -
+    train: "t5/t5_glue_classification_mnli"
+  -
+    ckpt: "shared/accuracy_init"
+  - "_self_"

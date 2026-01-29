@@ -1,0 +1,23 @@
+defaults:
+  - /model/base
+  - _self_
+
+model:
+  HourglassLM:
+    _target_: "trax.models.HourglassLM"
+    _partial_: true
+    d_ff: 2048
+    d_model: 512
+    dropout: 0.01
+    n_heads: 8
+    vanilla_layers: "(3, 3)"
+    hierarchy: "24@3"
+    vocab_size: 256
+    attention_downsampling_fn: "${model.LinearPooling}"
+    ff_activation: "${model.FastGelu}"
+  LinearPooling:
+    _target_: "trax.layers.LinearPooling"
+    _partial_: true
+  FastGelu:
+    _target_: "trax.layers.FastGelu"
+    _partial_: true

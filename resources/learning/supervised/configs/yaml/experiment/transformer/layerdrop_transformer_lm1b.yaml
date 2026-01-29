@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "transformer/layerdrop_transformer_lm1b"
+  -
+    model: "transformer/layerdrop_transformer_lm1b"
+  -
+    optim: "shared/sm3_partial"
+  -
+    schedule: "shared/constant_0_3_warmup_8000"
+  -
+    train: "transformer/layerdrop_transformer_lm1b"
+  -
+    ckpt: "shared/empty"
+  - "_self_"

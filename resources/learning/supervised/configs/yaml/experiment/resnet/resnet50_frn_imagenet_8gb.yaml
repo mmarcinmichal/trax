@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "resnet/resnet50_frn_imagenet_8gb"
+  -
+    model: "resnet/resnet50_frn_imagenet_8gb"
+  -
+    optim: "shared/momentum_mass_0_9"
+  -
+    schedule: "resnet/resnet50_frn_imagenet_8gb"
+  -
+    train: "resnet/resnet50_frn_imagenet_8gb"
+  -
+    ckpt: "shared/empty"
+  - "_self_"

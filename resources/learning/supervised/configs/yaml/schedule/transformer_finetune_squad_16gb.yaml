@@ -1,8 +1,0 @@
-defaults:
-  - base
-  - _self_
-
-schedule:
-  multifactor:
-    factors: "constant"
-    constant: 0.001

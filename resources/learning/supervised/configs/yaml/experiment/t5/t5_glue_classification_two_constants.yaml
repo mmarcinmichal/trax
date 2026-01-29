@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "t5/t5_glue_classification_two_constants"
+  -
+    model: "t5/t5_glue_classification_two_constants"
+  -
+    optim: "shared/adafactor_wd_1e-05_decay_0_8"
+  -
+    schedule: "t5/t5_glue_classification_two_constants"
+  -
+    train: "t5/t5_glue_classification_two_constants"
+  -
+    ckpt: "shared/accuracy_init"
+  - "_self_"

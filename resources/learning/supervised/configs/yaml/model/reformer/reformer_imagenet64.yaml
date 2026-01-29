@@ -1,0 +1,56 @@
+defaults:
+  - /model/base
+  - _self_
+
+model:
+  LSHSelfAttention:
+    _target_: "trax.layers.LSHSelfAttention"
+    _partial_: true
+    attention_dropout: 0.2
+    chunk_len: 128
+    n_buckets: 192
+    n_chunks_after: 0
+    n_chunks_before: 1
+    n_hashes: 2
+    n_parallel_heads: 1
+    predict_drop_len: 256
+    predict_mem_len: 12288
+  ReformerLM:
+    _target_: "trax.models.ReformerLM"
+    _partial_: true
+    attention_type: "${model.LSHSelfAttention}"
+    d_attention_key: 64
+    d_attention_value: 64
+    d_model: 1024
+    d_ff: 4096
+    dropout: 0.0
+    ff_activation: "${model.FastGelu}"
+    max_len: 12288
+    n_heads: 8
+    n_layers: 6
+    vocab_size: 256
+    pos_axial_shape: "(64, 64, 3)"
+    pos_d_axial_embs: "(384, 384, 256)"
+  ReformerShortenLM:
+    _target_: "trax.models.ReformerShortenLM"
+    attention_type: "${model.LSHSelfAttention}"
+    d_attention_key: 64
+    d_attention_value: 64
+    shorten_factor: 3
+    d_embedding: 256
+    d_model: 1024
+    d_ff: 4096
+    dropout: 0.0
+    ff_activation: "${model.FastGelu}"
+    max_len: 12288
+    mode: "train"
+    n_heads: 8
+    n_layers: 6
+    vocab_size: 256
+    pos_axial_shape: "(64, 64, 3)"
+    pos_d_axial_embs: "(96, 96, 64)"
+  attn_type:
+    _target_: "trax.models.attn_type"
+  FastGelu:
+    _target_: "trax.layers.FastGelu"
+    _partial_: true

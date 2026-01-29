@@ -1,0 +1,7 @@
+defaults:
+  - /ckpt/base
+  - _self_
+
+ckpt:
+  ckpt:
+    checkpoint_highest: "accuracy"

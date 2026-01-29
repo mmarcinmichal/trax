@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "terraformer/terraformer_copy_self_attn"
+  -
+    model: "terraformer/terraformer_copy_self_attn"
+  -
+    optim: "shared/empty"
+  -
+    schedule: "shared/empty"
+  -
+    train: "terraformer/terraformer_copy_self_attn"
+  -
+    ckpt: "shared/empty"
+  - "_self_"

@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "sparse/sparse_lm1b_pretrain_16gb"
+  -
+    model: "sparse/sparse_lm1b_pretrain_16gb"
+  -
+    optim: "sparse/sparse_lm1b_pretrain_16gb"
+  -
+    schedule: "shared/constant_1_0_warmup_10000_rsqrtd"
+  -
+    train: "sparse/sparse_lm1b_pretrain_16gb"
+  -
+    ckpt: "shared/empty"
+  - "_self_"

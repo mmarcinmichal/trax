@@ -1,9 +1,0 @@
-defaults:
-  - base
-  - _self_
-
-schedule:
-  multifactor:
-    factors: "constant * linear_warmup"
-    constant: 0.2
-    warmup_steps: 400

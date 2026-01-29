@@ -1,0 +1,12 @@
+defaults:
+  - /model/base
+  - _self_
+
+model:
+  BERT:
+    _target_: "trax.models.BERT"
+    head: "${model.BERTClassifierHead}"
+  BERTClassifierHead:
+    _target_: "trax.models.research.bert.BERTClassifierHead"
+    _partial_: true
+    n_classes: 3

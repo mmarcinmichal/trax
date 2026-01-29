@@ -1,7 +1,0 @@
-defaults:
-  - base
-  - _self_
-
-optim:
-  Adam:
-    _partial_: true

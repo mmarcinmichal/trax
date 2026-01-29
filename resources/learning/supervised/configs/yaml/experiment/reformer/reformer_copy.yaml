@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "reformer/reformer_copy"
+  -
+    model: "reformer/reformer_copy"
+  -
+    optim: "shared/adam_partial"
+  -
+    schedule: "reformer/reformer_copy"
+  -
+    train: "reformer/reformer_copy"
+  -
+    ckpt: "shared/empty"
+  - "_self_"

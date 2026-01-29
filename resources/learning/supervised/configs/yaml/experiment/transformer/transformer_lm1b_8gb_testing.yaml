@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "transformer/transformer_lm1b_8gb_testing"
+  -
+    model: "transformer/transformer_lm1b_8gb_testing"
+  -
+    optim: "shared/adam_partial"
+  -
+    schedule: "shared/constant_0_1_warmup_8000_rsqrtd"
+  -
+    train: "transformer/transformer_lm1b_8gb_testing"
+  -
+    ckpt: "shared/empty"
+  - "_self_"

@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "data/c4"
+  -
+    model: "data/c4"
+  -
+    optim: "shared/empty"
+  -
+    schedule: "shared/empty"
+  -
+    train: "data/c4"
+  -
+    ckpt: "shared/empty"
+  - "_self_"

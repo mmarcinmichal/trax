@@ -1,9 +1,0 @@
-defaults:
-  - base
-  - _self_
-
-schedule:
-  multifactor:
-    constant: 0.05
-    factors: "constant * linear_warmup * rsqrt_decay"
-    warmup_steps: 4000

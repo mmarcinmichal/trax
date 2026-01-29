@@ -1,9 +1,0 @@
-defaults:
-  - base
-  - _self_
-
-model:
-  data_streams:
-    _target_: "trax.models.data_streams"
-    dataset_name: "squad/plain_text:1.0.0"
-    bare_preprocess_fn: "${data.GenericTextPreprocess}"

@@ -1,4 +1,4 @@
 defaults:
   -
-    experiment: "bert"
+    experiment: "bert/bert"
   - "_self_"

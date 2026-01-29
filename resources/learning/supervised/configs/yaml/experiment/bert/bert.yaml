@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "bert/bert"
+  -
+    model: "bert/bert"
+  -
+    optim: "shared/adam_partial"
+  -
+    schedule: "bert/bert"
+  -
+    train: "bert/bert"
+  -
+    ckpt: "shared/accuracy_only"
+  - "_self_"

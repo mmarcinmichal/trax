@@ -1,0 +1,29 @@
+defaults:
+  - /model/base
+  - _self_
+
+model:
+  TransformerLM:
+    _target_: "trax.models.TransformerLM"
+    d_model: 768
+    d_ff: 3072
+    dropout: 0.0
+    max_len: 2048
+    mode: "train"
+    n_heads: 12
+    n_layers: 12
+    vocab_size: 32000
+  HourglassLM:
+    _target_: "trax.models.HourglassLM"
+    _partial_: true
+    d_model: 512
+    d_ff: 2048
+    vanilla_layers: "(4, 4)"
+    hierarchy: "8@4"
+    dropout: 0.0
+    n_heads: 8
+    vocab_size: 32000
+    attention_upsampling_fn: "${model.LinearUpsampling}"
+  LinearUpsampling:
+    _target_: "trax.layers.LinearUpsampling"
+    _partial_: true

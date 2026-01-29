@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "hourglass/hourglass_imagenet32"
+  -
+    model: "hourglass/hourglass_imagenet32"
+  -
+    optim: "shared/adam_b1_0_9_b2_0_98_eps_1e-09_wd_0"
+  -
+    schedule: "hourglass/hourglass_imagenet32"
+  -
+    train: "hourglass/hourglass_imagenet32"
+  -
+    ckpt: "hourglass/hourglass_imagenet32"
+  - "_self_"

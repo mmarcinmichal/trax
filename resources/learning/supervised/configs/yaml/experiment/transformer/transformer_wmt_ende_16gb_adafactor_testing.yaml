@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "transformer/transformer_wmt_ende_16gb_adafactor_testing"
+  -
+    model: "transformer/transformer_wmt_ende_16gb_adafactor_testing"
+  -
+    optim: "shared/adafactor_decay_0_8"
+  -
+    schedule: "shared/constant_1_0_warmup_20000_rsqrtd"
+  -
+    train: "transformer/transformer_wmt_ende_16gb_adafactor_testing"
+  -
+    ckpt: "shared/empty"
+  - "_self_"

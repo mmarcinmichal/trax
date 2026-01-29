@@ -1,0 +1,10 @@
+defaults:
+  - /ckpt/base
+  - _self_
+
+ckpt:
+  ckpt:
+    checkpoints_at:
+      - 150000
+      - 175000
+      - 263000

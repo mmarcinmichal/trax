@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "transformer/transformer_finetune_squad_16gb"
+  -
+    model: "transformer/transformer_finetune_squad_16gb"
+  -
+    optim: "shared/empty"
+  -
+    schedule: "transformer/transformer_finetune_squad_16gb"
+  -
+    train: "transformer/transformer_finetune_squad_16gb"
+  -
+    ckpt: "shared/empty"
+  - "_self_"

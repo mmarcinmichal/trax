@@ -1,0 +1,15 @@
+defaults:
+  - /model/base
+  - _self_
+
+model:
+  LSTMSeq2SeqAttn:
+    _target_: "trax.models.LSTMSeq2SeqAttn"
+    _partial_: true
+    d_model: 1024
+    n_encoder_layers: 2
+    n_decoder_layers: 2
+    attention_dropout: 0.2
+    n_attention_heads: 8
+    input_vocab_size: 33300
+    target_vocab_size: 33300

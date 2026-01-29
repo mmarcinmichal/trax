@@ -1,10 +1,10 @@
 trax.data
 =========
 
-inputs
-------
+preprocessing
+-------------
 
-.. automodule:: trax.data.inputs
+.. automodule:: trax.data.preprocessing.inputs
 
 tf\_inputs
 ----------

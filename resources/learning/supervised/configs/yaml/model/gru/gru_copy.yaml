@@ -1,0 +1,21 @@
+defaults:
+  - /model/base
+  - _self_
+
+model:
+  data_streams:
+    _target_: "trax.models.data_streams"
+    data_dir: null
+    dataset_name: "gru_copy"
+  RNNLM:
+    _target_: "trax.models.RNNLM"
+    _partial_: true
+    rnn_cell: "${model.GRUCell}"
+    rnn_cell_d_state_multiplier: 1
+    d_model: 128
+    dropout: 0.1
+    n_layers: 2
+    vocab_size: 32
+  GRUCell:
+    _target_: "trax.layers.GRUCell"
+    _partial_: true

@@ -1,0 +1,14 @@
+defaults:
+  -
+    data: "lstm/lstm_lm1b"
+  -
+    model: "lstm/lstm_lm1b"
+  -
+    optim: "shared/adam_partial"
+  -
+    schedule: "shared/constant_0_001_warmup_8000"
+  -
+    train: "lstm/lstm_lm1b"
+  -
+    ckpt: "shared/empty"
+  - "_self_"

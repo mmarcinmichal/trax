@@ -1,0 +1,27 @@
+defaults:
+  - /model/base
+  - _self_
+
+model:
+  DotProductCausalAttention:
+    _target_: "trax.layers.DotProductCausalAttention"
+    dropout: 0.1
+  LayerDropTransformerLM:
+    _target_: "trax.models.LayerDropTransformerLM"
+    _partial_: true
+    d_model: 1024
+    d_ff: 4096
+    dropout: 0.2
+    max_len: 2048
+    n_heads: 8
+    n_layers: 8
+    vocab_size: 32000
+    skip_fraction:
+      - 0.1
+      - 0.1
+      - 0.3
+      - 0.3
+      - 0.3
+      - 0.3
+      - 0.1
+      - 0.1

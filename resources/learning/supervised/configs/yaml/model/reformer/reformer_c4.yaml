@@ -1,0 +1,43 @@
+defaults:
+  - /model/base
+  - _self_
+
+model:
+  SelfAttention:
+    _target_: "trax.layers.SelfAttention"
+    _partial_: true
+    chunk_len: 128
+    n_chunks_before: 1
+    attention_dropout: 0.2
+    n_chunks_after: 0
+  LSHSelfAttention:
+    _target_: "trax.layers.LSHSelfAttention"
+    _partial_: true
+    chunk_len: 256
+    n_buckets: 512
+    n_chunks_before: 1
+    n_hashes: 2
+    attention_dropout: 0.2
+    n_chunks_after: 0
+    n_parallel_heads: 1
+    predict_drop_len: 256
+    predict_mem_len: 16384
+  ReformerLM:
+    _target_: "trax.models.ReformerLM"
+    _partial_: true
+    attention_type:
+      - "${model.SelfAttention}"
+      - "${model.SelfAttention}"
+      - "${model.LSHSelfAttention}"
+      - "${model.SelfAttention}"
+    d_attention_key: 128
+    d_attention_value: 128
+    d_model: 1024
+    d_ff: 4096
+    dropout: 0.2
+    ff_activation: "${model.Relu}"
+    max_len: 1024
+    n_heads: 8
+    n_layers: 4
+    vocab_size: 32000
+    pos_axial_shape: "(32, 32)"

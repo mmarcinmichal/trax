@@ -1,9 +1,0 @@
-defaults:
-  - base
-  - _self_
-
-optim:
-  Momentum:
-    _target_: "trax.optimizers.Momentum"
-    _partial_: true
-    mass: 0.9
