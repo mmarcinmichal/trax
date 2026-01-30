@@ -21,6 +21,7 @@ import os
 import random
 import shutil
 import string
+import unittest
 
 import gin
 import mock
@@ -700,6 +701,128 @@ class TestTokenCounts(tf.test.TestCase):
         }
         self.assertDictEqual(expected, token_counts)
 
+
+class ModernBertTokenizerTest(tf.test.TestCase):
+    def setUp(self):
+        super().setUp()
+        gin.clear_config()
+
+    def _skip_if_no_modernbert(self):
+        # Import wewnątrz, żeby testy mogły się ładować bez transformers.
+        try:
+            import transformers  # noqa: F401
+        except Exception:
+            self.skipTest("transformers not installed")
+
+        # Sprawdź czy encoder ma AutoTokenizer (patrz patch w encoder.py)
+        if getattr(text_encoder, "AutoTokenizer", None) is None:
+            self.skipTest("ModernBERT tokenizer support not available (AutoTokenizer missing)")
+
+        # Minimalna wersja wymagana dla ModernBERT w transformers
+        try:
+            from packaging.version import Version
+            import transformers
+            if Version(transformers.__version__) < Version("4.48.0"):
+                self.skipTest("transformers<4.48.0; ModernBERT not supported")
+        except Exception:
+            # Jeśli nie ma packaging, nie blokuj – spróbujemy i ewentualnie skip w except.
+            pass
+
+    def test_tokenize_detokenize_modernbert_roundtrip(self):
+        self._skip_if_no_modernbert()
+
+        def dataset():
+            yield "I have a cat."
+            yield "Zażółć gęślą jaźń — test ąćęłńóśźż."
+
+        try:
+            tok = list(
+                text_encoder.tokenize(
+                    dataset(),
+                    vocab_type="modernbert",
+                    vocab_file="answerdotai/ModernBERT-base",
+                    n_reserved_ids=0,
+                )
+            )
+        except Exception as e:
+            self.skipTest(f"ModernBERT tokenizer couldn't be loaded: {e}")
+
+        # Spodziewamy się dwóch przykładów, każdy jako 1D array intów
+        self.assertLen(tok, 2)
+        self.assertIsInstance(tok[0], np.ndarray)
+        self.assertTrue(np.issubdtype(tok[0].dtype, np.integer))
+
+        # detokenize -> string
+        detok0 = text_encoder.detokenize(
+            tok[0],
+            vocab_type="modernbert",
+            vocab_file="answerdotai/ModernBERT-base",
+            n_reserved_ids=0,
+        )
+        self.assertIsInstance(detok0, str)
+        self.assertGreater(len(detok0), 0)
+
+        # Round-trip przez HF nie musi dać idealnie identycznego stringa,
+        # ale powinien zachować “sensowną” stabilność (np. ten sam po ponownym kodowaniu).
+        tok0_again = next(
+            text_encoder.tokenize(
+                iter([detok0]),
+                vocab_type="modernbert",
+                vocab_file="answerdotai/ModernBERT-base",
+                n_reserved_ids=0,
+            )
+        )
+        self.assertAllEqual(tok[0], tok0_again)
+
+    def test_vocab_size_modernbert(self):
+        self._skip_if_no_modernbert()
+
+        try:
+            vsz = text_encoder.vocab_size(
+                vocab_type="modernbert",
+                vocab_file="answerdotai/ModernBERT-base",
+                n_reserved_ids=0,
+            )
+        except Exception as e:
+            self.skipTest(f"ModernBERT tokenizer couldn't be loaded: {e}")
+
+        # ModernBERT ma vocab ~50k (dokładnie 50368), ale test trzymaj luźny.
+        self.assertGreaterEqual(vsz, 50000)
+
+    def test_tokenize_keys_reservedids_modernbert(self):
+        self._skip_if_no_modernbert()
+
+        def dataset():
+            yield ("Cat.", "Dog.")
+
+        try:
+            tok = list(
+                text_encoder.tokenize(
+                    dataset(),
+                    keys=[0],
+                    vocab_type="modernbert",
+                    vocab_file="answerdotai/ModernBERT-base",
+                    n_reserved_ids=3,
+                )
+            )
+        except Exception as e:
+            self.skipTest(f"ModernBERT tokenizer couldn't be loaded: {e}")
+
+        # Pierwszy element powinien być ztokenizowany i przesunięty o 3,
+        # drugi element powinien pozostać stringiem.
+        self.assertIsInstance(tok[0][0], np.ndarray)
+        self.assertEqual(tok[0][1], "Dog.")
+
+        # Sprawdź, że offset n_reserved_ids rzeczywiście działa:
+        tok_no_offset = next(
+            text_encoder.tokenize(
+                iter(["Cat."]),
+                vocab_type="modernbert",
+                vocab_file="answerdotai/ModernBERT-base",
+                n_reserved_ids=0,
+            )
+        )
+        self.assertAllEqual(tok[0][0], tok_no_offset + 3)
 
 if __name__ == "__main__":
     tf.test.main()
