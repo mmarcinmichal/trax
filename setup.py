@@ -44,6 +44,7 @@ setup(
         "scipy==1.15.2",
         "tensorflow-datasets==4.9.8",
         "tensorflow-text==2.17.0",
+        "hydra-core==1.3.0",
     ],
     extras_require={
         "tensorflow": ["tensorflow==2.17.0"],
