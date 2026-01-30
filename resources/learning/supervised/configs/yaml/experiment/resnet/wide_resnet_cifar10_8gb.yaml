@@ -1,14 +1,14 @@
 defaults:
   -
-    data: "resnet/wide_resnet_cifar10_8gb"
+    /data: "resnet/wide_resnet_cifar10_8gb"
   -
-    model: "resnet/wide_resnet_cifar10_8gb"
+    /model: "resnet/wide_resnet_cifar10_8gb"
   -
-    optim: "resnet/wide_resnet_cifar10_8gb"
+    /optim: "resnet/wide_resnet_cifar10_8gb"
   -
-    schedule: "resnet/wide_resnet_cifar10_8gb"
+    /schedule: "resnet/wide_resnet_cifar10_8gb"
   -
-    train: "resnet/wide_resnet_cifar10_8gb"
+    /train: "resnet/wide_resnet_cifar10_8gb"
   -
-    ckpt: "shared/empty"
+    /ckpt: "shared/empty"
   - "_self_"

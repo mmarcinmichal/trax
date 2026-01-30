@@ -1,6 +1,6 @@
 defaults:
   - /data/base
-  - mathqa_base
+  - /data/t5/mathqa_base
   - _self_
 
 data:

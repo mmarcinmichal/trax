@@ -1,5 +1,5 @@
 defaults:
-  - bert
+  - /data/bert/bert
   - _self_
 
 data:

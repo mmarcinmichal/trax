@@ -1,14 +1,14 @@
 defaults:
   -
-    data: "reformer/reformer_bair_robot_pushing"
+    /data: "reformer/reformer_bair_robot_pushing"
   -
-    model: "reformer/reformer_bair_robot_pushing"
+    /model: "reformer/reformer_bair_robot_pushing"
   -
-    optim: "shared/adam_b1_0_9_b2_0_98_eps_1e-09_wd_0"
+    /optim: "shared/adam_b1_0_9_b2_0_98_eps_1e-09_wd_0"
   -
-    schedule: "shared/constant_0_03125_warmup_2000_rsqrtd"
+    /schedule: "shared/constant_0_03125_warmup_2000_rsqrtd"
   -
-    train: "reformer/reformer_bair_robot_pushing"
+    /train: "reformer/reformer_bair_robot_pushing"
   -
-    ckpt: "shared/empty"
+    /ckpt: "shared/empty"
   - "_self_"

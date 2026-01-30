@@ -1,14 +1,14 @@
 defaults:
   -
-    data: "reformer/reformer_imagenet64"
+    /data: "reformer/reformer_imagenet64"
   -
-    model: "reformer/reformer_imagenet64"
+    /model: "reformer/reformer_imagenet64"
   -
-    optim: "shared/adam_b1_0_9_b2_0_98_eps_1e-09_wd_0"
+    /optim: "shared/adam_b1_0_9_b2_0_98_eps_1e-09_wd_0"
   -
-    schedule: "shared/constant_0_03125_warmup_8000_rsqrtd"
+    /schedule: "shared/constant_0_03125_warmup_8000_rsqrtd"
   -
-    train: "reformer/reformer_imagenet64"
+    /train: "reformer/reformer_imagenet64"
   -
-    ckpt: "shared/checkpoints_1k_500k_sparse"
+    /ckpt: "shared/checkpoints_1k_500k_sparse"
   - "_self_"

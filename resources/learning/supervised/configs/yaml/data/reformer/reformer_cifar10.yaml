@@ -26,7 +26,6 @@ data:
       train: true
     Cifar10AugmentationFlatten:
       _target_: "trax.data.Cifar10AugmentationFlatten"
-      _partial_: true
       training: true
     BucketByLength:
       _target_: "trax.data.BucketByLengthFromBatcher"
@@ -42,7 +41,6 @@ data:
       train: false
     Cifar10AugmentationFlatten:
       _target_: "trax.data.Cifar10AugmentationFlatten"
-      _partial_: true
       training: false
     BucketByLength:
       _target_: "trax.data.BucketByLengthFromBatcher"

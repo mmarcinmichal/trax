@@ -1,14 +1,14 @@
 defaults:
   -
-    data: "sparse/sparse_c4_pretrain_16gb_adafactor"
+    /data: "sparse/sparse_c4_pretrain_16gb_adafactor"
   -
-    model: "sparse/sparse_c4_pretrain_16gb_adafactor"
+    /model: "sparse/sparse_c4_pretrain_16gb_adafactor"
   -
-    optim: "shared/adafactor_wd_1e-05_decay_0_8"
+    /optim: "shared/adafactor_wd_1e-05_decay_0_8"
   -
-    schedule: "shared/constant_1_0_rsqrtd_warmup_10000"
+    /schedule: "shared/constant_1_0_rsqrtd_warmup_10000"
   -
-    train: "sparse/sparse_c4_pretrain_16gb_adafactor"
+    /train: "sparse/sparse_c4_pretrain_16gb_adafactor"
   -
-    ckpt: "shared/accuracy_loss"
+    /ckpt: "shared/accuracy_loss"
   - "_self_"

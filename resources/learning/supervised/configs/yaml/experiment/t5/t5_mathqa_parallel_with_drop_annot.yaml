@@ -1,14 +1,14 @@
 defaults:
   -
-    data: "t5/t5_mathqa_parallel_with_drop_annot"
+    /data: "t5/t5_mathqa_parallel_with_drop_annot"
   -
-    model: "t5/t5_mathqa_parallel_with_drop_annot"
+    /model: "t5/t5_mathqa_parallel_with_drop_annot"
   -
-    optim: "shared/adafactor_partial"
+    /optim: "shared/adafactor_partial"
   -
-    schedule: "shared/constant_0_001"
+    /schedule: "shared/constant_0_001"
   -
-    train: "t5/t5_mathqa_parallel_with_drop_annot"
+    /train: "t5/t5_mathqa_parallel_with_drop_annot"
   -
-    ckpt: "shared/accuracy_init"
+    /ckpt: "shared/accuracy_init"
   - "_self_"

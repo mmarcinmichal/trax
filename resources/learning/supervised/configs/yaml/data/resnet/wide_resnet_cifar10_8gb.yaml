@@ -26,7 +26,6 @@ data:
       train: true
     Cifar10Augmentation:
       _target_: "trax.data.Cifar10Augmentation"
-      _partial_: true
       training: true
   eval:
     TFDS:
@@ -36,7 +35,6 @@ data:
       train: false
     Cifar10Augmentation:
       _target_: "trax.data.Cifar10Augmentation"
-      _partial_: true
       training: false
   BatchTrain:
     _target_: "trax.data.Batch"

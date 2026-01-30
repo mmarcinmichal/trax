@@ -1,14 +1,14 @@
 defaults:
   -
-    data: "terraformer/terraformer_c4_medium"
+    /data: "terraformer/terraformer_c4_medium"
   -
-    model: "terraformer/terraformer_c4_medium"
+    /model: "terraformer/terraformer_c4_medium"
   -
-    optim: "shared/adafactor_wd_1e-05_decay_0_8"
+    /optim: "shared/adafactor_wd_1e-05_decay_0_8"
   -
-    schedule: "shared/constant_1_0_rsqrtd_warmup_10000"
+    /schedule: "shared/constant_1_0_rsqrtd_warmup_10000"
   -
-    train: "terraformer/terraformer_c4_medium"
+    /train: "terraformer/terraformer_c4_medium"
   -
-    ckpt: "terraformer/terraformer_c4_medium"
+    /ckpt: "terraformer/terraformer_c4_medium"
   - "_self_"

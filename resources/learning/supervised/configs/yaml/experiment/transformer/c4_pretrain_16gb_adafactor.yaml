@@ -1,14 +1,14 @@
 defaults:
   -
-    data: "transformer/c4_pretrain_16gb_adafactor"
+    /data: "transformer/c4_pretrain_16gb_adafactor"
   -
-    model: "transformer/c4_pretrain_16gb_adafactor"
+    /model: "transformer/c4_pretrain_16gb_adafactor"
   -
-    optim: "transformer/c4_pretrain_16gb_adafactor"
+    /optim: "transformer/c4_pretrain_16gb_adafactor"
   -
-    schedule: "shared/constant_1_0_rsqrtd_warmup_10000"
+    /schedule: "shared/constant_1_0_rsqrtd_warmup_10000"
   -
-    train: "transformer/c4_pretrain_16gb_adafactor"
+    /train: "transformer/c4_pretrain_16gb_adafactor"
   -
-    ckpt: "shared/accuracy_loss"
+    /ckpt: "shared/accuracy_loss"
   - "_self_"

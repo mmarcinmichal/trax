@@ -92,4 +92,3 @@ data:
     queue_size: 8
   BairRobotPushingPreprocess:
     _target_: "trax.data.BairRobotPushingPreprocess"
-    _partial_: true

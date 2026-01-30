@@ -1,14 +1,14 @@
 defaults:
   -
-    data: "transformer/transformer_big_lm1b_8gb"
+    /data: "transformer/transformer_big_lm1b_8gb"
   -
-    model: "transformer/transformer_big_lm1b_8gb"
+    /model: "transformer/transformer_big_lm1b_8gb"
   -
-    optim: "shared/sm3_partial"
+    /optim: "shared/sm3_partial"
   -
-    schedule: "transformer/transformer_big_lm1b_8gb"
+    /schedule: "transformer/transformer_big_lm1b_8gb"
   -
-    train: "transformer/transformer_big_lm1b_8gb"
+    /train: "transformer/transformer_big_lm1b_8gb"
   -
-    ckpt: "shared/empty"
+    /ckpt: "shared/empty"
   - "_self_"

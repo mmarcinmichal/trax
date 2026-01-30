@@ -53,7 +53,6 @@ data:
     _partial_: true
   GenericTextPreprocess:
     _target_: "trax.data.GenericTextPreprocess"
-    _partial_: true
     spm_path: "gs://t5-data/vocabs/cc_all.32000/sentencepiece.model"
     text_preprocess_fns:
       - "${data.SquadTextPreprocess}"
@@ -61,8 +60,6 @@ data:
       - "${data.AddEOS}"
   SquadTextPreprocess:
     _target_: "trax.data.SquadTextPreprocess"
-    _partial_: true
     include_context: true
   AddEOS:
     _target_: "trax.data.AddEOS"
-    _partial_: true

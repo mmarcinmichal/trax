@@ -1,14 +1,14 @@
 defaults:
   -
-    data: "mlp/mlp_mnist"
+    /data: "mlp/mlp_mnist"
   -
-    model: "mlp/mlp_mnist"
+    /model: "mlp/mlp_mnist"
   -
-    optim: "shared/adam_partial"
+    /optim: "shared/adam_partial"
   -
-    schedule: "mlp/mlp_mnist"
+    /schedule: "mlp/mlp_mnist"
   -
-    train: "mlp/mlp_mnist"
+    /train: "mlp/mlp_mnist"
   -
-    ckpt: "shared/accuracy_only"
+    /ckpt: "shared/accuracy_only"
   - "_self_"

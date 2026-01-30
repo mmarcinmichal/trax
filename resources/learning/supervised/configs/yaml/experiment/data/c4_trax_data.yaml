@@ -1,14 +1,14 @@
 defaults:
   -
-    data: "data/c4_trax_data"
+    /data: "data/c4_trax_data"
   -
-    model: "data/c4_trax_data"
+    /model: "data/c4_trax_data"
   -
-    optim: "shared/empty"
+    /optim: "shared/empty"
   -
-    schedule: "shared/empty"
+    /schedule: "shared/empty"
   -
-    train: "data/c4_trax_data"
+    /train: "data/c4_trax_data"
   -
-    ckpt: "shared/empty"
+    /ckpt: "shared/empty"
   - "_self_"

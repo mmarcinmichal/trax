@@ -1,14 +1,14 @@
 defaults:
   -
-    data: "reformer/reformer_addition"
+    /data: "reformer/reformer_addition"
   -
-    model: "reformer/reformer_addition"
+    /model: "reformer/reformer_addition"
   -
-    optim: "reformer/reformer_addition"
+    /optim: "reformer/reformer_addition"
   -
-    schedule: "reformer/reformer_addition"
+    /schedule: "reformer/reformer_addition"
   -
-    train: "reformer/reformer_addition"
+    /train: "reformer/reformer_addition"
   -
-    ckpt: "shared/empty"
+    /ckpt: "shared/empty"
   - "_self_"

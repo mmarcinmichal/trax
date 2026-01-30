@@ -1,14 +1,14 @@
 defaults:
   -
-    data: "transformer/transformer_ptb_16gb"
+    /data: "transformer/transformer_ptb_16gb"
   -
-    model: "transformer/transformer_ptb_16gb"
+    /model: "transformer/transformer_ptb_16gb"
   -
-    optim: "shared/adafactor_partial"
+    /optim: "shared/adafactor_partial"
   -
-    schedule: "shared/constant_1_0_warmup_8000_rsqrtd"
+    /schedule: "shared/constant_1_0_warmup_8000_rsqrtd"
   -
-    train: "transformer/transformer_ptb_16gb"
+    /train: "transformer/transformer_ptb_16gb"
   -
-    ckpt: "shared/empty"
+    /ckpt: "shared/empty"
   - "_self_"

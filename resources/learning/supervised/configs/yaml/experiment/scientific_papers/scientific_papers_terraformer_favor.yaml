@@ -1,14 +1,14 @@
 defaults:
   -
-    data: "scientific_papers/scientific_papers_terraformer_favor"
+    /data: "scientific_papers/scientific_papers_terraformer_favor"
   -
-    model: "scientific_papers/scientific_papers_terraformer_favor"
+    /model: "scientific_papers/scientific_papers_terraformer_favor"
   -
-    optim: "shared/adafactor_decay_0_9"
+    /optim: "shared/adafactor_decay_0_9"
   -
-    schedule: "shared/constant_1_0_warmup_10000_rsqrtd"
+    /schedule: "shared/constant_1_0_warmup_10000_rsqrtd"
   -
-    train: "scientific_papers/scientific_papers_terraformer_favor"
+    /train: "scientific_papers/scientific_papers_terraformer_favor"
   -
-    ckpt: "shared/neg_log_perplexity_loss"
+    /ckpt: "shared/neg_log_perplexity_loss"
   - "_self_"

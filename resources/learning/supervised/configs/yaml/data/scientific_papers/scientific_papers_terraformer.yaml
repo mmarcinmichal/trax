@@ -1,12 +1,11 @@
 defaults:
   - /data/base
-  - scientific_papers_base
+  - /data/scientific_papers/scientific_papers_base
   - _self_
 
 data:
   Rekey:
     _target_: "trax.data.Rekey"
-    _partial_: true
     key_map:
       inputs: "article"
       targets: "abstract"
@@ -59,27 +58,23 @@ data:
     id_to_mask: 0
   FilterByLengthMap:
     _target_: "trax.data.FilterByLengthMap"
-    _partial_: true
     len_map:
       inputs: "(1, 16384)"
       targets: "(1, 1024)"
     filter_on_eval: true
   TruncateByLengthMap:
     _target_: "trax.data.TruncateByLengthMap"
-    _partial_: true
     len_map:
       inputs: 16384
       targets: 1024
     truncate_on_eval: true
   PadToLengthMap:
     _target_: "trax.data.PadToLengthMap"
-    _partial_: true
     len_map:
       inputs: 16384
       targets: 1024
   GenericTextPreprocess:
     _target_: "trax.data.GenericTextPreprocess"
-    _partial_: true
     spm_path: "gs://t5-data/vocabs/cc_all.32000/sentencepiece.model"
     text_preprocess_fns:
       - "${data.Rekey}"
@@ -90,4 +85,3 @@ data:
       - "${data.PadToLengthMap}"
   AddEOS:
     _target_: "trax.data.AddEOS"
-    _partial_: true

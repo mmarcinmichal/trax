@@ -47,4 +47,3 @@ data:
     _partial_: true
   SqueezeTargets:
     _target_: "trax.data.SqueezeTargets"
-    _partial_: true

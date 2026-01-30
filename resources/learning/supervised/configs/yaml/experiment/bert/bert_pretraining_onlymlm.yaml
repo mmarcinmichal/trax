@@ -1,14 +1,14 @@
 defaults:
   -
-    data: "bert/bert_pretraining_onlymlm"
+    /data: "bert/bert_pretraining_onlymlm"
   -
-    model: "bert/bert_pretraining_onlymlm"
+    /model: "bert/bert_pretraining_onlymlm"
   -
-    optim: "shared/empty"
+    /optim: "shared/empty"
   -
-    schedule: "shared/empty"
+    /schedule: "shared/empty"
   -
-    train: "bert/bert_pretraining_onlymlm"
+    /train: "bert/bert_pretraining_onlymlm"
   -
-    ckpt: "shared/empty"
+    /ckpt: "shared/empty"
   - "_self_"

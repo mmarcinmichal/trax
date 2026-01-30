@@ -1,14 +1,14 @@
 defaults:
   -
-    data: "transformer/transformer_lm_wmt_ende_16gb"
+    /data: "transformer/transformer_lm_wmt_ende_16gb"
   -
-    model: "transformer/transformer_lm_wmt_ende_16gb"
+    /model: "transformer/transformer_lm_wmt_ende_16gb"
   -
-    optim: "shared/adafactor_decay_0_8"
+    /optim: "shared/adafactor_decay_0_8"
   -
-    schedule: "shared/constant_1_0_warmup_10000_rsqrtd"
+    /schedule: "shared/constant_1_0_warmup_10000_rsqrtd"
   -
-    train: "transformer/transformer_lm_wmt_ende_16gb"
+    /train: "transformer/transformer_lm_wmt_ende_16gb"
   -
-    ckpt: "shared/empty"
+    /ckpt: "shared/empty"
   - "_self_"

@@ -1,6 +1,6 @@
 defaults:
   - /data/base
-  - wmt_concat_base
+  - /data/transformer/wmt_concat_base
   - _self_
 
 data:

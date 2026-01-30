@@ -28,7 +28,6 @@ data:
       train: true
     LM1BFilterByLength:
       _target_: "trax.data.LM1BFilterByLength"
-      _partial_: true
       training: true
       max_target_length: 512
       max_eval_target_length: 2048
@@ -46,7 +45,6 @@ data:
       train: false
     LM1BFilterByLength:
       _target_: "trax.data.LM1BFilterByLength"
-      _partial_: true
       training: false
       max_target_length: 512
       max_eval_target_length: 2048

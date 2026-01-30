@@ -44,4 +44,3 @@ data:
     _partial_: true
   Cifar10FlattenNoAugmentation:
     _target_: "trax.data.Cifar10FlattenNoAugmentation"
-    _partial_: true

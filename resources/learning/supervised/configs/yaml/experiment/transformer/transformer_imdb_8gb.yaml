@@ -1,14 +1,14 @@
 defaults:
   -
-    data: "transformer/transformer_imdb_8gb"
+    /data: "transformer/transformer_imdb_8gb"
   -
-    model: "transformer/transformer_imdb_8gb"
+    /model: "transformer/transformer_imdb_8gb"
   -
-    optim: "shared/empty"
+    /optim: "shared/empty"
   -
-    schedule: "transformer/transformer_imdb_8gb"
+    /schedule: "transformer/transformer_imdb_8gb"
   -
-    train: "transformer/transformer_imdb_8gb"
+    /train: "transformer/transformer_imdb_8gb"
   -
-    ckpt: "shared/empty"
+    /ckpt: "shared/empty"
   - "_self_"

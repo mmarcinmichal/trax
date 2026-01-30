@@ -70,7 +70,14 @@ def _repo_config_dir():
 def _apply_cfg_updates(cfg, updates, prefix=""):
     with open_dict(cfg):
         for key, value in updates.items():
-            OmegaConf.update(cfg, f"{prefix}{key}", value, merge=False)
+            full_key = f"{prefix}{key}"
+            if "." in key:
+                parent_key, leaf = full_key.rsplit(".", 1)
+                parent = OmegaConf.select(cfg, parent_key)
+                if isinstance(parent, DictConfig):
+                    parent[leaf] = value
+                    continue
+            OmegaConf.update(cfg, full_key, value, merge=not isinstance(value, dict))
 
 
 def _apply_cfg_updates_if_present(cfg, updates, prefix=""):
@@ -79,7 +86,13 @@ def _apply_cfg_updates_if_present(cfg, updates, prefix=""):
             full_key = f"{prefix}{key}"
             if OmegaConf.select(cfg, full_key) is None:
                 continue
-            OmegaConf.update(cfg, full_key, value, merge=False)
+            if "." in key:
+                parent_key, leaf = full_key.rsplit(".", 1)
+                parent = OmegaConf.select(cfg, parent_key)
+                if isinstance(parent, DictConfig):
+                    parent[leaf] = value
+                    continue
+            OmegaConf.update(cfg, full_key, value, merge=not isinstance(value, dict))
 
 
 def _normalize_data_cfg(cfg):
@@ -87,15 +100,29 @@ def _normalize_data_cfg(cfg):
     if data_node is None:
         return cfg
     # Flatten nested base config (data.data.*) into data.* for interpolation.
+    def _flatten_data(container):
+        while isinstance(container, dict) and "data" in container:
+            base = container.get("data") or {}
+            overlay = {k: v for k, v in container.items() if k != "data"}
+            container = {**base, **overlay}
+        return container
+
     container = OmegaConf.to_container(data_node, resolve=False)
-    if isinstance(container, dict) and len(container) == 1:
+    while isinstance(container, dict) and len(container) == 1:
         only_value = next(iter(container.values()))
-        if isinstance(only_value, dict) and "data" in only_value:
-            container = only_value["data"]
+        if isinstance(only_value, dict):
+            container = only_value
+            continue
+        break
     if isinstance(container, dict) and "data" in container:
-        base = container.get("data") or {}
-        overlay = {k: v for k, v in container.items() if k != "data"}
-        container = {**base, **overlay}
+        container = _flatten_data(container)
+    elif isinstance(container, dict):
+        for key, value in container.items():
+            if isinstance(value, dict) and "data" in value:
+                base = _flatten_data(value)
+                rest = {k: v for k, v in container.items() if k != key}
+                container = {**base, **rest}
+                break
     return OmegaConf.create({"data": container})
 
 
@@ -132,7 +159,7 @@ def _instantiate_with_len_map_fix(item):
     if target in ("trax.data.TFDS", "trax.data.loader.tf.base.TFDS"):
         container = OmegaConf.to_container(item, resolve=True)
         dataset_name = container.get("dataset_name")
-        if dataset_name is None:
+        if dataset_name is None or isinstance(trax_data.loader.tf.base.TFDS, mock.Mock):
             return instantiate(item)
         train = container.get("train", True)
         keys = container.get("keys")
@@ -190,6 +217,51 @@ def _dataset_streams_from_dicts(dataset_name, train_dict, eval_dict, supervised_
         dataset_name=dataset_name,
         data_dir=None,
     )
+
+
+def _text_preprocess_overrides(tokenize_keys, tuple_keys=("inputs", "targets")):
+    return {
+        "GenericTextPreprocess": {
+            "_target_": "trax.data.Serial",
+            "_args_": [
+                "${data.Rekey}",
+                "${data.TestConvertToUnicode}",
+                "${data.TestTokenize}",
+                "${data.DictToTuple}",
+            ],
+        },
+        "TestConvertToUnicode._target_": "trax.data.ConvertToUnicode",
+        "TestConvertToUnicode.keys": list(tokenize_keys),
+        "TestTokenize._target_": "trax.data.encoder.encoder.Tokenize",
+        "TestTokenize.vocab_type": "char",
+        "TestTokenize.keys": list(tokenize_keys),
+        "DictToTuple._target_": "trax.data.DictToTuple",
+        "DictToTuple.keys": list(tuple_keys),
+    }
+
+
+def _tuple_text_stream_overrides(tokenize_indices=(0, 1)):
+    return {
+        "make_streams.train_stream": [
+            "${data.train.TFDS}",
+            "${data.TestConvertToUnicode}",
+            "${data.TestTokenize}",
+            "${data.train.BucketByLength}",
+            "${data.AddLossWeights}",
+        ],
+        "make_streams.eval_stream": [
+            "${data.eval.TFDS}",
+            "${data.TestConvertToUnicode}",
+            "${data.TestTokenize}",
+            "${data.eval.BucketByLength}",
+            "${data.AddLossWeights}",
+        ],
+        "TestConvertToUnicode._target_": "trax.data.ConvertToUnicode",
+        "TestConvertToUnicode.keys": list(tokenize_indices),
+        "TestTokenize._target_": "trax.data.encoder.encoder.Tokenize",
+        "TestTokenize.vocab_type": "char",
+        "TestTokenize.keys": list(tokenize_indices),
+    }
 
 
 @contextmanager
@@ -476,7 +548,7 @@ class HydraDataTest(absltest.TestCase):
             "eval.Stream.shuffle_buffer_size": 0,
             "eval.Stream.seed": 0,
         }
-        images = np.arange(16, dtype=np.uint8).reshape(4, 2, 2, 1)
+        images = np.arange(4 * 32 * 32 * 3, dtype=np.uint8).reshape(4, 32, 32, 3)
         labels = np.array([0, 1, 2, 3], dtype=np.uint8)
         train_ds = tf.data.Dataset.from_tensor_slices(
             {"image": images, "label": labels}
@@ -509,8 +581,12 @@ class HydraDataTest(absltest.TestCase):
             "eval.Stream.seed": 0,
         }
         targets = np.arange(32, dtype=np.uint8).reshape(4, 8)
-        train_ds = tf.data.Dataset.from_tensor_slices({"targets": targets})
-        eval_ds = tf.data.Dataset.from_tensor_slices({"targets": targets})
+        train_ds = tf.data.Dataset.from_tensor_slices(
+            {"inputs": targets, "targets": targets}
+        )
+        eval_ds = tf.data.Dataset.from_tensor_slices(
+            {"inputs": targets, "targets": targets}
+        )
         streams = DatasetStreams(
             train=train_ds,
             eval=eval_ds,
@@ -537,7 +613,7 @@ class HydraDataTest(absltest.TestCase):
             "eval.Stream.shuffle_buffer_size": 0,
             "eval.Stream.seed": 0,
         }
-        images = np.arange(16, dtype=np.uint8).reshape(4, 2, 2, 1)
+        images = np.arange(4 * 32 * 32 * 3, dtype=np.uint8).reshape(4, 32, 32, 3)
         labels = np.array([0, 1, 2, 3], dtype=np.uint8)
         train_ds = tf.data.Dataset.from_tensor_slices(
             {"image": images, "label": labels}
@@ -570,8 +646,12 @@ class HydraDataTest(absltest.TestCase):
             "eval.Stream.seed": 0,
         }
         targets = np.arange(32, dtype=np.uint8).reshape(4, 8)
-        train_ds = tf.data.Dataset.from_tensor_slices({"targets": targets})
-        eval_ds = tf.data.Dataset.from_tensor_slices({"targets": targets})
+        train_ds = tf.data.Dataset.from_tensor_slices(
+            {"inputs": targets, "targets": targets}
+        )
+        eval_ds = tf.data.Dataset.from_tensor_slices(
+            {"inputs": targets, "targets": targets}
+        )
         streams = DatasetStreams(
             train=train_ds,
             eval=eval_ds,
@@ -601,8 +681,12 @@ class HydraDataTest(absltest.TestCase):
             "eval.Stream.seed": 0,
         }
         targets = np.arange(16, dtype=np.uint8).reshape(4, 4)
-        train_ds = tf.data.Dataset.from_tensor_slices({"targets": targets})
-        eval_ds = tf.data.Dataset.from_tensor_slices({"targets": targets})
+        train_ds = tf.data.Dataset.from_tensor_slices(
+            {"inputs": targets, "targets": targets}
+        )
+        eval_ds = tf.data.Dataset.from_tensor_slices(
+            {"inputs": targets, "targets": targets}
+        )
         streams = DatasetStreams(
             train=train_ds,
             eval=eval_ds,
@@ -628,8 +712,12 @@ class HydraDataTest(absltest.TestCase):
             "eval.Stream.seed": 0,
         }
         targets = np.arange(32, dtype=np.uint8).reshape(4, 8)
-        train_ds = tf.data.Dataset.from_tensor_slices({"targets": targets})
-        eval_ds = tf.data.Dataset.from_tensor_slices({"targets": targets})
+        train_ds = tf.data.Dataset.from_tensor_slices(
+            {"inputs": targets, "targets": targets}
+        )
+        eval_ds = tf.data.Dataset.from_tensor_slices(
+            {"inputs": targets, "targets": targets}
+        )
         streams = DatasetStreams(
             train=train_ds,
             eval=eval_ds,
@@ -657,8 +745,12 @@ class HydraDataTest(absltest.TestCase):
             "eval.Stream.preprocess_fn": None,
         }
         targets = np.arange(32, dtype=np.uint8).reshape(4, 8)
-        train_ds = tf.data.Dataset.from_tensor_slices({"targets": targets})
-        eval_ds = tf.data.Dataset.from_tensor_slices({"targets": targets})
+        train_ds = tf.data.Dataset.from_tensor_slices(
+            {"inputs": targets, "targets": targets}
+        )
+        eval_ds = tf.data.Dataset.from_tensor_slices(
+            {"inputs": targets, "targets": targets}
+        )
         streams = DatasetStreams(
             train=train_ds,
             eval=eval_ds,
@@ -685,7 +777,7 @@ class HydraDataTest(absltest.TestCase):
             "eval.Stream.shuffle_buffer_size": 0,
             "eval.Stream.seed": 0,
         }
-        images = np.arange(16, dtype=np.uint8).reshape(4, 2, 2, 1)
+        images = np.arange(4 * 32 * 32 * 3, dtype=np.uint8).reshape(4, 32, 32, 3)
         labels = np.array([0, 1, 2, 3], dtype=np.uint8)
         train_ds = tf.data.Dataset.from_tensor_slices(
             {"image": images, "label": labels}
@@ -721,8 +813,13 @@ class HydraDataTest(absltest.TestCase):
             "eval.Stream.shuffle_buffer_size": 0,
             "eval.Stream.seed": 0,
         }
-        article = np.arange(8, dtype=np.int32).reshape(4, 2)
-        abstract = np.arange(12, dtype=np.int32).reshape(4, 3)
+        updates.update(_tuple_text_stream_overrides())
+        article = np.array(
+            ["article a", "article b", "article c", "article d"], dtype=object
+        )
+        abstract = np.array(
+            ["abstract a", "abstract b", "abstract c", "abstract d"], dtype=object
+        )
         train_ds = tf.data.Dataset.from_tensor_slices(
             {"article": article, "abstract": abstract}
         )
@@ -760,8 +857,13 @@ class HydraDataTest(absltest.TestCase):
             "eval.Stream.shuffle_buffer_size": 0,
             "eval.Stream.seed": 0,
         }
-        article = np.arange(8, dtype=np.int32).reshape(4, 2)
-        abstract = np.arange(12, dtype=np.int32).reshape(4, 3)
+        updates.update(_tuple_text_stream_overrides())
+        article = np.array(
+            ["article a", "article b", "article c", "article d"], dtype=object
+        )
+        abstract = np.array(
+            ["abstract a", "abstract b", "abstract c", "abstract d"], dtype=object
+        )
         train_ds = tf.data.Dataset.from_tensor_slices(
             {"article": article, "abstract": abstract}
         )
@@ -787,11 +889,13 @@ class HydraDataTest(absltest.TestCase):
                 _assert_make_inputs_batch(cfg, expected_len=3)
 
     def test_make_inputs_smoke_batch_configs(self):
-        images = np.arange(16, dtype=np.uint8).reshape(4, 2, 2, 1)
-        labels = np.array([0, 1, 2, 3], dtype=np.int32)
+        images = np.arange(4 * 32 * 32 * 3, dtype=np.uint8).reshape(4, 32, 32, 3)
+        labels = np.array([0, 1, 2, 3], dtype=np.int32).reshape(4, 1)
         image_mapper = _dict_to_tuple("image", "label")
         image_mapper_cfg = _dict_to_tuple_cfg("image", "label")
-        imdb_inputs = np.arange(16, dtype=np.int32).reshape(4, 4)
+        imdb_inputs = np.array(
+            ["alpha", "beta", "gamma", "delta"], dtype=object
+        )
         imdb_labels = np.array([0, 1, 0, 1], dtype=np.int32)
         text_mapper = _dict_to_tuple("text", "label")
         text_mapper_cfg = _dict_to_tuple_cfg("text", "label")
@@ -854,6 +958,7 @@ class HydraDataTest(absltest.TestCase):
                     "BatchTrain.batch_size": 2,
                     "BatchEval.batch_size": 2,
                 },
+                "text_overrides": _text_preprocess_overrides(["inputs"]),
                 "mapper": text_mapper,
                 "mapper_cfg": text_mapper_cfg,
             },
@@ -872,6 +977,9 @@ class HydraDataTest(absltest.TestCase):
                     "eval.Stream.preprocess_fn": case["mapper_cfg"],
                 }
                 updates.update(case["updates"])
+                text_overrides = case.get("text_overrides")
+                if text_overrides:
+                    updates.update(text_overrides)
                 self._run_make_inputs_case(
                     case["config_name"],
                     updates,
@@ -900,9 +1008,9 @@ class HydraDataTest(absltest.TestCase):
         for config_name, dataset_name in datasets:
             streams = _dataset_streams_from_dicts(
                 dataset_name,
-                {"targets": targets},
-                {"targets": targets},
-                (["targets"], ["targets"]),
+                {"inputs": targets, "targets": targets},
+                {"inputs": targets, "targets": targets},
+                (["inputs"], ["targets"]),
             )
             with self.subTest(config=config_name):
                 updates = {
@@ -931,11 +1039,16 @@ class HydraDataTest(absltest.TestCase):
                 )
 
     def test_make_inputs_smoke_bucketed_pairs(self):
-        images = np.arange(16, dtype=np.uint8).reshape(4, 2, 2, 1)
-        inputs = np.arange(16, dtype=np.int32).reshape(4, 4)
-        targets = np.arange(20, dtype=np.int32).reshape(4, 5)
-        article = np.arange(12, dtype=np.int32).reshape(4, 3)
-        abstract = np.arange(16, dtype=np.int32).reshape(4, 4)
+        images = np.arange(4 * 32 * 32 * 3, dtype=np.uint8).reshape(4, 32, 32, 3)
+        labels = np.array([0, 1, 2, 3], dtype=np.int32)
+        inputs = np.array(["input a", "input b", "input c", "input d"], dtype=object)
+        targets = np.array(["target a", "target b", "target c", "target d"], dtype=object)
+        article = np.array(
+            ["article a", "article b", "article c", "article d"], dtype=object
+        )
+        abstract = np.array(
+            ["abstract a", "abstract b", "abstract c", "abstract d"], dtype=object
+        )
         image_mapper = _dict_to_tuple("image", "image")
         inputs_mapper = _dict_to_tuple("inputs", "targets")
         article_mapper = _dict_to_tuple("article", "abstract")
@@ -948,8 +1061,8 @@ class HydraDataTest(absltest.TestCase):
                 "config_name": "data/reformer/reformer_cifar10",
                 "streams": _dataset_streams_from_dicts(
                     "cifar10",
-                    {"image": images, "label": targets[:, 0]},
-                    {"image": images, "label": targets[:, 0]},
+                    {"image": images, "label": labels},
+                    {"image": images, "label": labels},
                     (["image"], ["label"]),
                 ),
                 "mapper": image_mapper,
@@ -969,12 +1082,13 @@ class HydraDataTest(absltest.TestCase):
                 "config_name": "data/reformer/reformer_pc_enpl",
                 "streams": _dataset_streams_from_dicts(
                     "para_crawl/enpl_plain_text",
-                    {"inputs": inputs, "targets": targets},
-                    {"inputs": inputs, "targets": targets},
-                    (["inputs"], ["targets"]),
+                    {"en": inputs, "pl": targets},
+                    {"en": inputs, "pl": targets},
+                    (["en"], ["pl"]),
                 ),
                 "mapper": inputs_mapper,
                 "mapper_cfg": inputs_mapper_cfg,
+                "text_overrides": _text_preprocess_overrides(["inputs", "targets"]),
                 "bucket_updates": {
                     "train.BucketByLength.bucket_length": 4,
                     "train.BucketByLength.batch_size_per_device": 2,
@@ -998,6 +1112,7 @@ class HydraDataTest(absltest.TestCase):
                 ),
                 "mapper": article_mapper,
                 "mapper_cfg": article_mapper_cfg,
+                "text_overrides": _text_preprocess_overrides(["inputs", "targets"]),
                 "bucket_updates": {
                     "train.BucketByLength.buckets": [[4], [2, 1]],
                     "eval.BucketByLength.buckets": [[4], [2, 1]],
@@ -1032,6 +1147,9 @@ class HydraDataTest(absltest.TestCase):
                     "train.Stream.preprocess_fn": case["mapper_cfg"],
                     "eval.Stream.preprocess_fn": case["mapper_cfg"],
                 }
+                text_overrides = case.get("text_overrides")
+                if text_overrides:
+                    updates.update(text_overrides)
                 updates.update(case["bucket_updates"])
                 self._run_make_inputs_case(
                     case["config_name"],

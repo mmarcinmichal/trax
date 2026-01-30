@@ -1,6 +1,6 @@
 defaults:
   - /data/base
-  - scientific_papers_base
+  - /data/scientific_papers/scientific_papers_base
   - _self_
 
 data:

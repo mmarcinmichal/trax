@@ -41,24 +41,20 @@ data:
     _partial_: true
   FilterByLengthMap:
     _target_: "trax.data.FilterByLengthMap"
-    _partial_: true
     len_map:
       inputs: "(1, 512)"
     filter_on_eval: true
   TruncateByLengthMap:
     _target_: "trax.data.TruncateByLengthMap"
-    _partial_: true
     len_map:
       inputs: 512
     truncate_on_eval: true
   PadToLengthMap:
     _target_: "trax.data.PadToLengthMap"
-    _partial_: true
     len_map:
       inputs: 512
   GenericTextPreprocess:
     _target_: "trax.data.GenericTextPreprocess"
-    _partial_: true
     spm_path: "gs://t5-data/vocabs/cc_all.32000/sentencepiece.model"
     text_preprocess_fns:
       - "${data.Rekey}"
@@ -68,7 +64,6 @@ data:
       - "${data.PadToLengthMap}"
   Rekey:
     _target_: "trax.data.Rekey"
-    _partial_: true
     key_map:
       inputs: "text"
       targets: "label"

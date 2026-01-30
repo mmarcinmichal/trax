@@ -1,14 +1,14 @@
 defaults:
   -
-    data: "resnet/resnet50_imagenet_8gb_testing"
+    /data: "resnet/resnet50_imagenet_8gb_testing"
   -
-    model: "resnet/resnet50_imagenet_8gb_testing"
+    /model: "resnet/resnet50_imagenet_8gb_testing"
   -
-    optim: "shared/momentum_mass_0_9"
+    /optim: "shared/momentum_mass_0_9"
   -
-    schedule: "resnet/resnet50_imagenet_8gb_testing"
+    /schedule: "resnet/resnet50_imagenet_8gb_testing"
   -
-    train: "resnet/resnet50_imagenet_8gb_testing"
+    /train: "resnet/resnet50_imagenet_8gb_testing"
   -
-    ckpt: "shared/empty"
+    /ckpt: "shared/empty"
   - "_self_"
