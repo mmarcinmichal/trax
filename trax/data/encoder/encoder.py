@@ -30,6 +30,7 @@ import sys
 import tempfile
 import time
 import unicodedata
+from transformers import AutoTokenizer
 
 from dataclasses import dataclass
 
@@ -296,9 +297,9 @@ def vocab_token_counts(text_filepattern, max_lines):
 
 def _get_vocab(vocab_type="subword", vocab_file=None, vocab_dir=None, extra_ids=0):
     """Gets the vocabulary object for tokenization; see tokenize for details."""
-    if vocab_type not in ["char", "subword", "sentencepiece", "bert", "bert-lowercase"]:
+    if vocab_type not in ["char", "subword", "sentencepiece", "bert", "bert-lowercase", "modernbert"]:
         raise ValueError(
-            'vocab_type must be "subword", "char", "sentencepiece", "bert" or "bert-lowercase" '
+            'vocab_type must be "subword", "char", "sentencepiece", "bert", "bert-lowercase" or "modernbert" '
             f"but got {vocab_type}"
         )
 
@@ -308,6 +309,12 @@ def _get_vocab(vocab_type="subword", vocab_file=None, vocab_dir=None, extra_ids=
         # exactly the same thing as tokenize above, ie., adds num_reserved_ids.
         return ByteTextEncoder(num_reserved_ids=0)
 
+    if vocab_type == "modernbert":
+        if vocab_file is None:
+            vocab_file = "answerdotai/ModernBERT-base"
+        model_id_or_path = os.path.join(vocab_dir, vocab_file) if vocab_dir else vocab_file
+        return ModernBertEncoder(model_id_or_path)
+        
     vocab_dir = vocab_dir or "gs://trax-ml/vocabs/"
     path = os.path.join(vocab_dir, vocab_file)
 
@@ -1724,6 +1731,36 @@ class SentencePieceEncoder:
         return text.numpy()[0].decode("utf-8")
 
 
+class ModernBertEncoder:
+    """Tokenizer ModernBERT (BPE) z Hugging Face.
+
+    Zwraca surowe ID zgodne z tokenizerem ModernBERT.
+    Nie przesuwamy ID (używaj n_reserved_ids=0).
+    """
+
+    def __init__(self, model_id_or_path="answerdotai/ModernBERT-base", add_special_tokens=False):
+        if AutoTokenizer is None:
+            raise ImportError(
+                "ModernBertEncoder wymaga transformers>=4.48.0. "
+                "pip install -U 'transformers>=4.48.0'"
+            )
+        self._tok = AutoTokenizer.from_pretrained(model_id_or_path, use_fast=True)
+        self._add_special_tokens = add_special_tokens
+
+        # spójnie z SentencePieceEncoder: pole vocab_size
+        self.vocab_size = int(self._tok.vocab_size)
+
+        # przydatne w treningu / maskowaniu
+        self.pad_id = int(self._tok.pad_token_id)   # zwykle 50283
+        self.eos_id = int(getattr(self._tok, "eos_token_id", self._tok.sep_token_id))  # zwykle 50282
+        self.bos_id = int(getattr(self._tok, "bos_token_id", self._tok.cls_token_id))  # zwykle 50281
+
+    def encode(self, text):
+        return self._tok.encode(text, add_special_tokens=self._add_special_tokens)
+
+    def decode(self, ids):
+        return self._tok.decode(list(ids), skip_special_tokens=False)
+        
 """A simple invertible tokenizer.
 
 Converts from a unicode string to a list of tokens
