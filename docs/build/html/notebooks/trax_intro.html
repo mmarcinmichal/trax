@@ -1,0 +1,568 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trax Quick Intro &mdash; Trax  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css?v=2aa19091" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Trax Layers Intro" href="layers_intro.html" />
+    <link rel="prev" title="Trax Tutorials" href="../index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Trax
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introductory Notebooks</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Trax Quick Intro</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#1.-Run-a-pre-trained-Transformer">1. Run a pre-trained Transformer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#2.-Features-and-resources">2. Features and resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#3.-Walkthrough">3. Walkthrough</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Tensors-and-Fast-Math">Tensors and Fast Math</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Layers">Layers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Models">Models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Data">Data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Supervised-training">Supervised training</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="layers_intro.html">Trax Layers Intro</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Packages/modules</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../trax.html">trax.*</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Trax</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Trax Quick Intro</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/notebooks/trax_intro.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="Trax-Quick-Intro">
+<h1>Trax Quick Intro<a class="headerlink" href="#Trax-Quick-Intro" title="Link to this heading"></a></h1>
+<p><a class="reference external" href="https://trax-ml.readthedocs.io/en/latest/">Trax</a> is an end-to-end library for deep learning that focuses on clear code and speed. It is actively used and maintained in the <a class="reference external" href="https://research.google.com/teams/brain/">Google Brain team</a>. This notebook (<a class="reference external" href="https://colab.research.google.com/github/google/trax/blob/master/trax/intro.ipynb">run it in colab</a>) shows how to use Trax and where you can find more information.</p>
+<ol class="arabic simple">
+<li><p><strong>Run a pre-trained Transformer</strong>: create a translator in a few lines of code</p></li>
+<li><p><strong>Features and resources</strong>: <a class="reference external" href="https://trax-ml.readthedocs.io/en/latest/trax.html">API docs</a>, where to <a class="reference external" href="https://gitter.im/trax-ml/community">talk to us</a>, how to <a class="reference external" href="https://github.com/google/trax/issues">open an issue</a> and more</p></li>
+<li><p><strong>Walkthrough</strong>: how Trax works, how to make new models and train on your own data</p></li>
+</ol>
+<p>We welcome <strong>contributions</strong> to Trax! We welcome PRs with code for new models and layers as well as improvements to our code and documentation. We especially love <strong>notebooks</strong> that explain how models work and show how to use them to solve problems!</p>
+<p><strong>General Setup</strong></p>
+<p>Execute the following few cells (once) before running any of the code samples.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span>#@title
+# Copyright 2020 Google LLC.
+
+# Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+# https://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import os
+import numpy as np
+<br/><br/><br/></pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span>#@title
+# Import Trax
+
+!pip install -q -U trax
+import trax
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+/bin/sh: pip: command not found
+</pre></div></div>
+</div>
+<section id="1.-Run-a-pre-trained-Transformer">
+<h2>1. Run a pre-trained Transformer<a class="headerlink" href="#1.-Run-a-pre-trained-Transformer" title="Link to this heading"></a></h2>
+<p>Here is how you create an Engligh-German translator in a few lines of code:</p>
+<ul class="simple">
+<li><p>create a Transformer model in Trax with <a class="reference external" href="https://trax-ml.readthedocs.io/en/latest/trax.models.html#trax.models.transformer.Transformer">trax.models.Transformer</a></p></li>
+<li><p>initialize it from a file with pre-trained weights with <a class="reference external" href="https://trax-ml.readthedocs.io/en/latest/trax.layers.html#trax.layers.base.Layer.init_from_file">model.init_from_file</a></p></li>
+<li><p>tokenize your input sentence to input into the model with <a class="reference external" href="https://trax-ml.readthedocs.io/en/latest/trax.data.html#trax.data.tf_inputs.tokenize">trax.data.tokenize</a></p></li>
+<li><p>decode from the Transformer with <a class="reference external" href="https://trax-ml.readthedocs.io/en/latest/trax.supervised.html#trax.learning.supervised.decoding.autoregressive_sample">trax.learning.supervised.decoding.autoregressive_sample</a></p></li>
+<li><p>de-tokenize the decoded result to get the translation with <a class="reference external" href="https://trax-ml.readthedocs.io/en/latest/trax.data.html#trax.data.tf_inputs.detokenize">trax.data.detokenize</a></p></li>
+</ul>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre><br/><span></span># Create a Transformer model.
+# Pre-trained model config in gs://trax-ml/models/translation/ende_wmt32k.gin
+model = trax.models.Transformer(
+    input_vocab_size=33300,
+    d_model=512, d_ff=2048,
+    n_heads=8, n_encoder_layers=6, n_decoder_layers=6,
+    max_len=2048, mode=&#39;predict&#39;)
+
+# Initialize using pre-trained weights.
+model.init_from_file(&#39;gs://trax-ml/models/translation/ende_wmt32k.pkl.gz&#39;,
+                     weights_only=True)
+
+# Tokenize a sentence.
+sentence = &#39;It is nice to learn new things today!&#39;
+tokenized = list(trax.data.tokenize(iter([sentence]),  # Operates on streams.
+                                    vocab_dir=&#39;gs://trax-ml/vocabs/&#39;,
+                                    vocab_file=&#39;ende_32k.subword&#39;))[0]
+
+# Decode from the Transformer.
+tokenized = tokenized[None, :]  # Add batch dimension.
+tokenized_translation = trax.learning.supervised.decoding.autoregressive_sample(
+    model, tokenized, temperature=0.0)  # Higher temperature: more diverse results.
+
+# De-tokenize,
+tokenized_translation = tokenized_translation[0][:-1]  # Remove batch and EOS.
+translation = trax.data.detokenize(tokenized_translation,
+                                   vocab_dir=&#39;gs://trax-ml/vocabs/&#39;,
+                                   vocab_file=&#39;ende_32k.subword&#39;)
+print(translation)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Es ist schön, heute neue Dinge zu lernen!
+</pre></div></div>
+</div>
+</section>
+<section id="2.-Features-and-resources">
+<h2>2. Features and resources<a class="headerlink" href="#2.-Features-and-resources" title="Link to this heading"></a></h2>
+<p>Trax includes basic models (like <a class="reference external" href="https://github.com/google/trax/blob/master/trax/models/resnet.py#L70">ResNet</a>, <a class="reference external" href="https://github.com/google/trax/blob/master/trax/models/rnn.py#L100">LSTM</a>, <a class="reference external" href="https://github.com/google/trax/blob/master/trax/models/transformer.py#L189">Transformer</a> and RL algorithms (like <a class="reference external" href="https://github.com/google/trax/blob/master/trax/rl/training.py#L244">REINFORCE</a>, <a class="reference external" href="https://github.com/google/trax/blob/master/trax/rl/actor_critic_joint.py#L458">A2C</a>,
+<a class="reference external" href="https://github.com/google/trax/blob/master/trax/rl/actor_critic_joint.py#L209">PPO</a>). It is also actively used for research and includes new models like the <a class="reference external" href="https://github.com/google/trax/tree/master/trax/models/reformer">Reformer</a> and new RL algorithms like <a class="reference external" href="https://arxiv.org/abs/1910.00177">AWR</a>. Trax has bindings to a large number of deep learning datasets, including <a class="reference external" href="https://github.com/tensorflow/tensor2tensor">Tensor2Tensor</a> and <a class="reference external" href="https://www.tensorflow.org/datasets/catalog/overview">TensorFlow
+datasets</a>.</p>
+<p>You can use Trax either as a library from your own python scripts and notebooks or as a binary from the shell, which can be more convenient for training large models. It runs without any changes on CPUs, GPUs and TPUs.</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://trax-ml.readthedocs.io/en/latest/">API docs</a></p></li>
+<li><p><a class="reference external" href="https://gitter.im/trax-ml/community">chat with us</a></p></li>
+<li><p><a class="reference external" href="https://github.com/google/trax/issues">open an issue</a></p></li>
+<li><p>subscribe to <a class="reference external" href="https://groups.google.com/u/1/g/trax-discuss">trax-discuss</a> for news</p></li>
+</ul>
+</section>
+<section id="3.-Walkthrough">
+<h2>3. Walkthrough<a class="headerlink" href="#3.-Walkthrough" title="Link to this heading"></a></h2>
+<p>You can learn here how Trax works, how to create new models and how to train them on your own data.</p>
+<section id="Tensors-and-Fast-Math">
+<h3>Tensors and Fast Math<a class="headerlink" href="#Tensors-and-Fast-Math" title="Link to this heading"></a></h3>
+<p>The basic units flowing through Trax models are <em>tensors</em> - multi-dimensional arrays, sometimes also known as numpy arrays, due to the most widely used package for tensor operations – <code class="docutils literal notranslate"><span class="pre">numpy</span></code>. You should take a look at the <a class="reference external" href="https://numpy.org/doc/stable/user/quickstart.html">numpy guide</a> if you don’t know how to operate on tensors: Trax also uses the numpy API for that.</p>
+<p>In Trax we want numpy operations to run very fast, making use of GPUs and TPUs to accelerate them. We also want to automatically compute gradients of functions on tensors. This is done in the <code class="docutils literal notranslate"><span class="pre">trax.fastmath</span></code> package thanks to its backends – <a class="reference external" href="https://github.com/google/jax">JAX</a> and <a class="reference external" href="https://tensorflow.org">TensorFlow numpy</a>.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span>from trax.fastmath import numpy as fastnp
+
+trax.fastmath.use_backend(&#39;jax&#39;)  # Can be &#39;jax&#39; or &#39;tensorflow-numpy&#39;.
+
+matrix = fastnp.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+print(f&#39;matrix =\n{matrix}&#39;)
+vector = fastnp.ones(3)
+print(f&#39;vector = {vector}&#39;)
+product = fastnp.dot(vector, matrix)
+print(f&#39;product = {product}&#39;)
+tanh = fastnp.tanh(product)
+print(f&#39;tanh(product) = {tanh}&#39;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+matrix =
+[[1 2 3]
+ [4 5 6]
+ [7 8 9]]
+vector = [1. 1. 1.]
+product = [12. 15. 18.]
+tanh(product) = [0.99999994 0.99999994 0.99999994]
+</pre></div></div>
+</div>
+<p>Gradients can be calculated using <code class="docutils literal notranslate"><span class="pre">trax.fastmath.grad</span></code>.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span>def f(x):
+    return 2.0 * x * x
+
+
+grad_f = trax.fastmath.grad(f)
+
+print(f&#39;grad(2x^2) at 1 = {grad_f(1.0)}&#39;)
+print(f&#39;grad(2x^2) at -2 = {grad_f(-2.0)}&#39;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+grad(2x^2) at 1 = 4.0
+grad(2x^2) at -2 = -8.0
+</pre></div></div>
+</div>
+</section>
+<section id="Layers">
+<h3>Layers<a class="headerlink" href="#Layers" title="Link to this heading"></a></h3>
+<p>Layers are basic building blocks of Trax models. You will learn all about them in the <a class="reference external" href="https://trax-ml.readthedocs.io/en/latest/notebooks/layers_intro.html">layers intro</a> but for now, just take a look at the implementation of one core Trax layer, <code class="docutils literal notranslate"><span class="pre">Embedding</span></code>:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>class Embedding(base.Layer):
+  &quot;&quot;&quot;Trainable layer that maps discrete tokens/IDs to vectors.&quot;&quot;&quot;
+
+  def __init__(self,
+               vocab_size,
+               d_feature,
+               kernel_initializer=init.RandomNormalInitializer(1.0)):
+    &quot;&quot;&quot;Returns an embedding layer with given vocabulary size and vector size.
+
+    Args:
+      vocab_size: Size of the input vocabulary. The layer will assign a unique
+          vector to each id in `range(vocab_size)`.
+      d_feature: Dimensionality/depth of the output vectors.
+      kernel_initializer: Function that creates (random) initial vectors for
+          the embedding.
+    &quot;&quot;&quot;
+    super().__init__(name=f&#39;Embedding_{vocab_size}_{d_feature}&#39;)
+    self._d_feature = d_feature  # feature dimensionality
+    self._vocab_size = vocab_size
+    self._kernel_initializer = kernel_initializer
+
+  def forward(self, x):
+    &quot;&quot;&quot;Returns embedding vectors corresponding to input token IDs.
+
+    Args:
+      x: Tensor of token IDs.
+
+    Returns:
+      Tensor of embedding vectors.
+    &quot;&quot;&quot;
+    return jnp.take(self.weights, x, axis=0, mode=&#39;clip&#39;)
+
+  def init_weights_and_state(self, input_signature):
+    &quot;&quot;&quot;Randomly initializes this layer&#39;s weights.&quot;&quot;&quot;
+    del input_signature
+    shape_w = (self._vocab_size, self._d_feature)
+    w = self._kernel_initializer(shape_w, self.rng)
+    self.weights = w
+</pre></div>
+</div>
+<p>Layers with trainable weights like <code class="docutils literal notranslate"><span class="pre">Embedding</span></code> need to be initialized with the signature (shape and dtype) of the input, and then can be run by calling them.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span>from trax import layers as tl
+
+# Create an input tensor x.
+x = np.arange(15)
+print(f&#39;x = {x}&#39;)
+
+# Create the embedding layer.
+embedding = tl.Embedding(vocab_size=20, d_feature=32)
+embedding.init(trax.shapes.signature(x))
+
+# Run the layer -- y = embedding(x).
+y = embedding(x)
+print(f&#39;shape of y = {y.shape}&#39;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+x = [ 0  1  2  3  4  5  6  7  8  9 10 11 12 13 14]
+shape of y = (15, 32)
+</pre></div></div>
+</div>
+</section>
+<section id="Models">
+<h3>Models<a class="headerlink" href="#Models" title="Link to this heading"></a></h3>
+<p>Models in Trax are built from layers most often using the <code class="docutils literal notranslate"><span class="pre">Serial</span></code> and <code class="docutils literal notranslate"><span class="pre">Branch</span></code> combinators. You can read more about those combinators in the <a class="reference external" href="https://trax-ml.readthedocs.io/en/latest/notebooks/layers_intro.html">layers intro</a> and see the code for many models in <code class="docutils literal notranslate"><span class="pre">trax/models/</span></code>, e.g., this is how the <a class="reference external" href="https://github.com/google/trax/blob/master/trax/models/transformer.py#L167">Transformer Language Model</a> is implemented. Below is an example of how to build a sentiment classification
+model.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span>model = tl.Serial(
+    tl.Embedding(vocab_size=8192, d_feature=256),
+    tl.Mean(axis=1),  # Average on axis 1 (length of sentence).
+    tl.Dense(2),  # Classify 2 classes.
+)
+
+# You can print model structure.
+print(model)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Serial[
+  Embedding_8192_256
+  Mean
+  Dense_2
+]
+</pre></div></div>
+</div>
+</section>
+<section id="Data">
+<h3>Data<a class="headerlink" href="#Data" title="Link to this heading"></a></h3>
+<p>To train your model, you need data. In Trax, data streams are represented as python iterators, so you can call <code class="docutils literal notranslate"><span class="pre">next(data_stream)</span></code> and get a tuple, e.g., <code class="docutils literal notranslate"><span class="pre">(inputs,</span> <span class="pre">targets)</span></code>. Trax allows you to use <a class="reference external" href="https://www.tensorflow.org/datasets">TensorFlow Datasets</a> easily and you can also get an iterator from your own text file using the standard <code class="docutils literal notranslate"><span class="pre">open('my_file.txt')</span></code>.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span>train_stream = trax.data.TFDS(&#39;imdb_reviews&#39;, keys=(&#39;text&#39;, &#39;label&#39;), train=True)()
+eval_stream = trax.data.TFDS(&#39;imdb_reviews&#39;, keys=(&#39;text&#39;, &#39;label&#39;), train=False)()
+print(next(train_stream))  # See one example.
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(b&#34;This was an absolutely terrible movie. Don&#39;t be lured in by Christopher Walken or Michael Ironside. Both are great actors, but this must simply be their worst role in history. Even their great acting could not redeem this movie&#39;s ridiculous storyline. This movie is an early nineties US propaganda piece. The most pathetic scenes were those when the Columbian rebels were making their cases for revolutions. Maria Conchita Alonso appeared phony, and her pseudo-love affair with Walken was nothing but a pathetic emotional plug in a movie that was devoid of any real meaning. I am disappointed that there are movies like this, ruining actor&#39;s like Christopher Walken&#39;s good name. I could barely sit through it.&#34;, 0)
+</pre></div></div>
+</div>
+<p>Using the <code class="docutils literal notranslate"><span class="pre">trax.data</span></code> module you can create input processing pipelines, e.g., to tokenize and shuffle your data. You create data pipelines using <code class="docutils literal notranslate"><span class="pre">trax.data.Serial</span></code> and they are functions that you apply to streams to create processed streams.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span>data_pipeline = trax.data.Serial(
+    trax.data.Tokenize(vocab_file=&#39;en_8k.subword&#39;, keys=[0]),
+    trax.data.Shuffle(),
+    trax.data.FilterByLength(max_length=2048, length_keys=[0]),
+    trax.data.BucketByLength(boundaries=[32, 128, 512, 2048],
+                             batch_sizes=[512, 128, 32, 8, 1],
+                             length_keys=[0]),
+    trax.data.AddLossWeights()
+)
+train_batches_stream = data_pipeline(train_stream)
+eval_batches_stream = data_pipeline(eval_stream)
+example_batch = next(train_batches_stream)
+print(f&#39;shapes = {[x.shape for x in example_batch]}&#39;)  # Check the shapes.
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+shapes = [(8, 2048), (8,), (8,)]
+</pre></div></div>
+</div>
+</section>
+<section id="Supervised-training">
+<h3>Supervised training<a class="headerlink" href="#Supervised-training" title="Link to this heading"></a></h3>
+<p>When you have the model and the data, use <code class="docutils literal notranslate"><span class="pre">trax.learning.trainer</span></code> to define training and eval tasks and create a training loop. The Trax training loop optimizes training and will create TensorBoard logs and model checkpoints for you.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre><br/><span></span>from learning.training import engines as training
+
+# Training task.
+train_task = training.TrainingTask(
+    labeled_data=train_batches_stream,
+    loss_layer=tl.WeightedCategoryCrossEntropy(),
+    optimizer=trax.optimizers.Adam(0.01),
+    n_steps_per_checkpoint=500,
+)
+
+# Evaluaton task.
+eval_task = training.EvaluationTask(
+    labeled_data=eval_batches_stream,
+    metrics=[tl.WeightedCategoryCrossEntropy(), tl.WeightedCategoryAccuracy()],
+    n_eval_batches=20  # For less variance in eval numbers.
+)
+
+# Training loop saves checkpoints to output_dir.
+output_dir = os.path.expanduser(&#39;~/output_dir/&#39;)
+!rm -rf {output_dir}
+training_loop = training.Loop(model,
+                              train_task,
+                              eval_tasks=[eval_task],
+                              output_dir=output_dir)
+
+# Run 2000 steps (batches).
+training_loop.run(2000)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+
+Step      1: Total number of trainable weights: 2097666
+Step      1: Ran 1 train steps in 1.15 secs
+Step      1: train WeightedCategoryCrossEntropy |  0.69192106
+Step      1: eval  WeightedCategoryCrossEntropy |  0.69349981
+Step      1: eval      WeightedCategoryAccuracy |  0.50312500
+
+Step    500: Ran 499 train steps in 10.62 secs
+Step    500: train WeightedCategoryCrossEntropy |  0.50712883
+Step    500: eval  WeightedCategoryCrossEntropy |  0.42969493
+Step    500: eval      WeightedCategoryAccuracy |  0.81406250
+
+Step   1000: Ran 500 train steps in 8.89 secs
+Step   1000: train WeightedCategoryCrossEntropy |  0.35916388
+Step   1000: eval  WeightedCategoryCrossEntropy |  0.41775789
+Step   1000: eval      WeightedCategoryAccuracy |  0.79531250
+
+Step   1500: Ran 500 train steps in 9.13 secs
+Step   1500: train WeightedCategoryCrossEntropy |  0.35241464
+Step   1500: eval  WeightedCategoryCrossEntropy |  0.35194683
+Step   1500: eval      WeightedCategoryAccuracy |  0.85117188
+
+Step   2000: Ran 500 train steps in 8.54 secs
+Step   2000: train WeightedCategoryCrossEntropy |  0.29129386
+Step   2000: eval  WeightedCategoryCrossEntropy |  0.37591279
+Step   2000: eval      WeightedCategoryAccuracy |  0.84062500
+</pre></div></div>
+</div>
+<p>After training the model, run it like any layer to get results.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span>example_input = next(eval_batches_stream)[0][0]
+example_input_str = trax.data.detokenize(example_input, vocab_file=&#39;en_8k.subword&#39;)
+print(f&#39;example input_str: {example_input_str}&#39;)
+sentiment_log_probs = model(example_input[None, :])  # Add batch dimension.
+print(f&#39;Model returned sentiment probabilities: {np.exp(sentiment_log_probs)}&#39;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+example input_str: There are a few aspects to Park&#39;s movies, and in particular Wallace &amp; Gromit, that I would say make them so great. The first is subtlety and observation, the flagship of which is the character of Gromit. He doesn&#39;t speak, he doesn&#39;t make any noise, all he has are his eyes, brow, and body posture, and with these he commands the film. Park manages to give us everything we need from this silent character through his expression. The comedy and the emotion is conveyed through the subtlest of movements and it works superbly well.&lt;br /&gt;&lt;br /&gt;Watching the movie you have to be aware of the entire screen. Normally you&#39;ll be guided to things in the movies, the screen won&#39;t be cluttered too much, there won&#39;t be many things to take your eyes away from the main clue or action. Park seems to need to look the other way with his movies. He throws extra content at his audience, there&#39;s action in the background, to the side of the screen, even off screen, and there&#39;s just about always something in the foreground to catch your eye. His movies are about multiple viewing and discovery, they&#39;re layered with jokes and ancillary action.&lt;br /&gt;&lt;br /&gt;Throughout this film there are layers of things happening on screen, jokes in the foreground maybe on a jar label and background shadows that give away action. You can imagine that for Park the movies has always been an event, and the movies he loves are ones which he wants to watch again and again. This is what shows in his movies, and in through his most beloved characters.&lt;br /&gt;&lt;br /&gt;Then there are the bizarre and wacky inventions which Wallace make, something which is reflected in the storyline and the twists and turns of the plot, everything is bizarre and off the wall, yet it seems so perfectly normal in this world. You can imagine that inside Park is the mind of Wallace.&lt;br /&gt;&lt;br /&gt;There&#39;s also one more thing that make these movies so unique, and that&#39;s the modelling and precise hand animation. I must admit I was concerned when I knew Dreamworks was involved in the making of this movie, and I thought that they would bring their computer animation experience to the forefront. What I was scared of was Wallace &amp; Gromit becoming CGI entities, or at the smallest, CGI being used to clean up the feel that the modelling brought to the movie.&lt;br /&gt;&lt;br /&gt;Not so. You can still see thumbprints and toolmarks on the characters, and far from distracting from the movie, this just adds so much real feeling to it and a feeling of physical depth to the characters and the scene on screen.&lt;br /&gt;&lt;br /&gt;So what of the movie? Well I must say that the plot twist was something I had thought about well before the film was in the cinema and it came as no surprise, but that did not affect my enjoyment one little bit. Actually watching the twist unfold and the comic timing of the discovery and reactions was everything, and it had me just as sucked in as if it was a thriller, yet all the time I was laughing.&lt;br /&gt;&lt;br /&gt;Watching the movie was fascinating in various ways. To see the animation completed, how wild the inventions are, how Wallace is going to get into trouble and Gromit get him out, where all the cross references are in the movie, and where all the jokes are! I must admit afterwards talking with my friends I couldn&#39;t believe how much I had missed.&lt;br /&gt;&lt;br /&gt;There&#39;s something different in this movie than with the others, there&#39;s a new level of adult humour in here, and I don&#39;t mean rude jokes (although there are a couple that are just so British you can&#39;t help laughing), I mean jokes that simply fly over kids heads but slap adults in the face. The kind you are used to seeing come out of somewhere like Pixar. This just adds even more appeal to the movie.&lt;br /&gt;&lt;br /&gt;Okay though, let me try and be a bit negative here. I didn&#39;t notice the voices in this movie, you know how you usually listen to the actors and see if you can recognise them? Well I was just too wrapped up in the movie to care or to notice who they were...okay, that&#39;s not negative. Let me try again. The main plot wasn&#39;t as strong and gripping as I&#39;d expected, and I found myself being caught up in the side stories and the characters themselves...again...that&#39;s not a bad thing, the film was just so much rich entertainment.&lt;br /&gt;&lt;br /&gt;I honestly can&#39;t think of a bad thing to say about this movie, probably the worst thing I could say is that the title sequence at the end is quite repetitive...until the final title! Really, that&#39;s the worst I can say.&lt;br /&gt;&lt;br /&gt;The story is a lot of fun, well set-up, well written, well executed. There&#39;s lot&#39;s of fantastic characters in here, not just Wallace &amp; Gromit. There&#39;s so much happening on screen, so many references and jokes (check out the dresses of Lady Tottingham), cheese jokes everywhere, jokes for all the family. The characters are superbly absorbing and you&#39;ll find that you&#39;ve taken to them before you realise. There&#39;s just so much in this movie for everyone.&lt;br /&gt;&lt;br /&gt;There&#39;s so much I could say and write about, but I know it will quickly turn into a backslapping exercise for Park and Aardman, it would also just turn into a series of &#34;this bit was really funny&#34; and &#34;there&#39;s a bit when...&#34;, and what I would rather do is tell you that this is a superb movie, to go see it, and to experience the whole thing for yourselves. I will say though that the bunnies are excellent!&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;&lt;pad&gt;
+Model returned sentiment probabilities: [[0.36765265 2.7904649 ]]
+</pre></div></div>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../index.html" class="btn btn-neutral float-left" title="Trax Tutorials" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="layers_intro.html" class="btn btn-neutral float-right" title="Trax Layers Intro" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, Google LLC..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

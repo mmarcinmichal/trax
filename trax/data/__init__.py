@@ -33,6 +33,7 @@ functions using ``data.foo`` qualified names; for example::
 
 from trax.data.preprocessing import inputs as inputs  # noqa: F401
 from trax.data.preprocessing.modules import *  # pylint: disable=wildcard-import
+from trax.data.loader.tf.base import TFDS  # noqa: F401
 
 # Re-export commonly-used preprocessing utilities at the module level to keep
 # the historical ``trax.data.*`` namespace working (e.g. gin configs that refer

@@ -30,6 +30,7 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig, ListConfig, OmegaConf, open_dict
 
 from trax import data as trax_data
+from trax import fastmath
 from trax.data.loader.tf.interface import DatasetStreams
 from trax.utils.learning.supervised.trainer import hydra as hydra_utils
 
@@ -128,6 +129,36 @@ def _instantiate_with_len_map_fix(item):
         kwargs = {key: value for key, value in container.items() if key != "_target_"}
         kwargs["len_map"] = len_map
         return trax_data.TruncateToLength(**kwargs)
+    if target in ("trax.data.TFDS", "trax.data.loader.tf.base.TFDS"):
+        container = OmegaConf.to_container(item, resolve=True)
+        dataset_name = container.get("dataset_name")
+        if dataset_name is None:
+            return instantiate(item)
+        train = container.get("train", True)
+        keys = container.get("keys")
+
+        def _stream(_=None):
+            streams = trax_data.loader.tf.base.data_streams(
+                dataset_name=dataset_name,
+                data_dir=container.get("data_dir"),
+                eval_holdout_size=container.get("eval_holdout_size", 0),
+                use_alt_eval=container.get("use_alt_eval", False),
+                shuffle_train_files=container.get("shuffle_train", True),
+                shuffle_eval_files=container.get("shuffle_eval", False),
+                host_id=container.get("host_id"),
+                n_hosts=container.get("n_hosts"),
+                require_train_split=train,
+            )
+            dataset = streams.train if train else streams.eval
+            if keys:
+                def select_from(example):
+                    return tuple(example[k] for k in keys)
+
+                dataset = dataset.map(select_from)
+            for example in fastmath.dataset_as_numpy(dataset.repeat()):
+                yield example
+
+        return _stream
     return instantiate(item)
 
 
@@ -428,7 +459,8 @@ class HydraDataTest(absltest.TestCase):
                 return_value=streams,
             ):
                 inputs = _make_inputs_from_cfg(cfg)
-                batch = next(inputs.train_stream(1))
+                stream = inputs.train_stream
+                batch = next(stream(1)) if callable(stream) else next(stream)
 
         self.assertLen(batch, 3)
         self.assertEqual(batch[0].shape[0], 2)
@@ -1096,7 +1128,8 @@ class HydraDataTest(absltest.TestCase):
                         return_value=streams,
                     ):
                         inputs_obj = _make_inputs_from_cfg(cfg)
-                        batch = next(inputs_obj.train_stream(1))
+                        stream = inputs_obj.train_stream
+                        batch = next(stream(1)) if callable(stream) else next(stream)
                         self.assertTrue(len(batch) >= 2)
                 finally:
                     ctx.__exit__(None, None, None)

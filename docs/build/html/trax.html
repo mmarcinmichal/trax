@@ -1,0 +1,1023 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>trax &mdash; Trax  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="trax.fastmath" href="trax.fastmath.html" />
+    <link rel="prev" title="Trax Layers Intro" href="notebooks/layers_intro.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Trax
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Introductory Notebooks</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="notebooks/trax_intro.html">Trax Quick Intro</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebooks/layers_intro.html">Trax Layers Intro</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Packages/modules</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">trax.*</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="trax.fastmath.html">fastmath.*</a></li>
+<li class="toctree-l2"><a class="reference internal" href="trax.layers.html">layers.*</a></li>
+<li class="toctree-l2"><a class="reference internal" href="trax.models.html">models.*</a></li>
+<li class="toctree-l2"><a class="reference internal" href="trax.data.html">data.*</a></li>
+<li class="toctree-l2"><a class="reference internal" href="trax.optimizers.html">optimizers.*</a></li>
+<li class="toctree-l2"><a class="reference internal" href="trax.supervised.html">learning.*</a></li>
+<li class="toctree-l2"><a class="reference internal" href="trax.rl.html">rl.*</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#shapes">shapes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#trainer">trainer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#rl-trainer">rl_trainer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#trax2keras">trax2keras</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Trax</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">trax</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/trax.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="trax">
+<h1>trax<a class="headerlink" href="#trax" title="Link to this heading"></a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="trax.fastmath.html">fastmath.*</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="trax.fastmath.html#module-trax.fastmath.ops">ops</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.Backend"><code class="docutils literal notranslate"><span class="pre">Backend</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.Backend.JAX"><code class="docutils literal notranslate"><span class="pre">Backend.JAX</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.Backend.TFNP"><code class="docutils literal notranslate"><span class="pre">Backend.TFNP</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.Backend.NUMPY"><code class="docutils literal notranslate"><span class="pre">Backend.NUMPY</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.NumpyBackend"><code class="docutils literal notranslate"><span class="pre">NumpyBackend</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.RandomBackend"><code class="docutils literal notranslate"><span class="pre">RandomBackend</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.RandomBackend.get_prng"><code class="docutils literal notranslate"><span class="pre">RandomBackend.get_prng()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.RandomBackend.split"><code class="docutils literal notranslate"><span class="pre">RandomBackend.split()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.RandomBackend.fold_in"><code class="docutils literal notranslate"><span class="pre">RandomBackend.fold_in()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.RandomBackend.uniform"><code class="docutils literal notranslate"><span class="pre">RandomBackend.uniform()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.RandomBackend.randint"><code class="docutils literal notranslate"><span class="pre">RandomBackend.randint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.RandomBackend.normal"><code class="docutils literal notranslate"><span class="pre">RandomBackend.normal()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.RandomBackend.bernoulli"><code class="docutils literal notranslate"><span class="pre">RandomBackend.bernoulli()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.logsumexp"><code class="docutils literal notranslate"><span class="pre">logsumexp()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.expit"><code class="docutils literal notranslate"><span class="pre">expit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.sigmoid"><code class="docutils literal notranslate"><span class="pre">sigmoid()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.erf"><code class="docutils literal notranslate"><span class="pre">erf()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.conv"><code class="docutils literal notranslate"><span class="pre">conv()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.avg_pool"><code class="docutils literal notranslate"><span class="pre">avg_pool()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.max_pool"><code class="docutils literal notranslate"><span class="pre">max_pool()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.sum_pool"><code class="docutils literal notranslate"><span class="pre">sum_pool()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.top_k"><code class="docutils literal notranslate"><span class="pre">top_k()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.sort_key_val"><code class="docutils literal notranslate"><span class="pre">sort_key_val()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.scan"><code class="docutils literal notranslate"><span class="pre">scan()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.map"><code class="docutils literal notranslate"><span class="pre">map()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.fori_loop"><code class="docutils literal notranslate"><span class="pre">fori_loop()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.remat"><code class="docutils literal notranslate"><span class="pre">remat()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.cond"><code class="docutils literal notranslate"><span class="pre">cond()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.lt"><code class="docutils literal notranslate"><span class="pre">lt()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.index_update"><code class="docutils literal notranslate"><span class="pre">index_update()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.index_add"><code class="docutils literal notranslate"><span class="pre">index_add()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.index_min"><code class="docutils literal notranslate"><span class="pre">index_min()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.index_max"><code class="docutils literal notranslate"><span class="pre">index_max()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.dynamic_slice"><code class="docutils literal notranslate"><span class="pre">dynamic_slice()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.dynamic_slice_in_dim"><code class="docutils literal notranslate"><span class="pre">dynamic_slice_in_dim()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.dynamic_update_slice"><code class="docutils literal notranslate"><span class="pre">dynamic_update_slice()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.dynamic_update_slice_in_dim"><code class="docutils literal notranslate"><span class="pre">dynamic_update_slice_in_dim()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.stop_gradient"><code class="docutils literal notranslate"><span class="pre">stop_gradient()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.jit"><code class="docutils literal notranslate"><span class="pre">jit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.disable_jit"><code class="docutils literal notranslate"><span class="pre">disable_jit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.vmap"><code class="docutils literal notranslate"><span class="pre">vmap()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.grad"><code class="docutils literal notranslate"><span class="pre">grad()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.value_and_grad"><code class="docutils literal notranslate"><span class="pre">value_and_grad()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.vjp"><code class="docutils literal notranslate"><span class="pre">vjp()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.custom_grad"><code class="docutils literal notranslate"><span class="pre">custom_grad()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.custom_vjp"><code class="docutils literal notranslate"><span class="pre">custom_vjp()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.pmap"><code class="docutils literal notranslate"><span class="pre">pmap()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.psum"><code class="docutils literal notranslate"><span class="pre">psum()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.abstract_eval"><code class="docutils literal notranslate"><span class="pre">abstract_eval()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.dataset_as_numpy"><code class="docutils literal notranslate"><span class="pre">dataset_as_numpy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.global_device_count"><code class="docutils literal notranslate"><span class="pre">global_device_count()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.devices"><code class="docutils literal notranslate"><span class="pre">devices()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.local_device_count"><code class="docutils literal notranslate"><span class="pre">local_device_count()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.set_backend"><code class="docutils literal notranslate"><span class="pre">set_backend()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.backend"><code class="docutils literal notranslate"><span class="pre">backend()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.use_backend"><code class="docutils literal notranslate"><span class="pre">use_backend()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.backend_name"><code class="docutils literal notranslate"><span class="pre">backend_name()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.fastmath.html#trax.fastmath.ops.is_backend"><code class="docutils literal notranslate"><span class="pre">is_backend()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="trax.layers.html">layers.*</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="trax.layers.html#module-trax.layers.acceleration">acceleration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.acceleration.Accelerate"><code class="docutils literal notranslate"><span class="pre">Accelerate</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.acceleration.Accelerate.__init__"><code class="docutils literal notranslate"><span class="pre">Accelerate.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.acceleration.Accelerate.sublayer"><code class="docutils literal notranslate"><span class="pre">Accelerate.sublayer</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.acceleration.Accelerate.pure_fn"><code class="docutils literal notranslate"><span class="pre">Accelerate.pure_fn()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.acceleration.Accelerate.init"><code class="docutils literal notranslate"><span class="pre">Accelerate.init()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.acceleration.Accelerate.replicate_weights"><code class="docutils literal notranslate"><span class="pre">Accelerate.replicate_weights()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.acceleration.Accelerate.replicate_state"><code class="docutils literal notranslate"><span class="pre">Accelerate.replicate_state()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.acceleration.Accelerate.weights"><code class="docutils literal notranslate"><span class="pre">Accelerate.weights</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.acceleration.Accelerate.state"><code class="docutils literal notranslate"><span class="pre">Accelerate.state</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.acceleration.mean"><code class="docutils literal notranslate"><span class="pre">mean()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.acceleration.jit_forward"><code class="docutils literal notranslate"><span class="pre">jit_forward()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.acceleration.reshape_by_device"><code class="docutils literal notranslate"><span class="pre">reshape_by_device()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.acceleration.for_n_devices"><code class="docutils literal notranslate"><span class="pre">for_n_devices()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.acceleration.on_cpu"><code class="docutils literal notranslate"><span class="pre">on_cpu()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.acceleration.on_accelerator"><code class="docutils literal notranslate"><span class="pre">on_accelerator()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trax.layers.html#module-trax.layers.activation_fns">activation_fns</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.activation_fns.Relu"><code class="docutils literal notranslate"><span class="pre">Relu()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.activation_fns.ParametricRelu"><code class="docutils literal notranslate"><span class="pre">ParametricRelu()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.activation_fns.LeakyRelu"><code class="docutils literal notranslate"><span class="pre">LeakyRelu()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.activation_fns.Elu"><code class="docutils literal notranslate"><span class="pre">Elu()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.activation_fns.Selu"><code class="docutils literal notranslate"><span class="pre">Selu()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.activation_fns.Gelu"><code class="docutils literal notranslate"><span class="pre">Gelu()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.activation_fns.FastGelu"><code class="docutils literal notranslate"><span class="pre">FastGelu()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.activation_fns.Sigmoid"><code class="docutils literal notranslate"><span class="pre">Sigmoid()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.activation_fns.Tanh"><code class="docutils literal notranslate"><span class="pre">Tanh()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.activation_fns.HardSigmoid"><code class="docutils literal notranslate"><span class="pre">HardSigmoid()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.activation_fns.HardTanh"><code class="docutils literal notranslate"><span class="pre">HardTanh()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.activation_fns.Softplus"><code class="docutils literal notranslate"><span class="pre">Softplus()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.activation_fns.Exp"><code class="docutils literal notranslate"><span class="pre">Exp()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.activation_fns.Log"><code class="docutils literal notranslate"><span class="pre">Log()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.activation_fns.Swish"><code class="docutils literal notranslate"><span class="pre">Swish()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.activation_fns.Glu"><code class="docutils literal notranslate"><span class="pre">Glu()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.activation_fns.ThresholdedLinearUnit"><code class="docutils literal notranslate"><span class="pre">ThresholdedLinearUnit</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.activation_fns.ThresholdedLinearUnit.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">ThresholdedLinearUnit.init_weights_and_state()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.activation_fns.ThresholdedLinearUnit.forward"><code class="docutils literal notranslate"><span class="pre">ThresholdedLinearUnit.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trax.layers.html#module-trax.layers.attention">attention</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.attention.Attention"><code class="docutils literal notranslate"><span class="pre">Attention()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.attention.AttentionQKV"><code class="docutils literal notranslate"><span class="pre">AttentionQKV()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.attention.PureAttention"><code class="docutils literal notranslate"><span class="pre">PureAttention</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.attention.PureAttention.__init__"><code class="docutils literal notranslate"><span class="pre">PureAttention.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.attention.PureAttention.forward"><code class="docutils literal notranslate"><span class="pre">PureAttention.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.attention.DotProductAttention"><code class="docutils literal notranslate"><span class="pre">DotProductAttention</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.attention.DotProductAttention.__init__"><code class="docutils literal notranslate"><span class="pre">DotProductAttention.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.attention.DotProductAttention.forward"><code class="docutils literal notranslate"><span class="pre">DotProductAttention.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.attention.SplitIntoHeads"><code class="docutils literal notranslate"><span class="pre">SplitIntoHeads()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.attention.MergeHeads"><code class="docutils literal notranslate"><span class="pre">MergeHeads()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.attention.ConfigurableAttention"><code class="docutils literal notranslate"><span class="pre">ConfigurableAttention()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.attention.CausalAttention"><code class="docutils literal notranslate"><span class="pre">CausalAttention()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.attention.DotProductCausalAttention"><code class="docutils literal notranslate"><span class="pre">DotProductCausalAttention</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.attention.DotProductCausalAttention.__init__"><code class="docutils literal notranslate"><span class="pre">DotProductCausalAttention.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.attention.DotProductCausalAttention.monkey_patched_mask"><code class="docutils literal notranslate"><span class="pre">DotProductCausalAttention.monkey_patched_mask()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.attention.DotProductCausalAttention.forward"><code class="docutils literal notranslate"><span class="pre">DotProductCausalAttention.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.attention.DotProductCausalAttention.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">DotProductCausalAttention.init_weights_and_state()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.attention.ShiftRight"><code class="docutils literal notranslate"><span class="pre">ShiftRight()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.attention.PaddingMask"><code class="docutils literal notranslate"><span class="pre">PaddingMask()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.attention.EncoderDecoderMask"><code class="docutils literal notranslate"><span class="pre">EncoderDecoderMask()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.attention.PositionalEncoding"><code class="docutils literal notranslate"><span class="pre">PositionalEncoding</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.attention.PositionalEncoding.__init__"><code class="docutils literal notranslate"><span class="pre">PositionalEncoding.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.attention.PositionalEncoding.forward"><code class="docutils literal notranslate"><span class="pre">PositionalEncoding.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.attention.PositionalEncoding.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">PositionalEncoding.init_weights_and_state()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trax.layers.html#module-trax.layers.base">base</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.base.Layer"><code class="docutils literal notranslate"><span class="pre">Layer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.base.Layer.__init__"><code class="docutils literal notranslate"><span class="pre">Layer.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.base.Layer.__call__"><code class="docutils literal notranslate"><span class="pre">Layer.__call__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.base.Layer.forward"><code class="docutils literal notranslate"><span class="pre">Layer.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.base.Layer.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">Layer.init_weights_and_state()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.base.Layer.has_backward"><code class="docutils literal notranslate"><span class="pre">Layer.has_backward</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.base.Layer.backward"><code class="docutils literal notranslate"><span class="pre">Layer.backward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.base.Layer.init"><code class="docutils literal notranslate"><span class="pre">Layer.init()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.base.Layer.init_from_file"><code class="docutils literal notranslate"><span class="pre">Layer.init_from_file()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.base.Layer.save_to_file"><code class="docutils literal notranslate"><span class="pre">Layer.save_to_file()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.base.Layer.flatten_tuple"><code class="docutils literal notranslate"><span class="pre">Layer.flatten_tuple()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.base.Layer.name"><code class="docutils literal notranslate"><span class="pre">Layer.name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.base.Layer.n_in"><code class="docutils literal notranslate"><span class="pre">Layer.n_in</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.base.Layer.n_out"><code class="docutils literal notranslate"><span class="pre">Layer.n_out</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.base.Layer.sublayers"><code class="docutils literal notranslate"><span class="pre">Layer.sublayers</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.base.Layer.weights"><code class="docutils literal notranslate"><span class="pre">Layer.weights</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.base.Layer.state"><code class="docutils literal notranslate"><span class="pre">Layer.state</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.base.Layer.weights_and_state_signature"><code class="docutils literal notranslate"><span class="pre">Layer.weights_and_state_signature()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.base.Layer.rng"><code class="docutils literal notranslate"><span class="pre">Layer.rng</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.base.Layer.pure_fn"><code class="docutils literal notranslate"><span class="pre">Layer.pure_fn()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.base.Layer.output_signature"><code class="docutils literal notranslate"><span class="pre">Layer.output_signature()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.base.PureLayer"><code class="docutils literal notranslate"><span class="pre">PureLayer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.base.PureLayer.__init__"><code class="docutils literal notranslate"><span class="pre">PureLayer.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.base.PureLayer.forward"><code class="docutils literal notranslate"><span class="pre">PureLayer.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.base.Fn"><code class="docutils literal notranslate"><span class="pre">Fn()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.base.LayerError"><code class="docutils literal notranslate"><span class="pre">LayerError</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.base.LayerError.__init__"><code class="docutils literal notranslate"><span class="pre">LayerError.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.base.LayerError.message"><code class="docutils literal notranslate"><span class="pre">LayerError.message</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.base.flatten_weights_and_state"><code class="docutils literal notranslate"><span class="pre">flatten_weights_and_state()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.base.unflatten_weights_and_state"><code class="docutils literal notranslate"><span class="pre">unflatten_weights_and_state()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.base.np_to_file"><code class="docutils literal notranslate"><span class="pre">np_to_file()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.base.np_from_file"><code class="docutils literal notranslate"><span class="pre">np_from_file()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.base.to_list"><code class="docutils literal notranslate"><span class="pre">to_list()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.base.shard"><code class="docutils literal notranslate"><span class="pre">shard()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.base.unshard_in_pmap"><code class="docutils literal notranslate"><span class="pre">unshard_in_pmap()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.base.unshard"><code class="docutils literal notranslate"><span class="pre">unshard()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trax.layers.html#module-trax.layers.combinators">combinators</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Serial"><code class="docutils literal notranslate"><span class="pre">Serial</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Serial.__init__"><code class="docutils literal notranslate"><span class="pre">Serial.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Serial.forward"><code class="docutils literal notranslate"><span class="pre">Serial.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Serial.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">Serial.init_weights_and_state()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Parallel"><code class="docutils literal notranslate"><span class="pre">Parallel</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Parallel.__init__"><code class="docutils literal notranslate"><span class="pre">Parallel.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Parallel.forward"><code class="docutils literal notranslate"><span class="pre">Parallel.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Parallel.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">Parallel.init_weights_and_state()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Concatenate"><code class="docutils literal notranslate"><span class="pre">Concatenate</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Concatenate.__init__"><code class="docutils literal notranslate"><span class="pre">Concatenate.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Concatenate.forward"><code class="docutils literal notranslate"><span class="pre">Concatenate.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Split"><code class="docutils literal notranslate"><span class="pre">Split</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Split.__init__"><code class="docutils literal notranslate"><span class="pre">Split.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Split.forward"><code class="docutils literal notranslate"><span class="pre">Split.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Scan"><code class="docutils literal notranslate"><span class="pre">Scan</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Scan.__init__"><code class="docutils literal notranslate"><span class="pre">Scan.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Scan.sublayer"><code class="docutils literal notranslate"><span class="pre">Scan.sublayer</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Scan.state"><code class="docutils literal notranslate"><span class="pre">Scan.state</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Scan.forward"><code class="docutils literal notranslate"><span class="pre">Scan.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Scan.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">Scan.init_weights_and_state()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Cond"><code class="docutils literal notranslate"><span class="pre">Cond</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Cond.__init__"><code class="docutils literal notranslate"><span class="pre">Cond.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Cond.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">Cond.init_weights_and_state()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Cond.forward"><code class="docutils literal notranslate"><span class="pre">Cond.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Chunk"><code class="docutils literal notranslate"><span class="pre">Chunk()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Branch"><code class="docutils literal notranslate"><span class="pre">Branch()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Residual"><code class="docutils literal notranslate"><span class="pre">Residual()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Select"><code class="docutils literal notranslate"><span class="pre">Select()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Drop"><code class="docutils literal notranslate"><span class="pre">Drop()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Dup"><code class="docutils literal notranslate"><span class="pre">Dup()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Swap"><code class="docutils literal notranslate"><span class="pre">Swap()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.SerialWithSideOutputs"><code class="docutils literal notranslate"><span class="pre">SerialWithSideOutputs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.FlattenList"><code class="docutils literal notranslate"><span class="pre">FlattenList()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Add"><code class="docutils literal notranslate"><span class="pre">Add()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.SubtractTop"><code class="docutils literal notranslate"><span class="pre">SubtractTop()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Multiply"><code class="docutils literal notranslate"><span class="pre">Multiply()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Gate"><code class="docutils literal notranslate"><span class="pre">Gate()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Cache"><code class="docutils literal notranslate"><span class="pre">Cache</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Cache.__init__"><code class="docutils literal notranslate"><span class="pre">Cache.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Cache.sublayer"><code class="docutils literal notranslate"><span class="pre">Cache.sublayer</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Cache.state"><code class="docutils literal notranslate"><span class="pre">Cache.state</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Cache.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">Cache.init_weights_and_state()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Cache.forward"><code class="docutils literal notranslate"><span class="pre">Cache.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.BatchLeadingAxes"><code class="docutils literal notranslate"><span class="pre">BatchLeadingAxes</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.BatchLeadingAxes.__init__"><code class="docutils literal notranslate"><span class="pre">BatchLeadingAxes.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.BatchLeadingAxes.sublayer"><code class="docutils literal notranslate"><span class="pre">BatchLeadingAxes.sublayer</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.BatchLeadingAxes.forward"><code class="docutils literal notranslate"><span class="pre">BatchLeadingAxes.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.BatchLeadingAxes.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">BatchLeadingAxes.init_weights_and_state()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.Bidirectional"><code class="docutils literal notranslate"><span class="pre">Bidirectional()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.inputs_from_stack"><code class="docutils literal notranslate"><span class="pre">inputs_from_stack()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.combinators.outputs_onto_stack"><code class="docutils literal notranslate"><span class="pre">outputs_onto_stack()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trax.layers.html#module-trax.layers.convolution">convolution</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.convolution.Conv"><code class="docutils literal notranslate"><span class="pre">Conv</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.convolution.Conv.__init__"><code class="docutils literal notranslate"><span class="pre">Conv.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.convolution.Conv.forward"><code class="docutils literal notranslate"><span class="pre">Conv.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.convolution.Conv.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">Conv.init_weights_and_state()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.convolution.CausalConv"><code class="docutils literal notranslate"><span class="pre">CausalConv</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.convolution.CausalConv.__init__"><code class="docutils literal notranslate"><span class="pre">CausalConv.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.convolution.CausalConv.forward"><code class="docutils literal notranslate"><span class="pre">CausalConv.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.convolution.Conv1d"><code class="docutils literal notranslate"><span class="pre">Conv1d()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.convolution.CausalDepthwiseConv"><code class="docutils literal notranslate"><span class="pre">CausalDepthwiseConv</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.convolution.CausalDepthwiseConv.__init__"><code class="docutils literal notranslate"><span class="pre">CausalDepthwiseConv.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.convolution.CausalDepthwiseConv.forward"><code class="docutils literal notranslate"><span class="pre">CausalDepthwiseConv.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.convolution.CausalDepthwiseConv.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">CausalDepthwiseConv.init_weights_and_state()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trax.layers.html#module-trax.layers.core">core</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.core.Dense"><code class="docutils literal notranslate"><span class="pre">Dense</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.core.Dense.__init__"><code class="docutils literal notranslate"><span class="pre">Dense.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.core.Dense.forward"><code class="docutils literal notranslate"><span class="pre">Dense.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.core.Dense.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">Dense.init_weights_and_state()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.core.Embedding"><code class="docutils literal notranslate"><span class="pre">Embedding</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.core.Embedding.__init__"><code class="docutils literal notranslate"><span class="pre">Embedding.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.core.Embedding.forward"><code class="docutils literal notranslate"><span class="pre">Embedding.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.core.Embedding.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">Embedding.init_weights_and_state()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.core.Dropout"><code class="docutils literal notranslate"><span class="pre">Dropout</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.core.Dropout.__init__"><code class="docutils literal notranslate"><span class="pre">Dropout.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.core.Dropout.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">Dropout.init_weights_and_state()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.core.Dropout.forward"><code class="docutils literal notranslate"><span class="pre">Dropout.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.core.Weights"><code class="docutils literal notranslate"><span class="pre">Weights</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.core.Weights.__init__"><code class="docutils literal notranslate"><span class="pre">Weights.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.core.Weights.forward"><code class="docutils literal notranslate"><span class="pre">Weights.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.core.Weights.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">Weights.init_weights_and_state()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.core.PrintShape"><code class="docutils literal notranslate"><span class="pre">PrintShape()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.core.SummaryImage"><code class="docutils literal notranslate"><span class="pre">SummaryImage</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.core.SummaryImage.__init__"><code class="docutils literal notranslate"><span class="pre">SummaryImage.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.core.SummaryImage.forward"><code class="docutils literal notranslate"><span class="pre">SummaryImage.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.core.SummaryImage.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">SummaryImage.init_weights_and_state()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.core.SummaryScalar"><code class="docutils literal notranslate"><span class="pre">SummaryScalar</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.core.SummaryScalar.__init__"><code class="docutils literal notranslate"><span class="pre">SummaryScalar.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.core.SummaryScalar.forward"><code class="docutils literal notranslate"><span class="pre">SummaryScalar.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.core.SummaryScalar.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">SummaryScalar.init_weights_and_state()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.core.RandomUniform"><code class="docutils literal notranslate"><span class="pre">RandomUniform</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.core.RandomUniform.__init__"><code class="docutils literal notranslate"><span class="pre">RandomUniform.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.core.RandomUniform.forward"><code class="docutils literal notranslate"><span class="pre">RandomUniform.forward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.core.LocallyConnected1d"><code class="docutils literal notranslate"><span class="pre">LocallyConnected1d</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.core.LocallyConnected1d.__init__"><code class="docutils literal notranslate"><span class="pre">LocallyConnected1d.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.core.LocallyConnected1d.forward"><code class="docutils literal notranslate"><span class="pre">LocallyConnected1d.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.core.LocallyConnected1d.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">LocallyConnected1d.init_weights_and_state()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.core.Flatten"><code class="docutils literal notranslate"><span class="pre">Flatten()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.core.LogSoftmax"><code class="docutils literal notranslate"><span class="pre">LogSoftmax()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.core.LogSumExp"><code class="docutils literal notranslate"><span class="pre">LogSumExp()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.core.Softmax"><code class="docutils literal notranslate"><span class="pre">Softmax()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.core.ToFloat"><code class="docutils literal notranslate"><span class="pre">ToFloat()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.core.Mean"><code class="docutils literal notranslate"><span class="pre">Mean()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.core.Min"><code class="docutils literal notranslate"><span class="pre">Min()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.core.Max"><code class="docutils literal notranslate"><span class="pre">Max()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.core.Sum"><code class="docutils literal notranslate"><span class="pre">Sum()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.core.ThresholdToBinary"><code class="docutils literal notranslate"><span class="pre">ThresholdToBinary()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.core.ArgMax"><code class="docutils literal notranslate"><span class="pre">ArgMax()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.core.Negate"><code class="docutils literal notranslate"><span class="pre">Negate()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.core.StopGradient"><code class="docutils literal notranslate"><span class="pre">StopGradient()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.core.one_hot"><code class="docutils literal notranslate"><span class="pre">one_hot()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.core.log_softmax"><code class="docutils literal notranslate"><span class="pre">log_softmax()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.core.log_gaussian_pdf"><code class="docutils literal notranslate"><span class="pre">log_gaussian_pdf()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.core.log_gaussian_diag_pdf"><code class="docutils literal notranslate"><span class="pre">log_gaussian_diag_pdf()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.core.multigaussian_loss"><code class="docutils literal notranslate"><span class="pre">multigaussian_loss()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.core.logsoftmax_sample"><code class="docutils literal notranslate"><span class="pre">logsoftmax_sample()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trax.layers.html#module-trax.layers.initializers">initializers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.initializers.InitializerFromFile"><code class="docutils literal notranslate"><span class="pre">InitializerFromFile()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.initializers.RandomNormalInitializer"><code class="docutils literal notranslate"><span class="pre">RandomNormalInitializer()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.initializers.RandomUniformInitializer"><code class="docutils literal notranslate"><span class="pre">RandomUniformInitializer()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.initializers.ScaledInitializer"><code class="docutils literal notranslate"><span class="pre">ScaledInitializer()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.initializers.GlorotNormalInitializer"><code class="docutils literal notranslate"><span class="pre">GlorotNormalInitializer()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.initializers.GlorotUniformInitializer"><code class="docutils literal notranslate"><span class="pre">GlorotUniformInitializer()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.initializers.LeCunNormalInitializer"><code class="docutils literal notranslate"><span class="pre">LeCunNormalInitializer()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.initializers.LeCunUniformInitializer"><code class="docutils literal notranslate"><span class="pre">LeCunUniformInitializer()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.initializers.KaimingNormalInitializer"><code class="docutils literal notranslate"><span class="pre">KaimingNormalInitializer()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.initializers.KaimingUniformInitializer"><code class="docutils literal notranslate"><span class="pre">KaimingUniformInitializer()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.initializers.OrthogonalInitializer"><code class="docutils literal notranslate"><span class="pre">OrthogonalInitializer()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.initializers.AtariConvInit"><code class="docutils literal notranslate"><span class="pre">AtariConvInit()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trax.layers.html#module-trax.layers.metrics">metrics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.metrics.CategoryAccuracy"><code class="docutils literal notranslate"><span class="pre">CategoryAccuracy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.metrics.WeightedCategoryAccuracy"><code class="docutils literal notranslate"><span class="pre">WeightedCategoryAccuracy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.metrics.CategoryCrossEntropy"><code class="docutils literal notranslate"><span class="pre">CategoryCrossEntropy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.metrics.WeightedCategoryCrossEntropy"><code class="docutils literal notranslate"><span class="pre">WeightedCategoryCrossEntropy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.metrics.BinaryCrossEntropy"><code class="docutils literal notranslate"><span class="pre">BinaryCrossEntropy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.metrics.MaskedSequenceAccuracy"><code class="docutils literal notranslate"><span class="pre">MaskedSequenceAccuracy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.metrics.Accuracy"><code class="docutils literal notranslate"><span class="pre">Accuracy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.metrics.SequenceAccuracy"><code class="docutils literal notranslate"><span class="pre">SequenceAccuracy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.metrics.CrossEntropyLoss"><code class="docutils literal notranslate"><span class="pre">CrossEntropyLoss()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.metrics.CrossEntropyLossWithLogSoftmax"><code class="docutils literal notranslate"><span class="pre">CrossEntropyLossWithLogSoftmax()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.metrics.BinaryCrossEntropyLoss"><code class="docutils literal notranslate"><span class="pre">BinaryCrossEntropyLoss()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.metrics.L2Loss"><code class="docutils literal notranslate"><span class="pre">L2Loss()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.metrics.SmoothL1Loss"><code class="docutils literal notranslate"><span class="pre">SmoothL1Loss()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.metrics.MacroAveragedFScore"><code class="docutils literal notranslate"><span class="pre">MacroAveragedFScore()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.metrics.WeightedFScore"><code class="docutils literal notranslate"><span class="pre">WeightedFScore()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.metrics.WeightedSum"><code class="docutils literal notranslate"><span class="pre">WeightedSum()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.metrics.CrossEntropySum"><code class="docutils literal notranslate"><span class="pre">CrossEntropySum()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.metrics.BinaryCrossEntropySum"><code class="docutils literal notranslate"><span class="pre">BinaryCrossEntropySum()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trax.layers.html#module-trax.layers.normalization">normalization</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.normalization.BatchNorm"><code class="docutils literal notranslate"><span class="pre">BatchNorm</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.normalization.BatchNorm.__init__"><code class="docutils literal notranslate"><span class="pre">BatchNorm.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.normalization.BatchNorm.forward"><code class="docutils literal notranslate"><span class="pre">BatchNorm.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.normalization.BatchNorm.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">BatchNorm.init_weights_and_state()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.normalization.LayerNorm"><code class="docutils literal notranslate"><span class="pre">LayerNorm</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.normalization.LayerNorm.__init__"><code class="docutils literal notranslate"><span class="pre">LayerNorm.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.normalization.LayerNorm.forward"><code class="docutils literal notranslate"><span class="pre">LayerNorm.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.normalization.LayerNorm.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">LayerNorm.init_weights_and_state()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.normalization.FilterResponseNorm"><code class="docutils literal notranslate"><span class="pre">FilterResponseNorm</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.normalization.FilterResponseNorm.__init__"><code class="docutils literal notranslate"><span class="pre">FilterResponseNorm.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.normalization.FilterResponseNorm.forward"><code class="docutils literal notranslate"><span class="pre">FilterResponseNorm.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.normalization.FilterResponseNorm.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">FilterResponseNorm.init_weights_and_state()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trax.layers.html#module-trax.layers.pooling">pooling</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.pooling.MaxPool"><code class="docutils literal notranslate"><span class="pre">MaxPool()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.pooling.SumPool"><code class="docutils literal notranslate"><span class="pre">SumPool()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.pooling.AvgPool"><code class="docutils literal notranslate"><span class="pre">AvgPool()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trax.layers.html#module-trax.layers.reversible">reversible</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.reversible.ReversibleLayer"><code class="docutils literal notranslate"><span class="pre">ReversibleLayer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.reversible.ReversibleLayer.reverse"><code class="docutils literal notranslate"><span class="pre">ReversibleLayer.reverse()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.reversible.ReversibleLayer.reverse_and_grad"><code class="docutils literal notranslate"><span class="pre">ReversibleLayer.reverse_and_grad()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.reversible.ReversibleLayer.has_backward"><code class="docutils literal notranslate"><span class="pre">ReversibleLayer.has_backward</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.reversible.ReversibleLayer.backward"><code class="docutils literal notranslate"><span class="pre">ReversibleLayer.backward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.reversible.ReversibleConcatenatePair"><code class="docutils literal notranslate"><span class="pre">ReversibleConcatenatePair</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.reversible.ReversibleConcatenatePair.__init__"><code class="docutils literal notranslate"><span class="pre">ReversibleConcatenatePair.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.reversible.ReversibleConcatenatePair.forward"><code class="docutils literal notranslate"><span class="pre">ReversibleConcatenatePair.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.reversible.ReversibleConcatenatePair.reverse"><code class="docutils literal notranslate"><span class="pre">ReversibleConcatenatePair.reverse()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.reversible.ReversibleSelect"><code class="docutils literal notranslate"><span class="pre">ReversibleSelect</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.reversible.ReversibleSelect.__init__"><code class="docutils literal notranslate"><span class="pre">ReversibleSelect.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.reversible.ReversibleSelect.forward"><code class="docutils literal notranslate"><span class="pre">ReversibleSelect.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.reversible.ReversibleSelect.reverse"><code class="docutils literal notranslate"><span class="pre">ReversibleSelect.reverse()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.reversible.ReversibleSwap"><code class="docutils literal notranslate"><span class="pre">ReversibleSwap()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.reversible.ReversibleReshape"><code class="docutils literal notranslate"><span class="pre">ReversibleReshape</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.reversible.ReversibleReshape.__init__"><code class="docutils literal notranslate"><span class="pre">ReversibleReshape.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.reversible.ReversibleReshape.forward"><code class="docutils literal notranslate"><span class="pre">ReversibleReshape.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.reversible.ReversibleReshape.reverse"><code class="docutils literal notranslate"><span class="pre">ReversibleReshape.reverse()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.reversible.ReversiblePrintShape"><code class="docutils literal notranslate"><span class="pre">ReversiblePrintShape</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.reversible.ReversiblePrintShape.__init__"><code class="docutils literal notranslate"><span class="pre">ReversiblePrintShape.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.reversible.ReversiblePrintShape.forward"><code class="docutils literal notranslate"><span class="pre">ReversiblePrintShape.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.reversible.ReversiblePrintShape.reverse"><code class="docutils literal notranslate"><span class="pre">ReversiblePrintShape.reverse()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.reversible.ReversibleSerial"><code class="docutils literal notranslate"><span class="pre">ReversibleSerial</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.reversible.ReversibleSerial.__init__"><code class="docutils literal notranslate"><span class="pre">ReversibleSerial.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.reversible.ReversibleSerial.reverse"><code class="docutils literal notranslate"><span class="pre">ReversibleSerial.reverse()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.reversible.ReversibleSerial.reverse_and_grad"><code class="docutils literal notranslate"><span class="pre">ReversibleSerial.reverse_and_grad()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.reversible.ReversibleHalfResidual"><code class="docutils literal notranslate"><span class="pre">ReversibleHalfResidual</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.reversible.ReversibleHalfResidual.__init__"><code class="docutils literal notranslate"><span class="pre">ReversibleHalfResidual.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.reversible.ReversibleHalfResidual.forward"><code class="docutils literal notranslate"><span class="pre">ReversibleHalfResidual.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.reversible.ReversibleHalfResidual.reverse"><code class="docutils literal notranslate"><span class="pre">ReversibleHalfResidual.reverse()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.reversible.ReversibleHalfResidual.reverse_and_grad"><code class="docutils literal notranslate"><span class="pre">ReversibleHalfResidual.reverse_and_grad()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.reversible.ReversibleHalfResidual.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">ReversibleHalfResidual.init_weights_and_state()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trax.layers.html#module-trax.layers.rnn">rnn</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.rnn.LSTMCell"><code class="docutils literal notranslate"><span class="pre">LSTMCell</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.rnn.LSTMCell.__init__"><code class="docutils literal notranslate"><span class="pre">LSTMCell.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.rnn.LSTMCell.forward"><code class="docutils literal notranslate"><span class="pre">LSTMCell.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.rnn.LSTMCell.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">LSTMCell.init_weights_and_state()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.rnn.MakeZeroState"><code class="docutils literal notranslate"><span class="pre">MakeZeroState()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.rnn.LSTM"><code class="docutils literal notranslate"><span class="pre">LSTM()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.rnn.GRUCell"><code class="docutils literal notranslate"><span class="pre">GRUCell</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.rnn.GRUCell.__init__"><code class="docutils literal notranslate"><span class="pre">GRUCell.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.rnn.GRUCell.forward"><code class="docutils literal notranslate"><span class="pre">GRUCell.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.rnn.GRUCell.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">GRUCell.init_weights_and_state()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.rnn.GRU"><code class="docutils literal notranslate"><span class="pre">GRU()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.rnn.ConvGRUCell"><code class="docutils literal notranslate"><span class="pre">ConvGRUCell()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.rnn.GeneralGRUCell"><code class="docutils literal notranslate"><span class="pre">GeneralGRUCell()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.rnn.InnerSRUCell"><code class="docutils literal notranslate"><span class="pre">InnerSRUCell()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.rnn.ScanSRUCell"><code class="docutils literal notranslate"><span class="pre">ScanSRUCell()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.rnn.SRU"><code class="docutils literal notranslate"><span class="pre">SRU()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trax.layers.html#module-trax.layers.research.efficient_attention">research.efficient_attention</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.length_normalized"><code class="docutils literal notranslate"><span class="pre">length_normalized()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.hash_vecs"><code class="docutils literal notranslate"><span class="pre">hash_vecs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.look_adjacent"><code class="docutils literal notranslate"><span class="pre">look_adjacent()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.mask_self_attention"><code class="docutils literal notranslate"><span class="pre">mask_self_attention()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.attend"><code class="docutils literal notranslate"><span class="pre">attend()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.apply_broadcasted_dropout"><code class="docutils literal notranslate"><span class="pre">apply_broadcasted_dropout()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.permute_via_gather"><code class="docutils literal notranslate"><span class="pre">permute_via_gather()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.permute_via_sort"><code class="docutils literal notranslate"><span class="pre">permute_via_sort()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.EfficientAttentionBase"><code class="docutils literal notranslate"><span class="pre">EfficientAttentionBase</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.EfficientAttentionBase.__init__"><code class="docutils literal notranslate"><span class="pre">EfficientAttentionBase.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.EfficientAttentionBase.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">EfficientAttentionBase.init_weights_and_state()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.EfficientAttentionBase.create_weights_unbatched"><code class="docutils literal notranslate"><span class="pre">EfficientAttentionBase.create_weights_unbatched()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.EfficientAttentionBase.create_state_unbatched"><code class="docutils literal notranslate"><span class="pre">EfficientAttentionBase.create_state_unbatched()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.EfficientAttentionBase.forward_unbatched"><code class="docutils literal notranslate"><span class="pre">EfficientAttentionBase.forward_unbatched()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.EfficientAttentionBase.forward"><code class="docutils literal notranslate"><span class="pre">EfficientAttentionBase.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.EfficientAttentionBase.has_backward"><code class="docutils literal notranslate"><span class="pre">EfficientAttentionBase.has_backward</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.EfficientAttentionBase.backward"><code class="docutils literal notranslate"><span class="pre">EfficientAttentionBase.backward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.EfficientAttentionBase.forward_and_or_backward"><code class="docutils literal notranslate"><span class="pre">EfficientAttentionBase.forward_and_or_backward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.SelfAttention"><code class="docutils literal notranslate"><span class="pre">SelfAttention</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.SelfAttention.__init__"><code class="docutils literal notranslate"><span class="pre">SelfAttention.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.SelfAttention.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">SelfAttention.init_weights_and_state()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.SelfAttention.create_weights_unbatched"><code class="docutils literal notranslate"><span class="pre">SelfAttention.create_weights_unbatched()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.SelfAttention.create_state_unbatched"><code class="docutils literal notranslate"><span class="pre">SelfAttention.create_state_unbatched()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.SelfAttention.forward_unbatched"><code class="docutils literal notranslate"><span class="pre">SelfAttention.forward_unbatched()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.SelfAttention.forward"><code class="docutils literal notranslate"><span class="pre">SelfAttention.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.SelfAttention.has_backward"><code class="docutils literal notranslate"><span class="pre">SelfAttention.has_backward</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.SelfAttention.backward"><code class="docutils literal notranslate"><span class="pre">SelfAttention.backward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.SelfAttention.forward_and_or_backward"><code class="docutils literal notranslate"><span class="pre">SelfAttention.forward_and_or_backward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.LSHSelfAttention"><code class="docutils literal notranslate"><span class="pre">LSHSelfAttention</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.LSHSelfAttention.__init__"><code class="docutils literal notranslate"><span class="pre">LSHSelfAttention.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.LSHSelfAttention.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">LSHSelfAttention.init_weights_and_state()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.LSHSelfAttention.create_weights_unbatched"><code class="docutils literal notranslate"><span class="pre">LSHSelfAttention.create_weights_unbatched()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.LSHSelfAttention.create_state_unbatched"><code class="docutils literal notranslate"><span class="pre">LSHSelfAttention.create_state_unbatched()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.LSHSelfAttention.hash_vectors"><code class="docutils literal notranslate"><span class="pre">LSHSelfAttention.hash_vectors()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.LSHSelfAttention.forward_unbatched"><code class="docutils literal notranslate"><span class="pre">LSHSelfAttention.forward_unbatched()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.LSHSelfAttention.forward"><code class="docutils literal notranslate"><span class="pre">LSHSelfAttention.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.LSHSelfAttention.has_backward"><code class="docutils literal notranslate"><span class="pre">LSHSelfAttention.has_backward</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.LSHSelfAttention.backward"><code class="docutils literal notranslate"><span class="pre">LSHSelfAttention.backward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.LSHSelfAttention.forward_and_or_backward"><code class="docutils literal notranslate"><span class="pre">LSHSelfAttention.forward_and_or_backward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.PureLSHSelfAttention"><code class="docutils literal notranslate"><span class="pre">PureLSHSelfAttention</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.PureLSHSelfAttention.__init__"><code class="docutils literal notranslate"><span class="pre">PureLSHSelfAttention.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.PureLSHSelfAttention.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">PureLSHSelfAttention.init_weights_and_state()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.PureLSHSelfAttention.create_state_unbatched"><code class="docutils literal notranslate"><span class="pre">PureLSHSelfAttention.create_state_unbatched()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.PureLSHSelfAttention.hash_vectors"><code class="docutils literal notranslate"><span class="pre">PureLSHSelfAttention.hash_vectors()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.PureLSHSelfAttention.forward_unbatched"><code class="docutils literal notranslate"><span class="pre">PureLSHSelfAttention.forward_unbatched()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.PureLSHSelfAttention.forward"><code class="docutils literal notranslate"><span class="pre">PureLSHSelfAttention.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.PureLSHSelfAttention.has_backward"><code class="docutils literal notranslate"><span class="pre">PureLSHSelfAttention.has_backward</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.PureLSHSelfAttention.backward"><code class="docutils literal notranslate"><span class="pre">PureLSHSelfAttention.backward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.PureLSHSelfAttention.forward_and_or_backward"><code class="docutils literal notranslate"><span class="pre">PureLSHSelfAttention.forward_and_or_backward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.MixedLSHSelfAttention"><code class="docutils literal notranslate"><span class="pre">MixedLSHSelfAttention</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.MixedLSHSelfAttention.__init__"><code class="docutils literal notranslate"><span class="pre">MixedLSHSelfAttention.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.MixedLSHSelfAttention.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">MixedLSHSelfAttention.init_weights_and_state()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.MixedLSHSelfAttention.forward"><code class="docutils literal notranslate"><span class="pre">MixedLSHSelfAttention.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.MixedLSHSelfAttention.forward_and_or_backward"><code class="docutils literal notranslate"><span class="pre">MixedLSHSelfAttention.forward_and_or_backward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.PureLSHSelfAttentionWrapper"><code class="docutils literal notranslate"><span class="pre">PureLSHSelfAttentionWrapper</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.PureLSHSelfAttentionWrapper.__init__"><code class="docutils literal notranslate"><span class="pre">PureLSHSelfAttentionWrapper.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.PureLSHSelfAttentionWrapper.forward_and_or_backward"><code class="docutils literal notranslate"><span class="pre">PureLSHSelfAttentionWrapper.forward_and_or_backward()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.EncDecAttention"><code class="docutils literal notranslate"><span class="pre">EncDecAttention</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.EncDecAttention.__init__"><code class="docutils literal notranslate"><span class="pre">EncDecAttention.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.EncDecAttention.create_weights_unbatched"><code class="docutils literal notranslate"><span class="pre">EncDecAttention.create_weights_unbatched()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.EncDecAttention.forward_unbatched"><code class="docutils literal notranslate"><span class="pre">EncDecAttention.forward_unbatched()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.LSHFF"><code class="docutils literal notranslate"><span class="pre">LSHFF</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.LSHFF.__init__"><code class="docutils literal notranslate"><span class="pre">LSHFF.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.LSHFF.forward"><code class="docutils literal notranslate"><span class="pre">LSHFF.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.efficient_attention.LSHFF.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">LSHFF.init_weights_and_state()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trax.layers.html#module-trax.layers.research.position_encodings">research.position_encodings</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.research.position_encodings.AxialPositionalEncoding"><code class="docutils literal notranslate"><span class="pre">AxialPositionalEncoding</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.position_encodings.AxialPositionalEncoding.__init__"><code class="docutils literal notranslate"><span class="pre">AxialPositionalEncoding.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.position_encodings.AxialPositionalEncoding.forward"><code class="docutils literal notranslate"><span class="pre">AxialPositionalEncoding.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.position_encodings.AxialPositionalEncoding.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">AxialPositionalEncoding.init_weights_and_state()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.research.position_encodings.SinCosPositionalEncoding"><code class="docutils literal notranslate"><span class="pre">SinCosPositionalEncoding</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.position_encodings.SinCosPositionalEncoding.__init__"><code class="docutils literal notranslate"><span class="pre">SinCosPositionalEncoding.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.position_encodings.SinCosPositionalEncoding.forward"><code class="docutils literal notranslate"><span class="pre">SinCosPositionalEncoding.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.position_encodings.SinCosPositionalEncoding.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">SinCosPositionalEncoding.init_weights_and_state()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.research.position_encodings.FixedBasePositionalEncoding"><code class="docutils literal notranslate"><span class="pre">FixedBasePositionalEncoding</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.position_encodings.FixedBasePositionalEncoding.__init__"><code class="docutils literal notranslate"><span class="pre">FixedBasePositionalEncoding.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.position_encodings.FixedBasePositionalEncoding.forward"><code class="docutils literal notranslate"><span class="pre">FixedBasePositionalEncoding.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.position_encodings.FixedBasePositionalEncoding.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">FixedBasePositionalEncoding.init_weights_and_state()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.research.position_encodings.threefry_2x32_prf"><code class="docutils literal notranslate"><span class="pre">threefry_2x32_prf()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.research.position_encodings.threefry_2x32_prange"><code class="docutils literal notranslate"><span class="pre">threefry_2x32_prange()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.research.position_encodings.InfinitePositionalEncoding"><code class="docutils literal notranslate"><span class="pre">InfinitePositionalEncoding</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.position_encodings.InfinitePositionalEncoding.__init__"><code class="docutils literal notranslate"><span class="pre">InfinitePositionalEncoding.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.position_encodings.InfinitePositionalEncoding.forward"><code class="docutils literal notranslate"><span class="pre">InfinitePositionalEncoding.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.position_encodings.InfinitePositionalEncoding.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">InfinitePositionalEncoding.init_weights_and_state()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.layers.html#trax.layers.research.position_encodings.TimeBinPositionalEncoding"><code class="docutils literal notranslate"><span class="pre">TimeBinPositionalEncoding</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.position_encodings.TimeBinPositionalEncoding.num_features"><code class="docutils literal notranslate"><span class="pre">TimeBinPositionalEncoding.num_features</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.position_encodings.TimeBinPositionalEncoding.__init__"><code class="docutils literal notranslate"><span class="pre">TimeBinPositionalEncoding.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.position_encodings.TimeBinPositionalEncoding.forward"><code class="docutils literal notranslate"><span class="pre">TimeBinPositionalEncoding.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.layers.html#trax.layers.research.position_encodings.TimeBinPositionalEncoding.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">TimeBinPositionalEncoding.init_weights_and_state()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="trax.models.html">models.*</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="trax.models.html#module-trax.models.atari_cnn">atari_cnn</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.atari_cnn.AtariCnn"><code class="docutils literal notranslate"><span class="pre">AtariCnn()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.atari_cnn.AtariCnnBody"><code class="docutils literal notranslate"><span class="pre">AtariCnnBody()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.atari_cnn.FrameStackMLP"><code class="docutils literal notranslate"><span class="pre">FrameStackMLP()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trax.models.html#module-trax.models.mlp">mlp</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.mlp.MLP"><code class="docutils literal notranslate"><span class="pre">MLP()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trax.models.html#module-trax.models.neural_gpu">neural_gpu</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.neural_gpu.SaturationCost"><code class="docutils literal notranslate"><span class="pre">SaturationCost()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.neural_gpu.DiagonalGate"><code class="docutils literal notranslate"><span class="pre">DiagonalGate()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.neural_gpu.ConvDiagonalGRU"><code class="docutils literal notranslate"><span class="pre">ConvDiagonalGRU()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.neural_gpu.NeuralGPU"><code class="docutils literal notranslate"><span class="pre">NeuralGPU()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trax.models.html#module-trax.models.resnet">resnet</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.resnet.ConvBlock"><code class="docutils literal notranslate"><span class="pre">ConvBlock()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.resnet.IdentityBlock"><code class="docutils literal notranslate"><span class="pre">IdentityBlock()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.resnet.Resnet50"><code class="docutils literal notranslate"><span class="pre">Resnet50()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.resnet.WideResnetBlock"><code class="docutils literal notranslate"><span class="pre">WideResnetBlock()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.resnet.WideResnetGroup"><code class="docutils literal notranslate"><span class="pre">WideResnetGroup()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.resnet.WideResnet"><code class="docutils literal notranslate"><span class="pre">WideResnet()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trax.models.html#module-trax.models.rl">rl</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.rl.Policy"><code class="docutils literal notranslate"><span class="pre">Policy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.rl.Value"><code class="docutils literal notranslate"><span class="pre">Value()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.rl.PolicyAndValue"><code class="docutils literal notranslate"><span class="pre">PolicyAndValue()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.rl.Quality"><code class="docutils literal notranslate"><span class="pre">Quality()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trax.models.html#module-trax.models.rnn">rnn</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.rnn.RNNLM"><code class="docutils literal notranslate"><span class="pre">RNNLM()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.rnn.GRULM"><code class="docutils literal notranslate"><span class="pre">GRULM()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.rnn.LSTMSeq2SeqAttn"><code class="docutils literal notranslate"><span class="pre">LSTMSeq2SeqAttn()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trax.models.html#module-trax.models.transformer">transformer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.transformer.TransformerEncoder"><code class="docutils literal notranslate"><span class="pre">TransformerEncoder()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.transformer.TransformerDecoder"><code class="docutils literal notranslate"><span class="pre">TransformerDecoder()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.transformer.TransformerLM"><code class="docutils literal notranslate"><span class="pre">TransformerLM()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.transformer.Transformer"><code class="docutils literal notranslate"><span class="pre">Transformer()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trax.models.html#module-trax.models.reformer.reformer">reformer.reformer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.reformer.reformer.DecoderBlock"><code class="docutils literal notranslate"><span class="pre">DecoderBlock()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.reformer.reformer.ReformerLM"><code class="docutils literal notranslate"><span class="pre">ReformerLM()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.reformer.reformer.ReformerShortenLM"><code class="docutils literal notranslate"><span class="pre">ReformerShortenLM()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.reformer.reformer.EncoderBlock"><code class="docutils literal notranslate"><span class="pre">EncoderBlock()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.reformer.reformer.EncoderDecoderBlock"><code class="docutils literal notranslate"><span class="pre">EncoderDecoderBlock()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.reformer.reformer.Reformer"><code class="docutils literal notranslate"><span class="pre">Reformer()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trax.models.html#module-trax.models.research.bert">research.bert</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.research.bert.AddBias"><code class="docutils literal notranslate"><span class="pre">AddBias</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.models.html#trax.models.research.bert.AddBias.forward"><code class="docutils literal notranslate"><span class="pre">AddBias.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.models.html#trax.models.research.bert.AddBias.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">AddBias.init_weights_and_state()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.research.bert.BERTClassifierHead"><code class="docutils literal notranslate"><span class="pre">BERTClassifierHead()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.research.bert.BERTRegressionHead"><code class="docutils literal notranslate"><span class="pre">BERTRegressionHead()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.research.bert.BERTMLMHead"><code class="docutils literal notranslate"><span class="pre">BERTMLMHead()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.research.bert.BERTPretrainingLoss"><code class="docutils literal notranslate"><span class="pre">BERTPretrainingLoss()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.research.bert.BERTPretrainingHead"><code class="docutils literal notranslate"><span class="pre">BERTPretrainingHead()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.research.bert.BERT"><code class="docutils literal notranslate"><span class="pre">BERT()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.models.html#trax.models.research.bert.PretrainedBERT"><code class="docutils literal notranslate"><span class="pre">PretrainedBERT</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.models.html#trax.models.research.bert.PretrainedBERT.__init__"><code class="docutils literal notranslate"><span class="pre">PretrainedBERT.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.models.html#trax.models.research.bert.PretrainedBERT.download_model"><code class="docutils literal notranslate"><span class="pre">PretrainedBERT.download_model()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.models.html#trax.models.research.bert.PretrainedBERT.init_weights_and_state"><code class="docutils literal notranslate"><span class="pre">PretrainedBERT.init_weights_and_state()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trax.models.html#research-skipping-transformer">research.skipping_transformer</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="trax.data.html">data.*</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="trax.data.html#module-trax.data.preprocessing.inputs">preprocessing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.Serial"><code class="docutils literal notranslate"><span class="pre">Serial()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.unsupervised_preprocessors"><code class="docutils literal notranslate"><span class="pre">unsupervised_preprocessors()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.NextSentencePrediction"><code class="docutils literal notranslate"><span class="pre">NextSentencePrediction()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.Parallel"><code class="docutils literal notranslate"><span class="pre">Parallel()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.Shuffle"><code class="docutils literal notranslate"><span class="pre">Shuffle()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.Batch"><code class="docutils literal notranslate"><span class="pre">Batch()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.Dup"><code class="docutils literal notranslate"><span class="pre">Dup()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.FilterEmptyExamples"><code class="docutils literal notranslate"><span class="pre">FilterEmptyExamples()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.FilterByLength"><code class="docutils literal notranslate"><span class="pre">FilterByLength()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.TruncateToLength"><code class="docutils literal notranslate"><span class="pre">TruncateToLength()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.PadToLength"><code class="docutils literal notranslate"><span class="pre">PadToLength()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.ConcatInputsTargets"><code class="docutils literal notranslate"><span class="pre">ConcatInputsTargets()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.SqueezeTargets"><code class="docutils literal notranslate"><span class="pre">SqueezeTargets()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.LM1BFilterByLength"><code class="docutils literal notranslate"><span class="pre">LM1BFilterByLength()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.LMTokenPreprocess"><code class="docutils literal notranslate"><span class="pre">LMTokenPreprocess()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.RandomSplitText"><code class="docutils literal notranslate"><span class="pre">RandomSplitText()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.FilterByLengthMap"><code class="docutils literal notranslate"><span class="pre">FilterByLengthMap()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.TruncateByLengthMap"><code class="docutils literal notranslate"><span class="pre">TruncateByLengthMap()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.PadToLengthMap"><code class="docutils literal notranslate"><span class="pre">PadToLengthMap()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.AddEOS"><code class="docutils literal notranslate"><span class="pre">AddEOS()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.BucketByLength"><code class="docutils literal notranslate"><span class="pre">BucketByLength()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.BucketByLengthFromBatcher"><code class="docutils literal notranslate"><span class="pre">BucketByLengthFromBatcher()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.MLM"><code class="docutils literal notranslate"><span class="pre">MLM()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.PrefixLM"><code class="docutils literal notranslate"><span class="pre">PrefixLM()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.ConcatenateToLMInput"><code class="docutils literal notranslate"><span class="pre">ConcatenateToLMInput()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.CastTo"><code class="docutils literal notranslate"><span class="pre">CastTo()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.AppendValue"><code class="docutils literal notranslate"><span class="pre">AppendValue()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.AddLossWeights"><code class="docutils literal notranslate"><span class="pre">AddLossWeights()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.UnBatch"><code class="docutils literal notranslate"><span class="pre">UnBatch()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.Prefetch"><code class="docutils literal notranslate"><span class="pre">Prefetch()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.UniformlySeek"><code class="docutils literal notranslate"><span class="pre">UniformlySeek()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.CountAndSkip"><code class="docutils literal notranslate"><span class="pre">CountAndSkip()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.Log"><code class="docutils literal notranslate"><span class="pre">Log()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.ConvertToUnicode"><code class="docutils literal notranslate"><span class="pre">ConvertToUnicode()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.SentencePieceTokenize"><code class="docutils literal notranslate"><span class="pre">SentencePieceTokenize()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.Rekey"><code class="docutils literal notranslate"><span class="pre">Rekey()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.SentencePieceTokenizePairs"><code class="docutils literal notranslate"><span class="pre">SentencePieceTokenizePairs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.DictToTuple"><code class="docutils literal notranslate"><span class="pre">DictToTuple()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.GenericTextPreprocess"><code class="docutils literal notranslate"><span class="pre">GenericTextPreprocess()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.SquadTextPreprocess"><code class="docutils literal notranslate"><span class="pre">SquadTextPreprocess()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.ClassificationVector"><code class="docutils literal notranslate"><span class="pre">ClassificationVector()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.batch"><code class="docutils literal notranslate"><span class="pre">batch()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.bucket_by_length"><code class="docutils literal notranslate"><span class="pre">bucket_by_length()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.add_loss_weights"><code class="docutils literal notranslate"><span class="pre">add_loss_weights()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.count_and_skip"><code class="docutils literal notranslate"><span class="pre">count_and_skip()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.generator_process"><code class="docutils literal notranslate"><span class="pre">generator_process()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.shuffle"><code class="docutils literal notranslate"><span class="pre">shuffle()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.pad_tf_tensors"><code class="docutils literal notranslate"><span class="pre">pad_tf_tensors()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.pad_np_tensors"><code class="docutils literal notranslate"><span class="pre">pad_np_tensors()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.pad_jax_arrays"><code class="docutils literal notranslate"><span class="pre">pad_jax_arrays()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.pad_to_max_dims"><code class="docutils literal notranslate"><span class="pre">pad_to_max_dims()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.generate_random_noise_mask"><code class="docutils literal notranslate"><span class="pre">generate_random_noise_mask()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.consume_noise_mask"><code class="docutils literal notranslate"><span class="pre">consume_noise_mask()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.generate_sequential_chunks"><code class="docutils literal notranslate"><span class="pre">generate_sequential_chunks()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.addition_input_stream"><code class="docutils literal notranslate"><span class="pre">addition_input_stream()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.make_additional_stream"><code class="docutils literal notranslate"><span class="pre">make_additional_stream()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.make_parallel_stream"><code class="docutils literal notranslate"><span class="pre">make_parallel_stream()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.classification_vector"><code class="docutils literal notranslate"><span class="pre">classification_vector()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.random_spans_noise_mask"><code class="docutils literal notranslate"><span class="pre">random_spans_noise_mask()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.to_unicode"><code class="docutils literal notranslate"><span class="pre">to_unicode()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.lower_endian_to_number"><code class="docutils literal notranslate"><span class="pre">lower_endian_to_number()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.number_to_lower_endian"><code class="docutils literal notranslate"><span class="pre">number_to_lower_endian()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.random_number_lower_endian"><code class="docutils literal notranslate"><span class="pre">random_number_lower_endian()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.save_data_counters"><code class="docutils literal notranslate"><span class="pre">save_data_counters()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.load_data_counters"><code class="docutils literal notranslate"><span class="pre">load_data_counters()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.buckets_for_length"><code class="docutils literal notranslate"><span class="pre">buckets_for_length()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.length_fn_"><code class="docutils literal notranslate"><span class="pre">length_fn_()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.StreamBundle"><code class="docutils literal notranslate"><span class="pre">StreamBundle</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.StreamBundle.train_stream"><code class="docutils literal notranslate"><span class="pre">StreamBundle.train_stream</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.StreamBundle.eval_stream"><code class="docutils literal notranslate"><span class="pre">StreamBundle.eval_stream</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.StreamBundle.train_eval_stream"><code class="docutils literal notranslate"><span class="pre">StreamBundle.train_eval_stream</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.StreamBundle.__init__"><code class="docutils literal notranslate"><span class="pre">StreamBundle.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.make_streams"><code class="docutils literal notranslate"><span class="pre">make_streams()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.random_stream"><code class="docutils literal notranslate"><span class="pre">random_stream()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.random_inputs"><code class="docutils literal notranslate"><span class="pre">random_inputs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.sequence_copy_streams"><code class="docutils literal notranslate"><span class="pre">sequence_copy_streams()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.sequence_copy_train_stream"><code class="docutils literal notranslate"><span class="pre">sequence_copy_train_stream()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.sequence_copy_eval_stream"><code class="docutils literal notranslate"><span class="pre">sequence_copy_eval_stream()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.simple_sequence_copy_streams"><code class="docutils literal notranslate"><span class="pre">simple_sequence_copy_streams()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.simple_sequence_copy_train_stream"><code class="docutils literal notranslate"><span class="pre">simple_sequence_copy_train_stream()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.simple_sequence_copy_eval_stream"><code class="docutils literal notranslate"><span class="pre">simple_sequence_copy_eval_stream()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.addition_streams"><code class="docutils literal notranslate"><span class="pre">addition_streams()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.addition_train_stream"><code class="docutils literal notranslate"><span class="pre">addition_train_stream()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.addition_eval_stream"><code class="docutils literal notranslate"><span class="pre">addition_eval_stream()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.sine_stream"><code class="docutils literal notranslate"><span class="pre">sine_stream()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.sine_train_stream"><code class="docutils literal notranslate"><span class="pre">sine_train_stream()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.data.html#trax.data.preprocessing.inputs.sine_eval_stream"><code class="docutils literal notranslate"><span class="pre">sine_eval_stream()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trax.data.html#tf-inputs">tf_inputs</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="trax.optimizers.html">optimizers.*</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="trax.optimizers.html#module-trax.optimizers.adafactor">adafactor</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.adafactor.Adafactor"><code class="docutils literal notranslate"><span class="pre">Adafactor</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.adafactor.Adafactor.__init__"><code class="docutils literal notranslate"><span class="pre">Adafactor.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.adafactor.Adafactor.init"><code class="docutils literal notranslate"><span class="pre">Adafactor.init()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.adafactor.Adafactor.update"><code class="docutils literal notranslate"><span class="pre">Adafactor.update()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trax.optimizers.html#module-trax.optimizers.adam">adam</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.adam.Adam"><code class="docutils literal notranslate"><span class="pre">Adam</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.adam.Adam.__init__"><code class="docutils literal notranslate"><span class="pre">Adam.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.adam.Adam.init"><code class="docutils literal notranslate"><span class="pre">Adam.init()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.adam.Adam.update"><code class="docutils literal notranslate"><span class="pre">Adam.update()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trax.optimizers.html#module-trax.optimizers.base">base</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.base.Optimizer"><code class="docutils literal notranslate"><span class="pre">Optimizer</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.base.Optimizer.__init__"><code class="docutils literal notranslate"><span class="pre">Optimizer.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.base.Optimizer.init"><code class="docutils literal notranslate"><span class="pre">Optimizer.init()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.base.Optimizer.update"><code class="docutils literal notranslate"><span class="pre">Optimizer.update()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.base.Optimizer.slots"><code class="docutils literal notranslate"><span class="pre">Optimizer.slots</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.base.Optimizer.opt_params"><code class="docutils literal notranslate"><span class="pre">Optimizer.opt_params</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.base.Optimizer.tree_init"><code class="docutils literal notranslate"><span class="pre">Optimizer.tree_init()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.base.Optimizer.tree_update"><code class="docutils literal notranslate"><span class="pre">Optimizer.tree_update()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.base.l2_norm"><code class="docutils literal notranslate"><span class="pre">l2_norm()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.base.clip_grads"><code class="docutils literal notranslate"><span class="pre">clip_grads()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trax.optimizers.html#module-trax.optimizers.momentum">momentum</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.momentum.Momentum"><code class="docutils literal notranslate"><span class="pre">Momentum</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.momentum.Momentum.__init__"><code class="docutils literal notranslate"><span class="pre">Momentum.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.momentum.Momentum.init"><code class="docutils literal notranslate"><span class="pre">Momentum.init()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.momentum.Momentum.update"><code class="docutils literal notranslate"><span class="pre">Momentum.update()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trax.optimizers.html#module-trax.optimizers.rms_prop">rms_prop</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.rms_prop.RMSProp"><code class="docutils literal notranslate"><span class="pre">RMSProp</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.rms_prop.RMSProp.__init__"><code class="docutils literal notranslate"><span class="pre">RMSProp.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.rms_prop.RMSProp.init"><code class="docutils literal notranslate"><span class="pre">RMSProp.init()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.rms_prop.RMSProp.update"><code class="docutils literal notranslate"><span class="pre">RMSProp.update()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trax.optimizers.html#module-trax.optimizers.sm3">sm3</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.sm3.MomentumType"><code class="docutils literal notranslate"><span class="pre">MomentumType</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.sm3.MomentumType.EMA"><code class="docutils literal notranslate"><span class="pre">MomentumType.EMA</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.sm3.MomentumType.HEAVY_BALL"><code class="docutils literal notranslate"><span class="pre">MomentumType.HEAVY_BALL</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.sm3.MomentumType.NESTEROV"><code class="docutils literal notranslate"><span class="pre">MomentumType.NESTEROV</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.sm3.SM3"><code class="docutils literal notranslate"><span class="pre">SM3</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.sm3.SM3.__init__"><code class="docutils literal notranslate"><span class="pre">SM3.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.sm3.SM3.init"><code class="docutils literal notranslate"><span class="pre">SM3.init()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="trax.optimizers.html#trax.optimizers.sm3.SM3.update"><code class="docutils literal notranslate"><span class="pre">SM3.update()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="trax.supervised.html">learning.*</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="trax.supervised.html#module-trax.learning.supervised.decoding">decoding</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="trax.supervised.html#trax.learning.supervised.decoding.autoregressive_sample_stream"><code class="docutils literal notranslate"><span class="pre">autoregressive_sample_stream()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.supervised.html#trax.learning.supervised.decoding.autoregressive_sample"><code class="docutils literal notranslate"><span class="pre">autoregressive_sample()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="trax.supervised.html#trax.learning.supervised.decoding.beam_search"><code class="docutils literal notranslate"><span class="pre">beam_search()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="trax.supervised.html#module-trax.learning.supervised.lr_schedules">lr_schedules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="trax.supervised.html#training">training</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="trax.rl.html">rl.*</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="trax.rl.html#actor-critic">actor_critic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="trax.rl.html#actor-critic-joint">actor_critic_joint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="trax.rl.html#advantages">advantages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="trax.rl.html#distributions">distributions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="trax.rl.html#normalization">normalization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="trax.rl.html#rl-layers">rl_layers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="trax.rl.html#serialization-utils">serialization_utils</a></li>
+<li class="toctree-l2"><a class="reference internal" href="trax.rl.html#space-serializer">space_serializer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="trax.rl.html#task">task</a></li>
+<li class="toctree-l2"><a class="reference internal" href="trax.rl.html#training">training</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<section id="shapes">
+<h2>shapes<a class="headerlink" href="#shapes" title="Link to this heading"></a></h2>
+</section>
+<section id="trainer">
+<h2>trainer<a class="headerlink" href="#trainer" title="Link to this heading"></a></h2>
+</section>
+<section id="rl-trainer">
+<h2>rl_trainer<a class="headerlink" href="#rl-trainer" title="Link to this heading"></a></h2>
+</section>
+<section id="trax2keras">
+<h2>trax2keras<a class="headerlink" href="#trax2keras" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="notebooks/layers_intro.html" class="btn btn-neutral float-left" title="Trax Layers Intro" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="trax.fastmath.html" class="btn btn-neutral float-right" title="trax.fastmath" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, Google LLC..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
