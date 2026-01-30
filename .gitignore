@@ -1,2 +1,4 @@
 /resources/data/corpus/test/wmt14_translate
 resources/data/serialized/graphs/
+**/__pycache__/
+__pycache__/
