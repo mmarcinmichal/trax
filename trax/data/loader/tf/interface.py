@@ -19,7 +19,7 @@ import os
 
 from dataclasses import dataclass
 from typing import Optional, Tuple
-from trax.data.loader.tf import raw_json as raw_json_loader 
+from trax.data.loader.tf import json as raw_json_loader
 
 import jax
 import tensorflow as tf
@@ -233,7 +233,7 @@ def _train_and_eval_dataset(
             target_key="label",
         )
         return train_ds, eval_ds, keys
-    
+
     train = None
     if train_split is not None:
         train = tfds.load(

@@ -8,12 +8,14 @@
 # The produced examples are dicts with keys "inputs" and "targets".
 from __future__ import annotations
 
-import os
 import glob
 import json
-from typing import Optional, Tuple, List
+import os
+
+from typing import List, Optional, Tuple
 
 import tensorflow as tf
+
 
 def _parse_json_line(line: tf.Tensor, input_key: str = "text", target_key: str = "label", single_file: bool = False):
     """Parse a single JSON line (tf.string) into a dict {'inputs': ..., 'targets': ...}.
