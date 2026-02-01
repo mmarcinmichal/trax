@@ -6,4 +6,4 @@ model:
   MLP:
     _target_: "trax.models.MLP"
     _partial_: true
-    layer_widths: "(128, 64)"
+    layer_widths: [128, 64]

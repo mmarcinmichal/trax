@@ -98,6 +98,13 @@ def train_with_hydra(cfg, output_dir):
     if not isinstance(train_cfg, dict):
         train_cfg = {}
 
+    if isinstance(train_cfg.get("inputs"), dict):
+        from trax.data.preprocessing.inputs import StreamBundle
+
+        inputs_dict = train_cfg.get("inputs", {})
+        if "train_stream" in inputs_dict:
+            train_cfg["inputs"] = StreamBundle(**inputs_dict)
+
     inputs = train_cfg.get("inputs") or _inst("data.make_streams")
     model = train_cfg.get("model") or _inst("model.model_fn")
     optimizer = train_cfg.get("optimizer") or _inst("optim.optimizer")

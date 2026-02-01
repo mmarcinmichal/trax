@@ -178,7 +178,7 @@ def main():
     for epoch in range(1, 1_600):
         key = jax.random.PRNGKey(epoch)
         base_rng = fastmath.random.get_prng(
-            fastmath.random.randint(key, shape=(), minval=1, maxval=200)
+            fastmath.random.randint(key, shape=(), minval=1, maxval=1_600*1_600)
         )
 
         train_model(

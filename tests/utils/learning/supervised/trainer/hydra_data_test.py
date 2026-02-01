@@ -95,6 +95,19 @@ def _apply_cfg_updates_if_present(cfg, updates, prefix=""):
             OmegaConf.update(cfg, full_key, value, merge=not isinstance(value, dict))
 
 
+def _find_gcs_paths(node, paths):
+    if isinstance(node, str) and node.startswith("gs://"):
+        paths.add(node)
+        return
+    if isinstance(node, dict):
+        for value in node.values():
+            _find_gcs_paths(value, paths)
+        return
+    if isinstance(node, (list, tuple)):
+        for value in node:
+            _find_gcs_paths(value, paths)
+
+
 def _normalize_data_cfg(cfg):
     data_node = OmegaConf.select(cfg, "data.bert.data") or OmegaConf.select(cfg, "data")
     if data_node is None:
@@ -350,6 +363,14 @@ class HydraDataTest(absltest.TestCase):
         expected_batch_size=None,
     ):
         with _data_cfg(config_name, updates) as cfg:
+            gcs_paths = set()
+            _find_gcs_paths(OmegaConf.to_container(cfg, resolve=False), gcs_paths)
+            for path in sorted(gcs_paths):
+                try:
+                    if not tf.io.gfile.exists(path):
+                        self.skipTest(f"GCS path unavailable: {path}")
+                except tf.errors.OpError:
+                    self.skipTest(f"GCS path unavailable: {path}")
             with mock.patch(
                 "trax.data.loader.tf.base.data_streams",
                 return_value=streams,
@@ -1195,6 +1216,16 @@ class HydraDataTest(absltest.TestCase):
                         continue
                     raise
                 try:
+                    gcs_paths = set()
+                    _find_gcs_paths(
+                        OmegaConf.to_container(cfg, resolve=False), gcs_paths
+                    )
+                    for path in sorted(gcs_paths):
+                        try:
+                            if not tf.io.gfile.exists(path):
+                                self.skipTest(f"GCS path unavailable: {path}")
+                        except tf.errors.OpError:
+                            self.skipTest(f"GCS path unavailable: {path}")
                     if OmegaConf.select(cfg, "data.make_streams") is None:
                         continue
                     if OmegaConf.select(cfg, "data.train.Stream") is None:
