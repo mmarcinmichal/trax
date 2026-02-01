@@ -138,6 +138,21 @@ def _train_and_eval_dataset(
         return _train_and_eval_dataset_v1(
             dataset_name[4:], data_dir, train_shuffle_files, eval_shuffle_files
         )
+    # If dataset_name uses our raw_json: convention, handle locally before TFDS.
+    # Example: dataset_name='raw_json:mydataset', data_dir points to repository root
+    # (so tests/resources/data/corpus/test/raw_json/<dataset_id>/... works).
+    if isinstance(dataset_name, str) and dataset_name.startswith("raw_json:"):
+        dataset_id = dataset_name.split(":", 1)[1]
+        train_ds, eval_ds, keys = raw_json_loader.load_raw_json_datasets(
+            dataset_id,
+            data_dir,
+            jsonl=True,
+            train_shuffle_files=train_shuffle_files,
+            eval_shuffle_files=eval_shuffle_files,
+            input_key="text",
+            target_key="label",
+        )
+        return train_ds, eval_ds, keys
     dataset_builder = tfds.builder(dataset_name, data_dir=data_dir)
     info = dataset_builder.info
     splits = dataset_builder.info.splits
@@ -217,22 +232,6 @@ def _train_and_eval_dataset(
         eval_split = tfds.Split.VALIDATION
         if tfds.Split.VALIDATION not in splits:
             eval_split = tfds.Split.TEST
-
-    # If dataset_name uses our raw_json: convention, handle locally.
-    # Example: dataset_name='raw_json:mydataset', data_dir points to repository root
-    # (so tests/resources/data/corpus/test/raw_json/<dataset_id>/... works).
-    if isinstance(dataset_name, str) and dataset_name.startswith("raw_json:"):
-        dataset_id = dataset_name.split(":", 1)[1]
-        train_ds, eval_ds, keys = raw_json_loader.load_raw_json_datasets(
-            dataset_id,
-            data_dir,
-            jsonl=True,
-            train_shuffle_files=train_shuffle_files,
-            eval_shuffle_files=eval_shuffle_files,
-            input_key="text",
-            target_key="label",
-        )
-        return train_ds, eval_ds, keys
 
     train = None
     if train_split is not None:
