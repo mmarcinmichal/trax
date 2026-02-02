@@ -22,7 +22,7 @@ from absl.testing import absltest
 
 from trax.data.encoder import encoder as encoder
 from trax.learning.training import trainer
-from trax.utils import test_utils
+from utils.tests import utils
 
 pkg_dir, _ = os.path.split(__file__)
 _TEST_VOCAB = os.path.normpath(os.path.join(pkg_dir, "../../../resources/data/vocabs/test"))

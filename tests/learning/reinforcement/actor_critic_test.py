@@ -25,7 +25,7 @@ from trax import optimizers as opt
 from trax.learning.reinforcement import actor_critic, advantages
 from trax.learning.reinforcement import task as rl_task
 from trax.learning.supervised import lr_schedules
-from trax.utils import test_utils
+from utils.tests import utils
 
 
 class ActorCriticTest(parameterized.TestCase):

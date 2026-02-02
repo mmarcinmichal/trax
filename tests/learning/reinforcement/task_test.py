@@ -23,7 +23,7 @@ import numpy as np
 from absl.testing import absltest
 
 from trax.learning.reinforcement import task as rl_task
-from trax.utils import test_utils
+from utils.tests import utils
 
 
 class DummyEnv:

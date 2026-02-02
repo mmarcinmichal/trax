@@ -31,7 +31,7 @@ from trax import models
 from trax.learning.reinforcement import serialization_utils, space_serializer
 from trax.learning.supervised import callbacks, lr_schedules
 from trax.learning.training import task, trainer
-from trax.utils import test_utils
+from utils.tests import utils
 
 
 def random_inputs(seq_len, batch_size):

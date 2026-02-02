@@ -7,8 +7,7 @@ from typing import Callable, Dict, Optional
 
 import tensorflow as tf
 
-from absl import logging
-
+from trax.utils import logging as trax_logging
 from trax.utils.board import jaxboard
 
 
@@ -153,13 +152,13 @@ class MlflowMetricsSink(MetricsSink):
             self._mlflow = mlflow
         except Exception:  # pylint: disable=broad-except
             self._mlflow = None
-            logging.warning("MLflow not available; metrics will be logged locally only.")
+            trax_logging.warning("MLflow not available; metrics will be logged locally only.")
 
     def log_scalar(self, name: str, value, step: int):
         if self._mlflow:
             self._mlflow.log_metric(self.prefix + name, value, step=step)
         else:
-            logging.info("[mlflow stub] %s%d=%s", self.prefix + name, step, value)
+            trax_logging.info("[mlflow stub] %s%d=%s", self.prefix + name, step, value)
 
     def log_image(self, name: str, value, step: int):
         del name, value, step
@@ -174,13 +173,13 @@ class WandbMetricsSink(MetricsSink):
             self._wandb = wandb
         except Exception:  # pylint: disable=broad-except
             self._wandb = None
-            logging.warning("Weights & Biases not available; metrics will be logged locally only.")
+            trax_logging.warning("Weights & Biases not available; metrics will be logged locally only.")
 
     def log_scalar(self, name: str, value, step: int):
         if self._wandb:
             self._wandb.log({self.prefix + name: value, "step": step})
         else:
-            logging.info("[wandb stub] %s%d=%s", self.prefix + name, step, value)
+            trax_logging.info("[wandb stub] %s%d=%s", self.prefix + name, step, value)
 
     def log_image(self, name: str, value, step: int):
         del name, value, step

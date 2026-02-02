@@ -22,7 +22,8 @@ import gin
 import jax
 import tensorflow.compat.v2 as tf
 
-from absl import app, flags, logging
+from absl import app, flags
+from trax.utils import logging as trax_logging
 from jax.lib import xla_extension as xc
 
 from trax import fastmath
@@ -92,11 +93,11 @@ def _make_jax_gpu_cluster(host_id, server_ip, n_hosts, server_port=5005):
     """Make JAX GPU Cluster."""
     addr = f"{server_ip}:{server_port}"
     if host_id == 0:
-        logging.info("starting service on %s", addr)
+        trax_logging.info("starting service on %s", addr)
         service = xc.get_distributed_runtime_service(addr, n_hosts)
         atexit.register(service.shutdown)
 
-    logging.info("connecting to service on %s", addr)
+    trax_logging.info("connecting to service on %s", addr)
     dist_client = xc.get_distributed_runtime_client(addr, host_id)
     dist_client.connect()
     atexit.register(dist_client.shutdown)
@@ -113,7 +114,7 @@ train = supervised_trainer.train
 
 
 def main(_):
-    logging.set_verbosity(FLAGS.log_level)
+    trax_logging.set_verbosity(FLAGS.log_level)
 
     _tf_setup_from_flags()
     if FLAGS.use_hydra:
@@ -146,7 +147,7 @@ def main(_):
         else:
             train(output_dir=output_dir)
 
-    logging.info("Finished training.")
+    trax_logging.info("Finished training.")
 
 
 if __name__ == "__main__":

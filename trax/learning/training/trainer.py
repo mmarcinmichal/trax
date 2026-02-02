@@ -46,8 +46,6 @@ import numpy as np
 import psutil
 import tensorflow as tf
 
-from absl import logging
-
 import trax.utils.board as board
 
 from trax import fastmath
@@ -60,6 +58,7 @@ from trax.layers import base
 from trax.learning.supervised import common
 from trax.learning.supervised import lr_schedules as lr
 from trax.optimizers import base as optim_base
+from trax.utils import logging as trax_logging
 from trax.utils import shapes
 
 from .engines import base as trainer_base
@@ -350,7 +349,7 @@ class Loop:
             and self._n_hosts > 1
             and not use_memory_efficient_trainer
         ):
-            logging.info("Syncing weights/state across %d hosts.", self._n_hosts)
+            trax_logging.info("Syncing weights/state across %d hosts.", self._n_hosts)
             # Do self._sync_weights_and_state_across_hosts() but layer-by-layer
             # to save memory.
             blocks, last_layer = trainer_base.extract_reversible_blocks([self._model])
@@ -375,7 +374,7 @@ class Loop:
 
         # Sync layers weights/state in memory effcient trainers layers.
         if random_seed is None and self._n_hosts > 1 and use_memory_efficient_trainer:
-            logging.info("Syncing layers across %d hosts.", self._n_hosts)
+            trax_logging.info("Syncing layers across %d hosts.", self._n_hosts)
             for layer in self._trainer_per_task[0].all_layers:
                 weights_and_state = (layer.weights, layer.state)
                 if not _is_empty(weights_and_state):
@@ -528,15 +527,15 @@ class Loop:
     def _sync_weights_and_state_across_hosts(self):
         """Sync weights and state across all the hosts in the computation."""
 
-        if logging.vlog_is_on(1):
-            logging.debug(
+        if trax_logging.vlog_is_on(1):
+            trax_logging.debug(
                 "Input training weights shape: %s",
                 fastmath.nested_map(lambda x: x.shape, self._model.weights),
             )
-            logging.debug("Input training weights: %s", self._model.weights)
-            logging.debug("Input training state: %s", self._model.state)
-            logging.debug("Input eval weights: %s", self._eval_model.weights)
-            logging.debug("Input eval state: %s", self._eval_model.state)
+            trax_logging.debug("Input training weights: %s", self._model.weights)
+            trax_logging.debug("Input training state: %s", self._model.state)
+            trax_logging.debug("Input eval weights: %s", self._eval_model.weights)
+            trax_logging.debug("Input eval state: %s", self._eval_model.state)
 
         (
             self._model.weights,
@@ -556,15 +555,15 @@ class Loop:
             )
         )
 
-        if logging.vlog_is_on(1):
-            logging.debug(
+        if trax_logging.vlog_is_on(1):
+            trax_logging.debug(
                 "Output training weights shape: %s",
                 fastmath.nested_map(lambda x: x.shape, self._model.weights),
             )
-            logging.debug("Output training weights: %s", self._model.weights)
-            logging.debug("Output training state: %s", self._model.state)
-            logging.debug("Output eval weights: %s", self._eval_model.weights)
-            logging.debug("Output eval state: %s", self._eval_model.state)
+            trax_logging.debug("Output training weights: %s", self._model.weights)
+            trax_logging.debug("Output training state: %s", self._model.state)
+            trax_logging.debug("Output eval weights: %s", self._eval_model.weights)
+            trax_logging.debug("Output eval state: %s", self._eval_model.state)
 
     def run(self, n_steps=1):
         """Runs this training loop for n steps.
@@ -629,7 +628,7 @@ class Loop:
                 if self._permanent_checkpoint_manager.should_save(self.step):
                     self.save_checkpoint(f"model_{self.step}")
                 if self._eval_at(self.step):
-                    logging.info(
+                    trax_logging.info(
                         "cpu memory use (MB): %.2f",
                         process.memory_info().rss / float(1024 * 1024),
                     )
@@ -1214,10 +1213,8 @@ def num_devices(value=None):
 
 
 def log(s, stdout=True):
-    """Logs to TF logger and optionally stdout."""
-    tf.get_logger().info(s)
-    if stdout:
-        print(s)
+    """Logs and optionally echoes to stdout."""
+    trax_logging.info(s, stdout=stdout, also_log=False)
 
 
 def epochs(total_steps: int, steps_to_skip: int, epoch_steps: Iterable[int]):
@@ -1442,10 +1439,7 @@ def _at_step_1_and_every_nth_step(period):
 
 
 def _log(s, stdout=True):
-    logging.info(s)
-    if stdout:
-        print(s)
-        sys.stdout.flush()
+    trax_logging.info(s, stdout=stdout, also_log=False)
 
 
 def pickle_to_store(store, obj, file_path, gzip=False):
@@ -1477,7 +1471,7 @@ def _init_random_number_generators(seed=None):
     random.seed(seed)
     if seed is None:
         seed = random.randint(0, 2**31 - 1)
-    logging.info("using seed %d", seed)
+    trax_logging.info("using seed %d", seed)
     np.random.seed(seed)
     tf.random.set_seed(seed)
     return jax_random.get_prng(seed)
@@ -1507,7 +1501,7 @@ def init_host_and_devices(n_devices=None, random_seed=None):
         host_count = 1
     is_chief = host_id == 0
 
-    logging.info(
+    trax_logging.info(
         "Initializing hosts and devices: host_id %d, host_count %d, " "is_chief %d",
         host_id,
         host_count,
@@ -1630,4 +1624,3 @@ __all__ = [
     "pickle_to_store",
     "unpickle_from_store",
 ]
-

@@ -19,7 +19,7 @@ import copy
 import gin
 import gymnasium as gym
 
-from absl import logging
+from trax.utils import logging as trax_logging
 from jax import numpy as np
 
 
@@ -120,7 +120,7 @@ class BoxSpaceSerializer(SpaceSerializer):
         if not np.allclose(bounded_space.low, space.low) or not np.allclose(
             bounded_space.high, space.high
         ):
-            logging.warning(
+            trax_logging.warning(
                 "Space limits %s, %s out of bounds %s. Clipping to %s, %s.",
                 str(space.low),
                 str(space.high),

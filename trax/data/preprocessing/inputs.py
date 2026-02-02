@@ -85,7 +85,7 @@ import jax
 import numpy as np
 import tensorflow as tf
 
-from absl import logging
+from trax.utils import logging as trax_logging
 
 from trax import fastmath
 from trax.data.debugger import data_pipeline as debug_data_pipeline
@@ -363,7 +363,7 @@ def FilterEmptyExamples(axes=None, debug=False):  # pylint: disable=invalid-name
             if correct:
                 yield example
             elif debug:
-                logging.info("Filtered example: %r", example)
+                trax_logging.info("Filtered example: %r", example)
 
     return _filter_examples
 
@@ -962,7 +962,7 @@ def CastTo(
                     example[i] = example[i].astype(dtype)
                     dtype_mismatch = True
             if debug and dtype_mismatch and original_index_and_dtype:
-                logging.info(
+                trax_logging.info(
                     "dtype mismatch in example[%d] = %r was earlier: %r",
                     debug_count,
                     example,
@@ -1058,7 +1058,7 @@ def UniformlySeek(
     """Sets each host at (dataset_size/n_hosts)-th of the dataset."""
     if not dataset_size:
         dataset_size = 2**18  # 512 * 512
-        logging.error(
+        trax_logging.error(
             "No dataset size given to Uniformly seek, assuming: %d", dataset_size
         )
     assert name
@@ -1070,7 +1070,7 @@ def UniformlySeek(
         # Each host seeks to the appropriate point in the dataset.
         num_to_seek = int(host_id * each_host)
         start_time = time.time()
-        logging.info(
+        trax_logging.info(
             "Dataset[%s] host_id[%d] is seeking to position[%d]",
             name,
             host_id,
@@ -1078,7 +1078,7 @@ def UniformlySeek(
         )
         for _ in range(num_to_seek):
             next(generator)
-        logging.info(
+        trax_logging.info(
             "Dataset[%s] host_id[%d] reached position[%d]. " "Time taken [%s] seconds",
             name,
             host_id,
@@ -1108,8 +1108,7 @@ def Log(n_steps_per_example=1, only_shapes=True):  # pylint: disable=invalid-nam
             if only_shapes:
                 item_to_log = fastmath.nested_map(shapes.signature, example)
             if counter % n_steps_per_example == 0:
-                logging.info(str(item_to_log))
-                print(item_to_log)
+                trax_logging.info(str(item_to_log), stdout=True)
             counter += 1
             yield example
 
@@ -1351,7 +1350,7 @@ def batch(generator, batch_size):
                 )
             except ValueError as e:
                 for j in range(len(buf)):
-                    logging.error(
+                    trax_logging.error(
                         "Batch[%d][%d] input shape: %r output shape: %r",
                         i,
                         j,
@@ -1359,8 +1358,8 @@ def batch(generator, batch_size):
                         buf[j][1].shape,
                     )
                 for j in range(len(buf)):
-                    logging.error("Batch[%d][%d] input: %r", i, j, buf[j][0])
-                    logging.error("Batch[%d][%d] output: %r", i, j, buf[j][1])
+                    trax_logging.error("Batch[%d][%d] input: %r", i, j, buf[j][0])
+                    trax_logging.error("Batch[%d][%d] output: %r", i, j, buf[j][1])
                 raise e
             i += 1
             yield batched_example
@@ -1500,7 +1499,7 @@ def shuffle(samples, queue_size):
     if queue_size < 1:
         raise ValueError(f"Arg queue_size ({queue_size}) is less than 1.")
     if queue_size == 1:
-        logging.warning("Queue size of 1 results in no shuffling.")
+        trax_logging.warning("Queue size of 1 results in no shuffling.")
     queue = []
     try:
         # Prep: fill the queue.
@@ -1515,7 +1514,7 @@ def shuffle(samples, queue_size):
             queue[i] = sample
     except StopIteration:
         # Only get here if the initial queue fill fails.
-        logging.warning(
+        trax_logging.warning(
             "Not enough samples (%d) to fill initial queue (size %d).",
             len(queue),
             queue_size,
@@ -2149,7 +2148,7 @@ def load_data_counters(output_dir, host_id=None):
     host_id = jax.process_index() if host_id is None else host_id
     fname = os.path.join(output_dir, "data_counters%d.pkl" % host_id)
     if not tf.io.gfile.exists(fname):
-        logging.info("Did not load data counters as %s does not exist.", fname)
+        trax_logging.info("Did not load data counters as %s does not exist.", fname)
         return
     with tf.io.gfile.GFile(fname, "rb") as f:
         obj = pickle.load(f)

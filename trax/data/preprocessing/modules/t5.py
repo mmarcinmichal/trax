@@ -19,7 +19,7 @@ import random
 
 import gin
 import numpy as np
-from absl import logging
+from trax.utils import logging as trax_logging
 
 
 def t5_data():
@@ -30,7 +30,7 @@ def t5_data():
 
         module = t5.data
     except AttributeError as e:
-        logging.error("pip install t5")
+        trax_logging.error("pip install t5")
         raise e
     return module
 

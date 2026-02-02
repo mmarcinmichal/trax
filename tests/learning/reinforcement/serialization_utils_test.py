@@ -29,7 +29,8 @@ from trax.layers import base as layers_base
 from trax.learning.reinforcement import serialization_utils, space_serializer
 from learning.training import engines as loop
 from trax.models import transformer
-from trax.utils import shapes, test_utils
+from trax.utils import shapes
+from utils.tests import utils
 
 
 # pylint: disable=invalid-name

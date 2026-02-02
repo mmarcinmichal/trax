@@ -34,7 +34,8 @@ import faulthandler
 import gin
 import jax
 
-from absl import app, flags, logging
+from absl import app, flags
+from trax.utils import logging as trax_logging
 
 from tests.fastmath.jax.config import config
 from trax import fastmath
@@ -79,17 +80,17 @@ def train_rl(
     def light_training_loop():
         """Run the trainers for n_epochs and call close on it."""
         try:
-            logging.info("Starting RL training for %d epochs.", n_epochs)
+            trax_logging.info("Starting RL training for %d epochs.", n_epochs)
             trainer.run(n_epochs, n_epochs_is_total_epochs=True)
-            logging.info("Completed RL training for %d epochs.", n_epochs)
+            trax_logging.info("Completed RL training for %d epochs.", n_epochs)
             trainer.close()
-            logging.info("Trainer is now closed.")
+            trax_logging.info("Trainer is now closed.")
         except Exception as e:
             raise e
         finally:
-            logging.info("Encountered an exception, still calling trainers.close()")
+            trax_logging.info("Encountered an exception, still calling trainers.close()")
             trainer.close()
-            logging.info("Trainer is now closed.")
+            trax_logging.info("Trainer is now closed.")
 
     if FLAGS.jax_debug_nans or FLAGS.disable_jit:
         fastmath.disable_jit()
@@ -101,23 +102,23 @@ def train_rl(
 
 def main(argv):
     del argv
-    logging.info("Starting RL training.")
+    trax_logging.info("Starting RL training.")
 
     gin_configs = FLAGS.config if FLAGS.config is not None else []
     gin.enter_interactive_mode()
     gin.parse_config_files_and_bindings(FLAGS.config_file, gin_configs)
     gin.exit_interactive_mode()
 
-    logging.info("Gin config:")
-    logging.info(gin_configs)
+    trax_logging.info("Gin config:")
+    trax_logging.info(gin_configs)
 
     train_rl(output_dir=FLAGS.output_dir)
 
     # TODO(afrozm): This is for debugging.
-    logging.info("Dumping stack traces of all stacks.")
+    trax_logging.info("Dumping stack traces of all stacks.")
     faulthandler.dump_traceback(all_threads=True)
 
-    logging.info("Training is done, should exit.")
+    trax_logging.info("Training is done, should exit.")
 
 
 if __name__ == "__main__":

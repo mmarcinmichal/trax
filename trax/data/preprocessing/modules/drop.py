@@ -24,6 +24,7 @@ import gin
 import numpy as np
 import tensorflow_datasets as tfds
 
+from trax.utils import logging as trax_logging
 from trax.data.preprocessing.modules.math import (
     convert_float_to_mathqa,
     convert_to_subtract,
@@ -55,11 +56,15 @@ def CreateAnnotatedDropInputs(  # pylint: disable=invalid-name
         else:
             for filename in os.listdir(dataset_path):
                 if "json" in filename:
-                    print(f"Loading data from file {filename}")
+                    trax_logging.info(
+                        "Loading data from file %s", filename, stdout=True
+                    )
                     with open(os.path.join(dataset_path, filename), "r", encoding="utf-8") as handle:
                         for line in handle:
                             dataset.append(json.loads(line))
-        print(f"The total size of the dataset {len(dataset)}")
+        trax_logging.info(
+            "The total size of the dataset %s", len(dataset), stdout=True
+        )
         return dataset[: int(len(dataset) * percentile)]
 
     def drop_annotated_yield_examples(generator=None):

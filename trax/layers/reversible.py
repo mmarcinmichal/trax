@@ -27,7 +27,7 @@ Transformer](https://arxiv.org/abs/2001.04451).
 
 import jax
 
-from absl import logging
+from trax.utils import logging as trax_logging
 
 from trax import fastmath
 from trax.layers import base
@@ -194,8 +194,7 @@ class ReversiblePrintShape(ReversibleLayer):
     def forward(self, xs):
         shapes_and_dtypes = ", ".join([str(x.shape) + f"[{x.dtype}]" for x in xs])
         info = f"PrintShape: {self._msg}: [{shapes_and_dtypes}]"
-        print(info)
-        logging.info(info)
+        trax_logging.info(info, stdout=True)
         return xs
 
     def reverse(self, outputs, weights=(), state=(), new_state=(), rng=None):

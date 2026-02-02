@@ -33,7 +33,8 @@ from trax.learning.supervised import callbacks
 from trax.learning.training import trainer as training
 from trax.learning.training.utils import orchestration
 from trax.models import transformer
-from trax.utils import shapes, test_utils
+from trax.utils import shapes
+from utils.tests import utils
 
 
 class TrainingTest(absltest.TestCase):

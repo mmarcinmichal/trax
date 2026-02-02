@@ -19,7 +19,7 @@ import functools
 import inspect
 import string
 
-from absl import logging
+from trax.utils import logging as trax_logging
 
 from trax.layers import base, combinators
 
@@ -228,8 +228,7 @@ class AssertShape(base.Layer):
                 "AssertShape cannot check shapes because tensor metadata is"
                 " incomplete. Shape asserts are skipped."
             )
-            print(message)
-            logging.warning(message)
+            trax_logging.warning(message, stdout=True)
             if len(xs) == 1:
                 return xs[0]
             else:

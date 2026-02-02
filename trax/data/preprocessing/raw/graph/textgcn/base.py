@@ -14,9 +14,9 @@ from typing import Any, Iterable, List
 
 import nltk
 
-from absl import logging
+from trax.utils import logging as trax_logging
 
-logging.set_verbosity(logging.INFO)
+trax_logging.set_verbosity(trax_logging.INFO)
 
 try:
     from nltk.corpus import stopwords
@@ -24,7 +24,7 @@ try:
 
     EN_STOPWORDS = set(stopwords.words("english"))
 except ValueError:
-    logging.info("Install nltk for stopwords")
+    trax_logging.info("Install nltk for stopwords")
 
 
 _CLEAN_PATTERNS = [

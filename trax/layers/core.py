@@ -18,7 +18,7 @@
 import numpy as np
 import tensorflow as tf
 
-from absl import logging
+from trax.utils import logging as trax_logging
 
 from trax import fastmath
 from trax.fastmath import numpy as jnp
@@ -328,8 +328,7 @@ def PrintShape(n_in=1, msg=""):
         else:
             shapes_and_dtypes = format_shape(xs)
         info = f"PrintShape: {msg}: [{shapes_and_dtypes}]"
-        print(info)
-        logging.info(info)
+        trax_logging.info(info, stdout=True)
         return xs
 
     return base.PureLayer(Fwd, n_in=n_in, n_out=n_in, name=f"PrintShape_{n_in}")

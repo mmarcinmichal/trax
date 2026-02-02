@@ -30,7 +30,7 @@ from trax import optimizers as opt
 from trax.learning.reinforcement import task as rl_task
 from trax.learning.reinforcement import trainer as training
 from trax.learning.supervised import lr_schedules
-from trax.utils import test_utils
+from utils.tests import utils
 
 
 class TrainingTest(absltest.TestCase):

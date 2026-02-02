@@ -19,7 +19,7 @@ import functools
 
 import gin
 
-from absl import logging
+from trax.utils import logging as trax_logging
 
 
 @gin.configurable(denylist=["f"])
@@ -37,7 +37,7 @@ def debug_pipeline(f, debug=False, method="pow", log_prefix=None):
         for example in f(*args, **kwargs):
             count += 1
             if method == "every" or (method == "pow" and (count & count - 1 == 0)):
-                logging.info("%s example[%d] = %r", prefix, count, example)
+                trax_logging.info("%s example[%d] = %r", prefix, count, example)
             yield example
 
     return wrapper

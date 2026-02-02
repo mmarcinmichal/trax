@@ -4,7 +4,7 @@ from typing import Tuple, Union
 import datasets
 import numpy as np
 
-from absl import logging
+from trax.utils import logging as trax_logging
 from datasets import DatasetDict
 from sklearn.datasets import (
     _twenty_newsgroups,
@@ -13,7 +13,7 @@ from sklearn.datasets import (
     load_iris,
 )
 
-logging.set_verbosity(logging.INFO)
+trax_logging.set_verbosity(trax_logging.INFO)
 
 
 class RawDataset(Enum):
@@ -148,4 +148,4 @@ def load_dataset(
 
 
 if __name__ == "__main__":
-    logging.info("Loading data module")
+    trax_logging.info("Loading data module")

@@ -5,6 +5,7 @@ from pathlib import Path
 
 from resources.examples.python.base import find_project_root
 from trax.data.builder.graph.textgcn.base import TextGraphConfig, build_textgcn_graph
+from trax.utils import logging as trax_logging
 
 # --- CONFIG ---
 MAX_TRAIN_DOCS = 25000
@@ -47,7 +48,7 @@ def main():
         pmi_window_size=PMI_WINDOW_SIZE,
         val_ratio=VAL_RATIO,
     )
-    print(OUTPUT_FILE)
+    trax_logging.info("%s", OUTPUT_FILE, stdout=True)
     build_textgcn_graph(config, OUTPUT_FILE)
 
 

@@ -40,7 +40,7 @@ import six
 import tensorflow as tf
 import tensorflow_text as tft
 
-from absl import logging
+from trax.utils import logging as trax_logging
 
 from trax.data.debugger import data_pipeline as debug_data_pipeline
 
@@ -79,7 +79,7 @@ def native_to_unicode(s):
         return to_unicode(s)
     except UnicodeDecodeError:
         res = to_unicode(s, ignore_errors=True)
-        logging.info("Ignoring Unicode error, outputting: %s", res)
+        trax_logging.info("Ignoring Unicode error, outputting: %s", res)
         return res
 
 
@@ -286,7 +286,7 @@ def vocab_token_counts(text_filepattern, max_lines):
     ret = {}
     for i, line in enumerate(_read_filepattern(text_filepattern, max_lines=max_lines)):
         if "," not in line:
-            logging.warning("Malformed vocab line #%d '%s'", i, line)
+            trax_logging.warning("Malformed vocab line #%d '%s'", i, line)
             continue
 
         token, count = line.rsplit(",", 1)
@@ -1160,7 +1160,7 @@ class SubwordTextEncoder(TextEncoder):
         def bisect(min_val, max_val):
             """Bisection to find the right size."""
             present_count = (max_val + min_val) // 2
-            logging.info("Trying min_count %d", present_count)
+            trax_logging.info("Trying min_count %d", present_count)
             subtokenizer = cls()
             subtokenizer.build_from_token_counts(
                 token_counts,
@@ -1249,7 +1249,7 @@ class SubwordTextEncoder(TextEncoder):
         if min_count < 1:
             min_count = 1
         for i in range(num_iterations):
-            logging.info("Iteration %d", i)
+            trax_logging.info("Iteration %d", i)
 
             # Collect all substrings of the encoded token that break along current
             # subtoken boundaries.
@@ -1270,7 +1270,7 @@ class SubwordTextEncoder(TextEncoder):
                     start += len(subtoken)
                 iter_time_secs = time.time() - iter_start_time
                 if iter_time_secs > 0.1:
-                    logging.info(
+                    trax_logging.info(
                         "Processing token [%s] took {%d} seconds, consider "
                         "setting Text2TextProblem.max_subtoken_length to a "
                         "smaller value.",
@@ -1318,7 +1318,7 @@ class SubwordTextEncoder(TextEncoder):
                 new_subtoken_strings = escaped_reserved_tokens + new_subtoken_strings
 
             self._init_subtokens_from_list(new_subtoken_strings)
-            logging.info("vocab_size = %d", self.vocab_size)
+            trax_logging.info("vocab_size = %d", self.vocab_size)
 
     @property
     def all_subtoken_strings(self):
@@ -1329,9 +1329,10 @@ class SubwordTextEncoder(TextEncoder):
         subtoken_strings = [
             (i, s) for s, i in six.iteritems(self._subtoken_string_to_id)
         ]
-        print(
-            ", ".join("{0} : '{1}'".format(i, s) for i, s in sorted(subtoken_strings))
+        message = ", ".join(
+            "{0} : '{1}'".format(i, s) for i, s in sorted(subtoken_strings)
         )
+        trax_logging.info(message, stdout=True)
 
     def _init_subtokens_from_list(self, subtoken_strings, reserved_tokens=None):
         """Initialize token information from a list of subtoken strings.
@@ -1433,7 +1434,7 @@ class ImageEncoder:
         try:
             import matplotlib.image as im  # pylint: disable=g-import-not-at-top
         except ImportError as e:
-            logging.warning(
+            trax_logging.warning(
                 "Reading an image requires matplotlib to be installed: %s", e
             )
             raise NotImplementedError("Image reading not implemented.")
@@ -2020,8 +2021,8 @@ def SentencePieceTokenizer(spm_path=None, extra_ids=0):
             extra_ids=extra_ids,
         )
         for example in stream:
-            # Optionally replace print with logging.debugger
-            # logging.debugger("Tokenizing example: %s", example)
+            # Optionally replace print with trax_logging.debugger
+            # trax_logging.debugger("Tokenizing example: %s", example)
             if isinstance(example, tuple):
                 example = example[0]
             yield np.array(vocab.encode(example), dtype=np.int64)

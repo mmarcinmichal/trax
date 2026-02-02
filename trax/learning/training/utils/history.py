@@ -19,7 +19,7 @@ import copy
 
 import six
 
-from absl import logging
+from trax.utils import logging as trax_logging
 
 
 class History:
@@ -69,7 +69,7 @@ class History:
     def get(self, mode, metric):
         """Get the history for the given metric and mode."""
         if mode not in self._values:
-            logging.info("Metric %s not found for mode %s", metric, mode)
+            trax_logging.info("Metric %s not found for mode %s", metric, mode)
             return []
         return list(self._values[mode][metric])
 
@@ -81,7 +81,7 @@ class History:
     def metrics_for_mode(self, mode):
         """Metrics available for a given mode."""
         if mode not in self._values:
-            logging.info("Mode %s not found", mode)
+            trax_logging.info("Mode %s not found", mode)
             return []
         return sorted(list(self._values[mode].keys()))
 

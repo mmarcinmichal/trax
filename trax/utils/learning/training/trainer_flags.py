@@ -18,7 +18,8 @@
 We keep these flags in sync across the trainers and the rl_trainer binaries.
 """
 
-from absl import flags, logging
+from absl import flags
+from trax.utils import logging as trax_logging
 
 # Common flags.
 flags.DEFINE_string(
@@ -61,7 +62,7 @@ flags.DEFINE_string(
 flags.DEFINE_string("dataset", None, "Which dataset to use.")
 flags.DEFINE_string("model", None, "Which model to train.")
 flags.DEFINE_string("data_dir", None, "Path to the directory with data.")
-flags.DEFINE_integer("log_level", logging.INFO, "Log level.")
+flags.DEFINE_integer("log_level", trax_logging.INFO, "Log level.")
 
 # JAX/XLA GPU cluster flags.
 flags.DEFINE_string("gpu_cluster_chief_ip", "", "IP of GPU cluster chief.")

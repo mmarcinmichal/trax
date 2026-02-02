@@ -52,6 +52,7 @@ from trax import models
 from trax.fastmath import numpy as numpy_math
 from trax.learning.supervised import decoding
 from trax.utils import shapes
+from trax.utils import logging as trax_logging
 
 # from colabtools import adhoc_import
 # from colabtools import adhoc_import
@@ -116,7 +117,7 @@ gin_config = "".join(gin_config)
 gin.parse_config(gin_config)
 gin.operative_config_str().split("\n")
 
-print(gin_config)
+trax_logging.info("%s", gin_config, stdout=True)
 
 ####
 
@@ -194,11 +195,13 @@ with trax.fastmath.use_backend(trax.fastmath.Backend.JAX):
         eval_mode=True,
         eval_min_length=1024,
     ):
-        print(f'Token {counter}: "{detokenize(token)}" {token}')
+        trax_logging.info(
+            'Token %d: "%s" %s', counter, detokenize(token), token, stdout=True
+        )
         tokens.append(token[:, None])
         counter += 1
         if counter > max_length:
             break
     tokens = np.concatenate(tokens, axis=1)
-    print(tokens)
-    print(detokenize(tokens[0]))
+    trax_logging.info("%s", tokens, stdout=True)
+    trax_logging.info("%s", detokenize(tokens[0]), stdout=True)

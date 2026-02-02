@@ -5,7 +5,8 @@ import os
 
 import gin
 
-from absl import flags, logging
+from absl import flags
+from trax.utils import logging as trax_logging
 
 from trax.utils.learning.training import trainer_flags  # noqa: F401
 
@@ -31,7 +32,7 @@ def output_dir_or_default():
     """Returns a path to the output directory."""
     if FLAGS.output_dir:
         output_dir = FLAGS.output_dir
-        logging.info("Using --output_dir %s", output_dir)
+        trax_logging.info("Using --output_dir %s", output_dir)
         return os.path.expanduser(output_dir)
 
     try:
@@ -48,6 +49,6 @@ def output_dir_or_default():
     output_dir = os.path.join("~", "trax", output_name)
     output_dir = os.path.expanduser(output_dir)
     print()
-    logging.info("No --output_dir specified")
-    logging.info("Using default output_dir: %s", output_dir)
+    trax_logging.info("No --output_dir specified")
+    trax_logging.info("Using default output_dir: %s", output_dir)
     return output_dir

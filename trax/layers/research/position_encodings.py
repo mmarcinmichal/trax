@@ -15,7 +15,7 @@
 
 """Experimenting with position encodings."""
 
-import logging
+from trax.utils import logging as trax_logging
 
 import jax
 import jax.extend as jex
@@ -596,7 +596,7 @@ class TimeBinPositionalEncoding(layer_base.Layer):
         # Replace the last num_features channels of input.
         inputs = jnp.concatenate([inputs[..., : -self.num_features], emb], -1)
         if inputs.shape[-1] > depth:
-            logging.warning(
+            trax_logging.warning(
                 "dropping feature(s): %d down to %d", inputs.shape[-1], depth
             )
             inputs = inputs[..., -depth:]

@@ -25,7 +25,7 @@ import jax
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
-from absl import logging
+from trax.utils import logging as trax_logging
 
 _T2T_TO_TFDS_MAP = {
     # Translation
@@ -66,7 +66,7 @@ def download_and_prepare(dataset_name, data_dir):
     if not data_dir:
         data_dir = os.path.expanduser("~/tensorflow_datasets/")
         dl_dir = os.path.join(data_dir, "download")
-        logging.info(
+        trax_logging.info(
             "No dataset directory provided. "
             "Downloading and generating dataset for %s inside data directory %s "
             "For large datasets it is better to prepare datasets manually!",
@@ -133,7 +133,7 @@ def _train_and_eval_dataset(
 ):
     """Return train and evaluation datasets plus supervised keys."""
     dataset_name = _resolve_dataset_name(dataset_name)
-    logging.info("Building TF data pipeline for %s", dataset_name)
+    trax_logging.info("Building TF data pipeline for %s", dataset_name)
     if dataset_name.startswith("t2t_"):
         return _train_and_eval_dataset_v1(
             dataset_name[4:], data_dir, train_shuffle_files, eval_shuffle_files
@@ -178,7 +178,7 @@ def _train_and_eval_dataset(
         train_split = tfds.Split.TRAIN
     elif dataset_name == "wmt14_translate/de-en" and not has_train_split:
         if using_local_testdata:
-            logging.info(
+            trax_logging.info(
                 "Using bundled testdata fallback for %s because train split is missing.",
                 dataset_name,
             )
@@ -193,7 +193,7 @@ def _train_and_eval_dataset(
             train_ds = tf.data.Dataset.from_tensor_slices(train_examples)
             eval_ds = tf.data.Dataset.from_tensor_slices(eval_examples)
             return train_ds, eval_ds, (["en"], ["de"])
-        logging.warning(
+        trax_logging.warning(
             "Dataset %s is missing a train split and data_dir %s is not testdata; "
             "consider setting require_train_split=False for testing scenarios.",
             dataset_name,

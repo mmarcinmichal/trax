@@ -22,7 +22,7 @@ import jax
 import numpy as np
 import psutil
 
-from absl import logging
+from trax.utils import logging as trax_logging
 
 from trax import fastmath
 from trax import layers as tl
@@ -134,22 +134,22 @@ class TrainingEngine:
 
         weights = self._accelerated_model_with_loss.weights
         state = self._accelerated_model_with_loss.state
-        if logging.vlog_is_on(1) and ((step & step - 1) == 0):
+        if trax_logging.vlog_is_on(1) and ((step & step - 1) == 0):
             # Prints every power of two, if debugging is enabled.
-            logging.info("step[%d]", step)
-            logging.info("opt_params[%s]", self._opt_params)
-            logging.info("slots[%s]", self._slots)
-            logging.info("weights[%s]", weights)
-            logging.info("state[%s]", state)
+            trax_logging.info("step[%d]", step)
+            trax_logging.info("opt_params[%s]", self._opt_params)
+            trax_logging.info("slots[%s]", self._slots)
+            trax_logging.info("weights[%s]", weights)
+            trax_logging.info("state[%s]", state)
 
         # NOTE: stats is a replicated dictionary of key to jnp arrays.
         (new_weights, new_slots), new_state, stats = self._accelerated_update_fn(
             (weights, self._slots), step, self._opt_params, batch, state, rng
         )
 
-        if logging.vlog_is_on(1) and ((step & step - 1) == 0):
-            logging.info("updated weights[%s]", new_weights)
-            logging.info("stats[%s]", stats)
+        if trax_logging.vlog_is_on(1) and ((step & step - 1) == 0):
+            trax_logging.info("updated weights[%s]", new_weights)
+            trax_logging.info("stats[%s]", stats)
 
         self._accelerated_model_with_loss.weights = new_weights
         self._accelerated_model_with_loss.state = new_state
@@ -425,7 +425,7 @@ class ReversibleSerialTrainer:
         """JIT f if 1 device is available and pmap if more are available."""
         should_memoize = self._jit_memory is not None and memory_key is not None
         if should_memoize and memory_key in self._jit_memory:
-            logging.info("Found JITed function in memory for: %s", memory_key)
+            trax_logging.info("Found JITed function in memory for: %s", memory_key)
             return self._jit_memory[memory_key]
         if self._n_devices == 1:
             res = fastmath.jit(f, donate_argnums=donate_argnums)
@@ -471,7 +471,7 @@ class ReversibleSerialTrainer:
         """Deletes all live buffers from accelerator with no safety guarantees."""
         backend = jax.lib.xla_bridge.get_backend()
         live_buffers = backend.live_buffers()
-        logging.info("Deleting %d live buffers.", len(live_buffers))
+        trax_logging.info("Deleting %d live buffers.", len(live_buffers))
         exceptions_buffers = []
         for x in fastmath.tree_flatten(exceptions):
             if hasattr(x, "device_buffer"):  # DeviceArray
@@ -553,9 +553,9 @@ class ReversibleSerialTrainer:
             batch_shapes = [x.shape for x in batch]
         else:
             batch_shapes = batch.shape
-        logging.info("running step %d on shapes %s", step_int, str(batch_shapes))
+        trax_logging.info("running step %d on shapes %s", step_int, str(batch_shapes))
         if step_int % self._n_steps_per_log == 1:
-            logging.info(
+            trax_logging.info(
                 "run fwd: cpu memory use (MB): %.2f",
                 process.memory_info().rss / float(1024 * 1024),
             )
@@ -580,7 +580,7 @@ class ReversibleSerialTrainer:
 
         # Run the loss layer forward and backward with optimizer update.
         if step_int % self._n_steps_per_log == 1:
-            logging.info(
+            trax_logging.info(
                 "run loss: cpu memory use (MB): %.2f",
                 process.memory_info().rss / float(1024 * 1024),
             )
@@ -607,7 +607,7 @@ class ReversibleSerialTrainer:
 
         # Run the layers backward and run optimizer updates.
         if step_int % self._n_steps_per_log == 1:
-            logging.info(
+            trax_logging.info(
                 "run bwd: cpu memory use (MB): %.2f",
                 process.memory_info().rss / float(1024 * 1024),
             )
@@ -669,7 +669,7 @@ class ReversibleSerialTrainer:
     def _run_forward_standard(self, stack, layer, accelerated_fn, rng, step):
         """Run standard layer forward."""
         if step % self._n_steps_per_log == 1:
-            logging.info("running forward standard layer %s", str(layer))
+            trax_logging.info("running forward standard layer %s", str(layer))
         layer_inputs = cb.inputs_from_stack(stack, layer.n_in)
         layer_weights = self._replicate(layer.weights)
         layer_state = self._replicate(layer.state)
@@ -684,7 +684,7 @@ class ReversibleSerialTrainer:
         old_states, new_states = [], []
         for i, layer in enumerate(rev_layers):
             if step % self._n_steps_per_log == 1:
-                logging.info("running forward reversible layer %s", str(layer))
+                trax_logging.info("running forward reversible layer %s", str(layer))
             weights = self._replicate(layer.weights)  # also copies cpu -> accelerator
             state = self._replicate(layer.state)
             old_states.append(state)
@@ -709,7 +709,7 @@ class ReversibleSerialTrainer:
         """Run reversible layers backwards."""
         step_int = int(step) if self._n_devices < 2 else int(step[0])
         if step_int % self._n_steps_per_log == 1:
-            logging.info("running backward standard layer %s", str(layer))
+            trax_logging.info("running backward standard layer %s", str(layer))
         if grad_stack is not None:
             grads = cb.inputs_from_stack(grad_stack, layer.n_out)
         else:
@@ -755,7 +755,7 @@ class ReversibleSerialTrainer:
             list(zip(rev_layers, rev_and_fbos, old_states, new_states, rngs))
         ):
             if step_int % self._n_steps_per_log == 1:
-                logging.info("running backward reversible layer %s", str(layer))
+                trax_logging.info("running backward reversible layer %s", str(layer))
             counter -= 1
             stack, grad_stack, layer_stats = self._run_backward_one_reversible(
                 layer,
@@ -1008,13 +1008,13 @@ def init_reversible_blocks(blocks, loss_layer, input_signature, rng):
             layer.init(sig, rng=layer_rng)
             layer.weights = tl.on_cpu(layer.weights)  # store weights in cpu memory
             layer.state = tl.on_cpu(layer.state)  # store weights in cpu memory
-            logging.info(
+            trax_logging.info(
                 "init: layer %s\nadded cpu memory (MB): %.2f",
                 str(layer),
                 (process.memory_info().rss - mem_use) / float(1024 * 1024),
             )
             mem_use = process.memory_info().rss
-            logging.info(
+            trax_logging.info(
                 "init: cpu memory use (MB): %.2f", mem_use / float(1024 * 1024)
             )
             out_sig = layer.output_signature(sig)

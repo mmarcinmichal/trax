@@ -26,6 +26,7 @@ import tensorflow as tf
 
 from trax import fastmath
 from trax import layers as tl
+from trax.utils import logging as trax_logging
 from trax.fastmath import numpy as np
 
 # pylint: disable=invalid-name
@@ -232,8 +233,9 @@ class PretrainedBERT(tl.Serial):
     # assumes model is packed with zip
     download_path = os.path.join(download_dir, 'model_temp')
 
-    print(f'Downloading model from {model_link} to {download_dir}'
-         )  # TODO(piotrekp1) logging to stderr?
+    trax_logging.info(
+        "Downloading model from %s to %s ...", model_link, download_dir, stdout=True
+    )
     urllib.request.urlretrieve(model_link, download_path)
 
     if not zipfile.is_zipfile(download_path):
@@ -254,7 +256,9 @@ class PretrainedBERT(tl.Serial):
     if self.init_checkpoint is None:
       return
 
-    print('Loading pre-trained weights from', self.init_checkpoint)
+    trax_logging.info(
+        "Loading pre-trained weights from %s", self.init_checkpoint, stdout=True
+    )
     ckpt = tf.train.load_checkpoint(self.init_checkpoint)
 
     def reshape_qkv(name):

@@ -18,7 +18,7 @@
 import numpy as np
 import tensorflow.compat.v2 as tf
 
-from absl import logging
+from trax.utils import logging as trax_logging
 
 from trax.fastmath import numpy as jnp
 from trax.fastmath import random
@@ -56,7 +56,7 @@ def InitializerFromFile(path):
 
     def Initializer(shape, rng):
         del rng
-        logging.info("Loading pretrained embeddings from %s", path)
+        trax_logging.info("Loading pretrained embeddings from %s", path)
         with tf.io.gfile.GFile(path, "rb") as f:
             parameters = jnp.load(f)
         assert jnp.shape(parameters) == shape, "Expected shape %s, got %s" % (

@@ -22,7 +22,7 @@ from absl.testing import absltest
 import trax.layers as tl
 
 from trax import fastmath
-from trax.utils import test_utils
+from utils.tests import utils
 
 INPUT_SHAPE = (5, 7, 20)
 

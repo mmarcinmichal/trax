@@ -35,7 +35,7 @@ from trax.learning.training import task, trainer
 from trax.tf import extensions as npe
 from trax.tf import numpy as tf_np
 from trax.utils import shapes as trax_shapes
-from trax.utils import test_utils
+from utils.tests import utils
 
 
 def _test_inputs(n_classes, with_weights=False, input_shape=(6, 6, 3)):

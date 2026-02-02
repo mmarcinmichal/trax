@@ -2,13 +2,13 @@
 
 from pathlib import Path
 
-from absl import logging
+from trax.utils import logging as trax_logging
 
 from resources.examples.python.base import find_project_root
 from trax.data.builder.graph.textgcn.base import TextGraphConfig, build_textgcn_graph
 from trax.data.loader.raw.base import RawDataset
 
-logging.set_verbosity(logging.INFO)
+trax_logging.set_verbosity(trax_logging.INFO)
 
 # --- CONFIG ---
 MAX_TRAIN_DOCS = None
@@ -28,7 +28,7 @@ OUTPUT_FILE = PROJECT_ROOT / "resources" / "data" / "serialized" / "graphs" / "2
 
 
 def main():
-    logging.info(f"Build sparse matrix and save it into: {OUTPUT_FILE}")
+    trax_logging.info(f"Build sparse matrix and save it into: {OUTPUT_FILE}")
 
     config = TextGraphConfig(
         dataset_name=RawDataset.NG.value,  # "SetFit/20_newsgroups",

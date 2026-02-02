@@ -23,7 +23,7 @@ import numpy as np
 import tensorflow as tf
 
 from trax.data.preprocessing.modules import math as modules_math
-from trax.utils import test_utils
+from utils.tests import utils
 
 
 class ModulesMathTest(tf.test.TestCase):
