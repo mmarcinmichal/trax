@@ -614,18 +614,11 @@ class Loop:
                 for metric_name, value in optimizer_metrics.items():
                     optimizer_metrics_acc[metric_name] += value
 
-                # TODO(yuwenyan): Finds a way to log the last round eval step in
-                # history.
-                #
-                # Right now, the last round eval log is missing in history since the
-                # checkpoint is saved before it. However sometimes the eval step will
-                # fail for some reasons, and it's not acceptable to loose the whole
-                # checkpoint in this case. Stays with the old way for now, and fixes it
-                # when the checkpoint format is changed to storing weights separately
-                # from a small file with history and other data.
-                if self._checkpoint_manager.should_save(self.step):
+                should_save_ckpt = self._checkpoint_manager.should_save(self.step)
+                should_save_perm = self._permanent_checkpoint_manager.should_save(self.step)
+                if should_save_ckpt:
                     self.save_checkpoint("model")
-                if self._permanent_checkpoint_manager.should_save(self.step):
+                if should_save_perm:
                     self.save_checkpoint(f"model_{self.step}")
                 if self._eval_at(self.step):
                     trax_logging.info(
@@ -642,6 +635,13 @@ class Loop:
                         summary_writer=train_summary_writers[task_index],
                     )
                     self.run_evals(eval_summary_writers)
+                    # Refresh the checkpoint after eval so history includes the
+                    # latest eval metrics. If eval fails, the pre-eval checkpoint
+                    # above is still preserved.
+                    if should_save_ckpt:
+                        self.save_checkpoint("model")
+                    if should_save_perm:
+                        self.save_checkpoint(f"model_{self.step}")
                     loss_acc, step_acc = 0.0, 0
                     start_time = time.time()
                     optimizer_metrics_acc = collections.defaultdict(float)

@@ -31,7 +31,63 @@ def compose_config():
         ) from exc
 
     overrides = FLAGS.hydra_overrides if FLAGS.hydra_overrides is not None else []
+
+    def _normalize_overrides(base_cfg, raw_overrides):
+        from omegaconf import OmegaConf
+
+        def _iter_paths(node, prefix=""):
+            if OmegaConf.is_config(node):
+                node = OmegaConf.to_container(node, resolve=False)
+            if isinstance(node, dict):
+                for key, value in node.items():
+                    path = f"{prefix}.{key}" if prefix else str(key)
+                    yield path, value
+                    yield from _iter_paths(value, path)
+            elif isinstance(node, list):
+                for idx, value in enumerate(node):
+                    path = f"{prefix}[{idx}]"
+                    yield path, value
+                    yield from _iter_paths(value, path)
+
+        def _find_suffix_matches(target_key):
+            matches = []
+            for path, _ in _iter_paths(base_cfg):
+                if path.endswith(target_key):
+                    matches.append(path)
+            return matches
+
+        normalized = []
+        for override in raw_overrides:
+            if not isinstance(override, str) or "=" not in override:
+                normalized.append(override)
+                continue
+            key_part, value_part = override.split("=", 1)
+            key = key_part.lstrip("+")
+            if OmegaConf.select(base_cfg, key) is None:
+                matches = _find_suffix_matches(key)
+                if len(matches) == 1:
+                    key = matches[0]
+                    trax_logging.warning(
+                        "Override '%s' matched nested config; rewriting to '%s=%s'.",
+                        override,
+                        key,
+                        value_part,
+                    )
+            if key_part.startswith("+") and OmegaConf.select(base_cfg, key) is not None:
+                trax_logging.warning(
+                    "Override '%s' targets existing key; dropping '+' to apply override.",
+                    override,
+                )
+                normalized.append(f"{key}={value_part}")
+            else:
+                normalized.append(f"{key_part[:1] if key_part.startswith('+') else ''}{key}={value_part}")
+        return normalized
+
     with initialize_config_dir(version_base=None, config_dir=config_dir()):
+        if overrides:
+            # Compose once to learn existing keys, then normalize overrides.
+            base_cfg = compose(config_name=FLAGS.hydra_config_name, overrides=[])
+            overrides = _normalize_overrides(base_cfg, overrides)
         return compose(config_name=FLAGS.hydra_config_name, overrides=overrides)
 
 
@@ -73,6 +129,47 @@ def output_dir_or_default(cfg):
 def train_with_hydra(cfg, output_dir):
     from hydra.utils import instantiate
     from omegaconf import OmegaConf
+
+    def _maybe_extend_steps(train_cfg, output_dir):
+        steps = train_cfg.get("steps")
+        if steps is None:
+            return
+        try:
+            steps = int(steps)
+        except (TypeError, ValueError):
+            return
+        pkl_path = os.path.join(output_dir, "model.pkl.gz")
+        if not os.path.exists(pkl_path):
+            return
+        try:
+            import gzip
+            import pickle
+
+            with gzip.open(pkl_path, "rb") as f:
+                ckpt = pickle.load(f)
+            current_step = ckpt.get("step")
+        except Exception:
+            return
+        if current_step is None:
+            return
+        try:
+            current_step = int(current_step)
+        except (TypeError, ValueError):
+            return
+        if steps <= current_step:
+            train_cfg["steps"] = current_step
+            trax_logging.info(
+                "Checkpoint at step %d already meets/exceeds target steps %d; nothing to add.",
+                current_step,
+                steps,
+            )
+            return
+        train_cfg["steps"] = steps
+        trax_logging.info(
+            "Continuing from step %d; targeting total steps %d.",
+            current_step,
+            train_cfg["steps"],
+        )
 
     def _flatten_nested_group(root, key):
         node = OmegaConf.select(root, key)
@@ -205,6 +302,14 @@ def train_with_hydra(cfg, output_dir):
 
     if not isinstance(train_cfg, dict):
         train_cfg = {}
+
+    # Flatten plain dict nesting (train.train.*) that can survive OmegaConf
+    # conversion, so CLI overrides are respected.
+    nested_train = train_cfg.pop("train", None)
+    if isinstance(nested_train, dict):
+        for key, value in nested_train.items():
+            if value is not None:
+                train_cfg[key] = value
 
     train_cfg.pop("ckpt", None)
 
@@ -356,6 +461,8 @@ def train_with_hydra(cfg, output_dir):
             if value is not None and value != {}:
                 train_cfg.setdefault(key, value)
     train_cfg.pop("ckpt", None)
+
+    _maybe_extend_steps(train_cfg, output_dir)
 
     from trax.learning.training import trainer as supervised_trainer
 
