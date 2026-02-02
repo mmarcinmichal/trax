@@ -22,13 +22,12 @@ import jax
 import numpy as np
 import psutil
 
-from trax.utils import logging as trax_logging
-
 from trax import fastmath
 from trax import layers as tl
 from trax.fastmath import numpy as jnp
 from trax.layers import base
 from trax.layers import combinators as cb
+from trax.utils import logging as trax_logging
 
 
 class TrainingEngine:
