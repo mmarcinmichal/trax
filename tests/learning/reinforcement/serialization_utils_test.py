@@ -21,16 +21,16 @@ import gymnasium as gym
 import numpy as np
 
 from absl.testing import absltest, parameterized
-from trax import data as trax_data
 from jax import numpy as jnp
+from learning.training import engines as loop
+from utils.tests import utils as test_utils
 
+from trax import data as trax_data
 from trax import models as trax_models
 from trax.layers import base as layers_base
 from trax.learning.reinforcement import serialization_utils, space_serializer
-from learning.training import engines as loop
 from trax.models import transformer
 from trax.utils import shapes
-from utils.tests import utils
 
 
 # pylint: disable=invalid-name
