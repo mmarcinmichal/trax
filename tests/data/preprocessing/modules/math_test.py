@@ -22,8 +22,9 @@ import gin
 import numpy as np
 import tensorflow as tf
 
+from utils.tests import utils as test_utils
+
 from trax.data.preprocessing.modules import math as modules_math
-from utils.tests import utils
 
 
 class ModulesMathTest(tf.test.TestCase):

@@ -634,7 +634,7 @@ class MatchByShapeTest(absltest.TestCase):
             ("train", "training/weights_l2"),
             ("eval", "metrics/L2Loss"),
         ]:
-            self.assertLen(loop2.history.get(mode, metric), 1)
+            self.assertLen(loop2.history.get(mode, metric), 2)
             self.assertEqual(2, loop2.history.get(mode, metric)[0][0])
 
     def test_trains_on_two_tasks(self):

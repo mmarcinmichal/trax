@@ -190,7 +190,7 @@ def train_model(
             step_start = time.time()
             step_rng, base_rng = fastmath.random.split(base_rng)
             batch = next(batch_generator)
-            loss = trainer.one_step(batch, step_rng, step=step)
+            loss, _ = trainer.one_step(batch, step_rng, step=step)
             step_time = time.time() - step_start
             losses.append(loss)
 
