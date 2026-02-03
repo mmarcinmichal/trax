@@ -1755,6 +1755,7 @@ class ModernBertEncoder:
         self.pad_id = int(self._tok.pad_token_id)   # zwykle 50283
         self.eos_id = int(getattr(self._tok, "eos_token_id", self._tok.sep_token_id))  # zwykle 50282
         self.bos_id = int(getattr(self._tok, "bos_token_id", self._tok.cls_token_id))  # zwykle 50281
+        self.mask_id = int(self._tok.mask_token_id)
 
     def encode(self, text):
         return self._tok.encode(text, add_special_tokens=self._add_special_tokens)

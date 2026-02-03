@@ -72,6 +72,8 @@ setup(
             "pylint==3.3.6",
             "pytest==8.3.5",
             "wrapt==1.17.2",
+            "composer==0.32.1",
+            "numba==0.63.1",
         ],
     },
     classifiers=[

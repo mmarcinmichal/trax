@@ -1,0 +1,89 @@
+defaults:
+  - /data/base
+  - _self_
+
+data:
+  # Core parameters (set explicitly to match tokenizer ids).
+  max_seq_len: 512
+  micro_batch_size: 4
+  packed_batch_size: 256
+  src_batch_size: ${mul:${data.micro_batch_size},${data.packed_batch_size}}
+
+  mlm_probability_train: 0.30
+  mlm_probability_eval: 0.15
+
+  ModernBertTokenize:
+    _target_: "trax.data.ModernBertTokenize"
+    input_key: "text"
+    output_key: "input_ids"
+    vocab_file: "answerdotai/ModernBERT-base"
+    vocab_dir: null
+    n_reserved_ids: 0
+
+  ModernBertAppendDocBoundaryTokens:
+    _target_: "trax.data.ModernBertAppendDocBoundaryTokens"
+    input_key: "input_ids"
+    output_key: "input_ids"
+    vocab_file: "answerdotai/ModernBERT-base"
+    vocab_dir: null
+    add_bos: false
+    add_eos: true
+
+  ChunkFixedLength:
+    _target_: "trax.data.ChunkFixedLength"
+    input_key: "input_ids"
+    output_key: "input_ids"
+    max_seq_len: "${data.max_seq_len}"
+    no_wrap: false
+
+  BatchToSrcBatch:
+    _target_: "trax.data.BatchDictList"
+    batch_size: "${data.src_batch_size}"
+
+  ModernBertSequencePackerTrain:
+    _target_: "trax.data.ModernBertSequencePacker"
+    src_batch_size: "${data.src_batch_size}"
+    src_max_seq_len: "${data.max_seq_len}"
+    micro_batch_size: "${data.micro_batch_size}"
+    pad_token_id: null
+    mask_token_id: null
+    mask_prob: "${data.mlm_probability_train}"
+    suppress_masking: false
+    unpad_input: false
+    pad_cu_seqlens_to: null
+    vocab_file: "answerdotai/ModernBERT-base"
+    vocab_dir: null
+
+  ModernBertSequencePackerEval:
+    _target_: "trax.data.ModernBertSequencePacker"
+    src_batch_size: "${data.src_batch_size}"
+    src_max_seq_len: "${data.max_seq_len}"
+    micro_batch_size: "${data.micro_batch_size}"
+    pad_token_id: null
+    mask_token_id: null
+    mask_prob: "${data.mlm_probability_eval}"
+    suppress_masking: false
+    unpad_input: false
+    pad_cu_seqlens_to: null
+    vocab_file: "answerdotai/ModernBERT-base"
+    vocab_dir: null
+
+  AddPositionIds:
+    _target_: "trax.data.AddPositionIds"
+    seq_key: "input_ids"
+    out_key: "position_ids"
+    dtype: "int64"
+
+  ToModelTuple:
+    _target_: "trax.data.ToModelTuple"
+    inputs_keys:
+      - "input_ids"
+      - "attention_mask"
+      - "position_ids"
+      - "cu_seqlens"
+      - "max_seqlen"
+    labels_key: "labels"
+
+  make_streams:
+    _target_: "trax.data.make_streams"
+    _partial_: true

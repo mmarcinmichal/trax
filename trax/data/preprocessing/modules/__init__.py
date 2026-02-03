@@ -47,6 +47,19 @@ from trax.data.preprocessing.modules.t5 import (
     split_tokens_t5,
     t5_data,
 )
+from trax.data.preprocessing.modules.modern_bert import (
+    AddPositionIds,
+    AppendDocBoundaryTokens,
+    BatchDictList,
+    BatchDict,
+    ChunkFixedLength,
+    ModernBertSequencePacker,
+    ModernBertAppendDocBoundaryTokens,
+    ModernBertTokenize,
+    SelectTextField,
+    ToModelTuple,
+    TokenizerEncode,
+)
 
 __all__ = [
     "C4Preprocess",
@@ -83,4 +96,15 @@ __all__ = [
     "denoise_t5",
     "select_random_chunk_t5",
     "split_tokens_t5",
+    "SelectTextField",
+    "TokenizerEncode",
+    "AppendDocBoundaryTokens",
+    "ChunkFixedLength",
+    "BatchDictList",
+    "BatchDict",
+    "ModernBertSequencePacker",
+    "ModernBertAppendDocBoundaryTokens",
+    "AddPositionIds",
+    "ToModelTuple",
+    "ModernBertTokenize",
 ]
