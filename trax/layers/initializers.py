@@ -18,10 +18,9 @@
 import numpy as np
 import tensorflow.compat.v2 as tf
 
-from trax.utils import logging as trax_logging
-
 from trax.fastmath import numpy as jnp
 from trax.fastmath import random
+from trax.utils import logging as trax_logging
 
 
 def _GetFans(shape, out_dim=-1, in_dim=-2, nonreceptive_dims=None):

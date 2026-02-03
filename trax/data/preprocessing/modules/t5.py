@@ -19,6 +19,7 @@ import random
 
 import gin
 import numpy as np
+
 from trax.utils import logging as trax_logging
 
 

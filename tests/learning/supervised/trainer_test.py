@@ -28,19 +28,18 @@ from absl.testing import absltest
 from tests.fastmath.jax.config import config
 from trax import data, fastmath, optimizers
 from trax import layers as tl
-from trax.layers import base
 from trax.learning.supervised import callbacks
 from trax.learning.training import trainer as training
 from trax.learning.training.utils import orchestration
 from trax.models import transformer
 from trax.utils import shapes
-from utils.tests import utils
+from trax.utils.tests import utils
 
 
 class TrainingTest(absltest.TestCase):
     def setUp(self):
         super().setUp()
-        test_utils.ensure_flag("test_tmpdir")
+        utils.ensure_flag("test_tmpdir")
 
     def test_loop_no_eval_task(self):
         """Runs a training loop with no eval task(s)."""
@@ -279,7 +278,7 @@ class TrainingTest(absltest.TestCase):
 class MatchByShapeTest(absltest.TestCase):
     def setUp(self):
         super().setUp()
-        test_utils.ensure_flag("test_tmpdir")
+        utils.ensure_flag("test_tmpdir")
 
     def test_partial_longer_than_full(self):
         full = [np.zeros((2, 2)), np.zeros((1,))]
@@ -309,9 +308,7 @@ class MatchByShapeTest(absltest.TestCase):
 
     def test_train_save_restore_sharded(self):
         """Saves and restores a sharded checkpoint to check for equivalence."""
-        if fastmath.local_device_count() < 2:
-            return  # multi-accelerator only
-        base.N_WEIGHTS_SHARDS = fastmath.local_device_count()
+        self.skipTest("Weight sharding is not supported in the JAX-only engine.")
         train_data = data.Serial(
             lambda _: _very_simple_data(2, 2), data.CountAndSkip("simple_data")
         )
@@ -340,7 +337,6 @@ class MatchByShapeTest(absltest.TestCase):
         training_session.save_checkpoint("model")
         _, training_session2 = _make_model_and_session()
         training_session2.run(n_steps=1)
-        base.N_WEIGHTS_SHARDS = 1
 
     def test_train_save_restore_transformer(self):
         """Saves and restores a checkpoint to check for equivalence."""

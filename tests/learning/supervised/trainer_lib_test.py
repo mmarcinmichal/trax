@@ -35,7 +35,7 @@ from trax.learning.training import task, trainer
 from trax.tf import extensions as npe
 from trax.tf import numpy as tf_np
 from trax.utils import shapes as trax_shapes
-from utils.tests import utils
+from trax.utils.tests import utils
 
 
 def _test_inputs(n_classes, with_weights=False, input_shape=(6, 6, 3)):
@@ -153,7 +153,7 @@ class TraxTest(parameterized.TestCase):
 
     def setUp(self):
         super().setUp()
-        test_utils.ensure_flag("test_tmpdir")
+        utils.ensure_flag("test_tmpdir")
         self._old_is_allow_float64 = tf_np.is_allow_float64()
         tf_np.set_allow_float64(False)
 

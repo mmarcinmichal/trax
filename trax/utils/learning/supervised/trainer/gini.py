@@ -6,8 +6,8 @@ import os
 import gin
 
 from absl import flags
-from trax.utils import logging as trax_logging
 
+from trax.utils import logging as trax_logging
 from trax.utils.learning.training import trainer_flags  # noqa: F401
 
 FLAGS = flags.FLAGS

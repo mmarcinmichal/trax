@@ -25,13 +25,13 @@ from trax import optimizers as opt
 from trax.learning.reinforcement import actor_critic, advantages
 from trax.learning.reinforcement import task as rl_task
 from trax.learning.supervised import lr_schedules
-from utils.tests import utils
+from trax.utils.tests import utils
 
 
 class ActorCriticTest(parameterized.TestCase):
     def setUp(self):
         super().setUp()
-        test_utils.ensure_flag("test_tmpdir")
+        utils.ensure_flag("test_tmpdir")
 
     def test_a2ctrainer_save_restore(self):
         """Check save and restore of A2C trainers."""

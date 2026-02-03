@@ -31,7 +31,7 @@ from trax import models
 from trax.learning.reinforcement import serialization_utils, space_serializer
 from trax.learning.supervised import callbacks, lr_schedules
 from trax.learning.training import task, trainer
-from utils.tests import utils
+from trax.utils.tests import utils
 
 
 def random_inputs(seq_len, batch_size):
@@ -41,7 +41,7 @@ def random_inputs(seq_len, batch_size):
             x = np.random.uniform(size=(batch_size, seq_len))
             y = np.random.uniform(size=(batch_size, seq_len))
             mask = np.ones_like(x).astype(np.float32)
-            yield (x, y, x, mask)
+            yield x, y, x, mask
 
     return trax_data.make_streams(train_stream=stream_fn, eval_stream=stream_fn)
 
@@ -103,7 +103,7 @@ def make_serialized_model(seq_model, space, vocab_size):
 class CallbacksTest(parameterized.TestCase):
     def setUp(self):
         super().setUp()
-        test_utils.ensure_flag("test_tmpdir")
+        utils.ensure_flag("test_tmpdir")
 
     @mock.patch("sys.stdout", new_callable=io.StringIO)
     def test_serialized_model_evaluation(self, mock_stdout):

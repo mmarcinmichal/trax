@@ -27,11 +27,10 @@ Transformer](https://arxiv.org/abs/2001.04451).
 
 import jax
 
-from trax.utils import logging as trax_logging
-
 from trax import fastmath
 from trax.layers import base
 from trax.layers import combinators as cb
+from trax.utils import logging as trax_logging
 
 _split_rngs = cb._split_rngs  # pylint: disable=protected-access
 

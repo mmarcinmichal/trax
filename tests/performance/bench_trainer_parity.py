@@ -124,15 +124,17 @@ def _benchmark_trax(
 
     warmup_start = time.perf_counter()
     for step, rng in enumerate(warmup_rngs):
-        loss = trainer.one_step(batch, rng, step=step)
-        loss.block_until_ready()
+        loss, _ = trainer.one_step(batch, rng, step=step)
+        if hasattr(loss, "block_until_ready"):
+            loss.block_until_ready()
     warmup_time = time.perf_counter() - warmup_start
 
     step_times: List[float] = []
     for idx, rng in enumerate(measure_rngs):
         start = time.perf_counter()
-        loss = trainer.one_step(batch, rng, step=warmup_steps + idx)
-        loss.block_until_ready()
+        loss, _ = trainer.one_step(batch, rng, step=warmup_steps + idx)
+        if hasattr(loss, "block_until_ready"):
+            loss.block_until_ready()
         step_times.append(time.perf_counter() - start)
 
     return warmup_time, step_times

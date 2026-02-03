@@ -30,7 +30,6 @@ import sys
 import tempfile
 import time
 import unicodedata
-from transformers import AutoTokenizer
 
 from dataclasses import dataclass
 
@@ -40,9 +39,10 @@ import six
 import tensorflow as tf
 import tensorflow_text as tft
 
-from trax.utils import logging as trax_logging
+from transformers import AutoTokenizer
 
 from trax.data.debugger import data_pipeline as debug_data_pipeline
+from trax.utils import logging as trax_logging
 
 # Reserved tokens for things like padding and EOS symbols.
 PAD = "<pad>"
@@ -314,7 +314,7 @@ def _get_vocab(vocab_type="subword", vocab_file=None, vocab_dir=None, extra_ids=
             vocab_file = "answerdotai/ModernBERT-base"
         model_id_or_path = os.path.join(vocab_dir, vocab_file) if vocab_dir else vocab_file
         return ModernBertEncoder(model_id_or_path)
-        
+
     vocab_dir = vocab_dir or "gs://trax-ml/vocabs/"
     path = os.path.join(vocab_dir, vocab_file)
 
@@ -1761,7 +1761,7 @@ class ModernBertEncoder:
 
     def decode(self, ids):
         return self._tok.decode(list(ids), skip_special_tokens=False)
-        
+
 """A simple invertible tokenizer.
 
 Converts from a unicode string to a list of tokens

@@ -30,13 +30,13 @@ from trax import optimizers as opt
 from trax.learning.reinforcement import task as rl_task
 from trax.learning.reinforcement import trainer as training
 from trax.learning.supervised import lr_schedules
-from utils.tests import utils
+from trax.utils.tests import utils
 
 
 class TrainingTest(absltest.TestCase):
     def setUp(self):
         super().setUp()
-        test_utils.ensure_flag("test_tmpdir")
+        utils.ensure_flag("test_tmpdir")
         self._model_fn = functools.partial(
             models.Policy,
             body=lambda mode: tl.Serial(  # pylint: disable=g-long-lambda

@@ -16,6 +16,7 @@
 """Trax training optimizer class."""
 
 import inspect
+
 from typing import Any
 
 from trax import fastmath

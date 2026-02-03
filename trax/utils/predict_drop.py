@@ -32,14 +32,14 @@ import tensorflow as tf
 
 from absl import app as absl_app
 from absl import flags
+from learning.supervised import decoding
+from learning.training.utils import runtime
 from seqio import vocabularies as t5_spc_vocab
 from t5 import data
+from utils import logging, shapes
 
 from trax import data as trax_data
-from trax.utils import logging as trax_logging
-from trax import layers as tl
-from trax.learning.supervised import decoding
-from trax.utils import shapes
+from trax import fastmath
 
 FLAGS = flags.FLAGS
 
@@ -79,7 +79,7 @@ flags.DEFINE_multi_string(
 
 def _check_exists(file_path):
     if not tf.io.gfile.exists(file_path):
-        trax_logging.error("No such file: %s", file_path, stdout=True)
+        logging.error("No such file: %s", file_path, stdout=True)
         exit(1)
 
 
@@ -91,7 +91,7 @@ def multiply_examples(example):
 def prepare_model(model_file, batch_size=1):
     """Prepare the model."""
     mode = "eval" if FLAGS.use_eval_mode else "predict"
-    trax_logging.info("Initializing the model in %s mode.", mode, stdout=True)
+    logging.info("Initializing the model in %s mode.", mode, stdout=True)
 
     # Read the model name from the gin file
     model_reference = gin.query_parameter("trax.learning.trainer.train.model")
@@ -104,7 +104,9 @@ def prepare_model(model_file, batch_size=1):
     model.init_from_file(
         model_file, weights_only=True, input_signature=(shape11, shape11)
     )
-    model = tl.Accelerate(model)
+    model = runtime.wrap_layer_for_eval(
+        model, n_devices=fastmath.local_device_count(), do_mean=False
+    )
 
     initial_state = model.state
     vocab = t5_spc_vocab.SentencePieceVocabulary(data.DEFAULT_SPM_PATH)
@@ -144,7 +146,7 @@ def main(argv):
     vocab, model, initial_state = prepare_model(model_file, FLAGS.batch_size)
 
     host_id, host_count = jax.host_id(), jax.host_count()
-    trax_logging.info(
+    logging.info(
         "Running on host %d out of %d.", host_id, host_count, stdout=True
     )
 
@@ -175,7 +177,7 @@ def main(argv):
                 and int(number) < FLAGS.num_examples + FLAGS.starting_example
             ):
                 done = max(done, int(number))
-    trax_logging.info("The done number is %s", done, stdout=True)
+    logging.info("The done number is %s", done, stdout=True)
 
     if FLAGS.use_eval_set:
         drop_gen = trax_data.CreateDropInputs(train=False)()
@@ -196,7 +198,7 @@ def main(argv):
             vocab, model, initial_state = prepare_model(model_file, FLAGS.batch_size)
             reload_count = 0
         if example_count >= FLAGS.num_examples:
-            trax_logging.info(
+            logging.info(
                 "Reached the example_count %s - breaking", example_count, stdout=True
             )
             break
@@ -207,7 +209,7 @@ def main(argv):
         # We count numeric starting examples
         example_count_total += 1
         if example_count_total <= FLAGS.starting_example:
-            trax_logging.info(
+            logging.info(
                 "Skipping example_count_total %s because it is below %s",
                 example_count_total,
                 FLAGS.starting_example,
@@ -218,7 +220,7 @@ def main(argv):
         if example_count % 10 == 0:
             elapsed_time = time.time() - start_time
             start_time = time.time()
-            trax_logging.info(
+            logging.info(
                 "Starting inference on example %d, %.2fs since last log",
                 example_count,
                 elapsed_time,
@@ -227,7 +229,7 @@ def main(argv):
 
         example_count += 1
         if example_count <= done - FLAGS.starting_example + 1:
-            trax_logging.info(
+            logging.info(
                 "Skipping example_count %s because it is below %s",
                 example_count,
                 done - FLAGS.starting_example,
@@ -310,7 +312,7 @@ def main(argv):
                         answer_beams[i][0],
                         vocab_file=gin.query_parameter("trax.data.Tokenize.vocab_file"),
                     )
-                trax_logging.info("Proposed computation %s", answer, stdout=True)
+                logging.info("Proposed computation %s", answer, stdout=True)
                 list_op = answer.split("|")
                 if not list_op[-1]:
                     list_op = list_op[:-1]
@@ -324,7 +326,7 @@ def main(argv):
                 # must fail sometime, because we evaluate arbitrary sequences; I am in
                 # the process of checking what are possible failure modes.
                 except Exception as e:  # pylint: disable=broad-except
-                    trax_logging.error("%s", e, stdout=True)
+                    logging.error("%s", e, stdout=True)
                     try:
                         result = trax_data.tf_inputs.compute_result(
                             list_op[:-1], list_num
@@ -333,8 +335,8 @@ def main(argv):
                             correct_example_index = result.index(target_answer)
                             break
                     except Exception as e:  # pylint: disable=broad-except
-                        trax_logging.error("%s", e, stdout=True)
-                        trax_logging.warning(
+                        logging.error("%s", e, stdout=True)
+                        logging.warning(
                             "Infered incorrect computation.", stdout=True
                         )
 

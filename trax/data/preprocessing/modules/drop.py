@@ -24,11 +24,11 @@ import gin
 import numpy as np
 import tensorflow_datasets as tfds
 
-from trax.utils import logging as trax_logging
 from trax.data.preprocessing.modules.math import (
     convert_float_to_mathqa,
     convert_to_subtract,
 )
+from trax.utils import logging as trax_logging
 
 
 @gin.configurable(module="trax.data")

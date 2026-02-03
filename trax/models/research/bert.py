@@ -26,8 +26,8 @@ import tensorflow as tf
 
 from trax import fastmath
 from trax import layers as tl
-from trax.utils import logging as trax_logging
 from trax.fastmath import numpy as np
+from trax.utils import logging as trax_logging
 
 # pylint: disable=invalid-name
 

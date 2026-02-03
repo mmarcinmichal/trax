@@ -28,6 +28,7 @@ from trax.fastmath import random
 from trax.layers import base, core, reversible
 from trax.layers import initializers as init
 from trax.layers.assert_shape import assert_shape
+from trax.learning.training.utils import runtime
 
 # We use mixed CamelCase and snake_case names in this file.
 # pylint: disable=invalid-name
@@ -1639,8 +1640,8 @@ class _SparseFFMain(base.Layer):
         if base.N_WEIGHTS_SHARDS > 1:
             # In sharded-weights mode, put the weights on CPU on init
             # as they will be sharded later.
-            w1 = tl.on_cpu(self._kernel_initializer(shape_w1, rng_w1))
-            w2 = tl.on_cpu(self._kernel_initializer(shape_w2, rng_w2))
+            w1 = runtime.on_cpu(self._kernel_initializer(shape_w1, rng_w1))
+            w2 = runtime.on_cpu(self._kernel_initializer(shape_w2, rng_w2))
         else:
             w1 = self._kernel_initializer(shape_w1, rng_w1)
             w2 = self._kernel_initializer(shape_w2, rng_w2)

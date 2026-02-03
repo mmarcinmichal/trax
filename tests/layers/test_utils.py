@@ -217,7 +217,7 @@ class MockTransformerLM(tl.Layer):
     removes the additional layer of complexity related to training a model or
     maintaining a pretrained one. Makes the tests run MUCH faster.
 
-    Does not support acceleration. Do not wrap in tl.Accelerate().
+    Does not support acceleration wrappers.
     """
 
     def __init__(self, sequence_fn, mode, vocab_size):

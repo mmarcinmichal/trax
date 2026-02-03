@@ -1,12 +1,18 @@
 # Refactored trainers.py
 import math
+import os
 
 import jax
 import jax.numpy as jnp
 import numpy as np
+import psutil
 
 import trax.layers as tl
-import trax.layers.reversible as reversible_layer
+
+from trax import fastmath
+from trax.layers import combinators as cb
+from trax.learning.training.utils import runtime
+from trax.utils import logging as trax_logging
 
 
 def _adasum_merge(a, b):
@@ -114,14 +120,13 @@ def _accelerate_update_fn(forward_and_backward_fn, optimizer, n_devices, adasum)
     def single_device_update_fn(
         weights, state, opt_state, batch, rng, step_int, opt_params
     ):
-        # 1) Forward + backward pass -> grads, loss, updated_state
         grads, loss, updated_state = forward_and_backward_fn(batch, weights, state, rng)
 
-        # 2) Optimizer update
-        new_weights, new_opt_state, _metrics = optimizer.tree_update(
+        new_weights, new_opt_state, metrics = optimizer.tree_update(
             step_int, grads, weights, opt_state, opt_params, store_slots=False
         )
-        return new_weights, updated_state, new_opt_state, loss
+        metrics["loss"] = loss
+        return new_weights, updated_state, new_opt_state, metrics
 
     if n_devices <= 1:
         # Single device => just call the jitted function
@@ -141,21 +146,19 @@ def _accelerate_update_fn(forward_and_backward_fn, optimizer, n_devices, adasum)
             We do the forward/backward but also average grads across devices
             inside this pmap, so each device ends up with the same update.
             """
-            # -- forward+backward pass --
             grads, loss, st_new = forward_and_backward_fn(b, w, s, r)
-            # -- average or Adasum the grads across devices --
             grads = _average_multidevice_gradients(grads, adasum=adasum)
-            # -- apply optimizer update --
-            w_new, o_new, _metrics = optimizer.tree_update(
+            w_new, o_new, metrics = optimizer.tree_update(
                 step_int, grads, w, o, opt_params, store_slots=False
             )
-            return w_new, st_new, o_new, loss
+            metrics["loss"] = loss
+            return w_new, st_new, o_new, metrics
 
         # We call pmap over the per-device-step
-        w_updated, s_updated, o_updated, loss = jax.pmap(
+        w_updated, s_updated, o_updated, metrics = jax.pmap(
             _per_device_step, axis_name="batch"
         )(weights, state, opt_state, batch, rngs)
-        return w_updated, s_updated, o_updated, loss
+        return w_updated, s_updated, o_updated, metrics
 
     return multi_device_update_fn
 
@@ -225,6 +228,11 @@ class TrainingEngine:
     def slots(self):
         return self._slots
 
+    @slots.setter
+    def slots(self, slots):
+        self._slots = slots
+        self._optimizer.slots = slots
+
     def one_step(self, batch, rng, step=0, learning_rate=None):
         """
         1) Possibly pad the batch for multi-device
@@ -240,7 +248,7 @@ class TrainingEngine:
 
         if self._n_devices == 1:
             # Single device => just run the function directly (already jitted).
-            (new_weights, new_state, new_slots, loss,) = self._accelerated_update_fn(
+            (new_weights, new_state, new_slots, stats,) = self._accelerated_update_fn(
                 weights,
                 state,
                 self._slots,
@@ -255,7 +263,11 @@ class TrainingEngine:
             self._model_with_loss.state = new_state
             self._slots = new_slots
             self._optimizer.slots = new_slots
-            return loss
+            loss_value = float(stats["loss"]) if np.size(stats["loss"]) == 1 else float(
+                np.mean(stats["loss"])
+            )
+            stats["loss"] = loss_value
+            return loss_value, stats
 
         #
         # Multi-device => pad the batch if needed, replicate, call pmapped update
@@ -290,7 +302,7 @@ class TrainingEngine:
             updated_weights_rep,
             updated_state_rep,
             updated_slots_rep,
-            loss_rep,
+            stats_rep,
         ) = self._accelerated_update_fn(
             weights_rep, state_rep, slots_rep, padded_batch, rng, step, self._opt_params
         )
@@ -299,11 +311,8 @@ class TrainingEngine:
         new_weights = self._unreplicate(updated_weights_rep)
         new_state = self._unreplicate(updated_state_rep)
         new_slots = self._unreplicate(updated_slots_rep)
-        loss_vals = self._unreplicate(loss_rep)
-
-        # If we want a single scalar, e.g. average across devices:
-        # each device sees the same final "loss", if we've pmean'd it,
-        # so we can just do:
+        stats = self._unreplicate(stats_rep)
+        loss_vals = stats["loss"]
         final_loss = float(loss_vals) if np.size(loss_vals) == 1 else np.mean(loss_vals)
 
         # Update trainers
@@ -316,7 +325,8 @@ class TrainingEngine:
         # after the forward pass. But here we've just got a scalar loss, so no unpadding needed
         # for the loss. If you needed to unpad e.g. a predictions array, you'd do it here.
 
-        return final_loss
+        stats["loss"] = final_loss
+        return final_loss, stats
 
     def _unreplicate(self, tree):
         """Return the first element of a replicated array (from shape [n_devices,...] to [...])."""
@@ -324,672 +334,607 @@ class TrainingEngine:
 
 
 class ReversibleSerialTrainer:
-    """Trainer for a sequence of reversible layers - optimized with JAX JIT."""
+    """Runs an optimizer on a series of layers, reversible and not."""
 
     def __init__(
         self,
-        model_with_loss,
+        blocks,
+        loss_layer,
         optimizer_fn,
         n_devices=None,
+        memoize_jit=True,
+        free_accelerators_on_step=False,
         adasum=False,
-        n_steps_per_log=None,
-        n_async_layers=0,
-        jit_memory=True,
-        do_free=True,
     ):
-        """Initialize the trainers.
-
-        Args:
-            model_with_loss: Serial layer with loss at the end.
-            optimizer_fn: Function creating an optimizer for each layer.
-            n_devices: Number of accelerator devices to use in the computation.
-            adasum: Whether to use Adasum algorithm for gradient aggregation.
-            n_steps_per_log: How often to log results.
-            n_async_layers: How many layers to run asynchronously.
-            jit_memory: Whether to JIT memory cleanup operations.
-            do_free: Whether to free memory during training.
-        """
-        # First, we need to extract the model and the loss from the model_with_loss.
-        # Usually model_with_loss is a Serial of the original model and the loss.
-        if not isinstance(model_with_loss, tl.Serial):
-            # We may already be given just the model.
-            self._loss_layer = model_with_loss
-            self._blocks = None
-            self._n_layers = 1
-        else:
-            self._loss_layer = model_with_loss[-1]
-            self._blocks, _ = extract_reversible_blocks(model_with_loss)
-            # Number of all layers (not blocks, as reversible blocks have 2 layers).
-            self._n_layers = len(model_with_loss.sublayers)
-
-        # Initialize other training parameters
+        self._blocks = [(tl.Serial(std), rev) for (std, rev) in blocks]
+        self._loss_layer = loss_layer
         self._optimizer_fn = optimizer_fn
-        self._n_devices = n_devices or jax.local_device_count()
+        self._n_devices = n_devices or fastmath.local_device_count()
         self._adasum = adasum
-        self._n_steps_per_log = n_steps_per_log
-        self._n_async_layers = n_async_layers
+        self._n_layers = 1 + sum([len(revs) + 1 for (_, revs) in self._blocks])
+        self._n_steps_per_log = 100
+        self._n_async_layers = 1
+        self._jit_memory = {} if memoize_jit else None
+        self._do_free = free_accelerators_on_step
+        self._jit_per_device_rngs = fastmath.jit(self._per_device_rngs, backend="cpu")
 
-        # Initialize memory management parameters
-        self._jit_memory = jit_memory
-        self._do_free = do_free
-
-        # Initialize RNG handling
-        self._jit_per_device_rngs = jax.pmap(
-            lambda rng: jax.random.split(rng, jax.local_device_count()),
-            axis_name="batch",
+        self._accelerated_layer_fns = fastmath.nested_map(
+            lambda layer: self._pjit(layer.pure_fn, f"fwd {repr(layer)}"), self._blocks
         )
 
-        # Initialize the accelerated layer functions - JIT compiled versions
-        if self._blocks is not None:
-            # Create JIT-compiled forward and backward functions for each layer
-            self._accelerated_layer_fns = []
-            for layer in self._blocks:
+        def _make_optimizer(layer):
+            opt = optimizer_fn()
+            opt.tree_init(layer.weights)
+            opt.slots = runtime.on_cpu(opt.slots)
+            return opt
 
-                def fwd_fn(x, weights, state, rng):
-                    return layer.pure_fn(x, weights, state, rng, True)
+        self._optimizers = fastmath.nested_map(_make_optimizer, self._blocks)
+        self._replicated_opt_params = fastmath.nested_map(
+            lambda opt: self._replicate_cpu(opt.opt_params), self._optimizers
+        )
 
-                def bwd_fn(y, weights, state, rng, grad_y):
-                    def compute_loss(y):
-                        return jnp.mean(y)  # Dummy loss for grad computation
+        self._loss_opt = _make_optimizer(loss_layer)
+        self._replicated_loss_opt_params = self._replicate_cpu(
+            self._loss_opt.opt_params
+        )
 
-                    vjp_fn = jax.vjp(compute_loss, y)[1]
-                    return vjp_fn(grad_y)[0]
+        self._fbos = []
+        for i, (std_layer, rev_layers) in enumerate(self._blocks):
+            (std_opt, rev_opts) = self._optimizers[i]
+            std_fbo = _fbo_with_layer_and_opt(
+                std_layer, std_opt, self._n_devices, adasum=self._adasum
+            )
+            rev_and_fbos = []
+            for layer, opt in zip(rev_layers, rev_opts):
+                rev_and_fbo = _reverse_and_fbo_with_layer_and_opt(
+                    layer, opt, self._n_devices, self._adasum
+                )
+                rev_and_fbos.append(
+                    self._pjit(
+                        rev_and_fbo, f"rev+bwd {repr(layer)}", donate_argnums=(0, 1, 2)
+                    )
+                )
+            jit_std_fbo = self._pjit(
+                std_fbo, f"bwd {repr(std_layer)}", donate_argnums=(1, 2)
+            )
+            self._fbos.append((jit_std_fbo, rev_and_fbos))
 
-                # JIT-compile these functions
-                self._accelerated_layer_fns.append((jax.jit(fwd_fn), jax.jit(bwd_fn)))
+        loss_fbo = _fbo_with_layer_and_opt(
+            self._loss_layer, self._loss_opt, self._n_devices, "loss", self._adasum
+        )
+        self._loss_fbo = self._pjit(loss_fbo, donate_argnums=(1, 2))
 
-        # Initialize optimizers for each block
-        if self._blocks is not None:
-            self._optimizers = []
-            self._replicated_opt_params = []
-
-            # Create optimizer for each layer
-            for i, block in enumerate(self._blocks):
-                opt = optimizer_fn(block)
-                self._optimizers.append(opt)
-
-                # Initialize optimizer state for each layer
-                if i == len(self._blocks) - 1:
-                    # Last layer includes the loss layer
-                    slots, opt_params = opt.tree_init(block.weights)
-                else:
-                    slots, opt_params = opt.tree_init(block.weights)
-
-                # Replicate optimizer parameters for multi-device training
-                self._replicated_opt_params.append(self._replicate(opt_params))
-
-        # Initialize optimizer for the loss layer
-        self._loss_opt = optimizer_fn(self._loss_layer)
-        slots, opt_params = self._loss_opt.tree_init(self._loss_layer.weights)
-        self._replicated_loss_opt_params = self._replicate(opt_params)
-
-        # Create forward-backward-optimize functions
-        if self._blocks is not None:
-            self._fbos = []
-            for i, block in enumerate(self._blocks):
-                # Create the forward-backward-optimize function for this layer
-                fbo = self._pjit(_fbo_with_layer_and_opt, static_argnums=(0, 1))
-                self._fbos.append(fbo)
-
-        # Create loss function forward-backward-optimize
-        self._loss_fbo = self._pjit(_fbo_with_layer_and_opt, static_argnums=(0, 1))
-
+    @property
     def loss_layer(self):
-        """Returns the loss layer."""
         return self._loss_layer
 
+    @property
     def all_layers(self):
-        """Returns a list of all layers in the model."""
-        if self._blocks is None:
-            return [self._loss_layer]
         layers = []
-        for block in self._blocks:
-            layers.extend(block.sublayers)
+        for (std_layer, rev_layers) in self._blocks:
+            layers.append(std_layer)
+            layers.extend(rev_layers)
         layers.append(self._loss_layer)
         return layers
 
+    @property
     def optimizer_fn(self):
-        """Returns the optimizer function."""
         return self._optimizer_fn
 
+    @property
     def slots(self):
-        """Returns the optimizer slots."""
-        slots = []
-        if self._blocks is not None:
-            for i, block in enumerate(self._blocks):
-                slots.append(block.weights)
-        slots.append(self._loss_layer.weights)
-        return slots
+        optimizers = list(self._optimizers) + [self._loss_opt]
+        return fastmath.nested_map(lambda opt: opt.slots, optimizers)
 
-    def slots_and_params(self):
-        """Returns the optimizer slots and parameters."""
-        slots = []
-        params = []
-        if self._blocks is not None:
-            for i, opt in enumerate(self._optimizers):
-                s, p = opt.slots, self._unreplicate(self._replicated_opt_params[i])
-                slots.append(s)
-                params.append(p)
-        s, p = self._loss_opt.slots, self._unreplicate(self._replicated_loss_opt_params)
-        slots.append(s)
-        params.append(p)
-        return slots, params
+    @slots.setter
+    def slots(self, slots):
+        for ((s_opt, r_opts), (s_slots, r_slots)) in zip(self._optimizers, slots[:-1]):
+            for (opt, slot) in zip([s_opt] + r_opts, [s_slots] + r_slots):
+                opt.slots = slot
+        self._loss_opt.slots = slots[-1]
 
-    def _pjit(self, f, *args, **kwargs):
-        """Apply jit compilation but avoiding tl.Accelerate."""
+    def _pjit(self, f, memory_key=None, donate_argnums=()):
+        should_memoize = self._jit_memory is not None and memory_key is not None
+        if should_memoize and memory_key in self._jit_memory:
+            trax_logging.info("Found JITed function in memory for: %s", memory_key)
+            return self._jit_memory[memory_key]
         if self._n_devices == 1:
-            return jax.jit(f, *args, **kwargs)
-        return jax.pmap(f, axis_name="batch", *args, **kwargs)
+            res = fastmath.jit(f, donate_argnums=donate_argnums)
+        else:
+            res = fastmath.pmap(f, axis_name="batch", donate_argnums=donate_argnums)
+        if should_memoize:
+            self._jit_memory[memory_key] = res
+        return res
 
     def _replicate(self, x):
-        """Replicate a tree of values for use on multiple devices."""
-        if self._n_devices <= 1:
-            return x
-        return jax.tree_map(
-            lambda y: jnp.broadcast_to(y, (self._n_devices,) + y.shape), x
-        )
+        if self._n_devices > 1:
+            return runtime.for_n_devices(x, self._n_devices)
+        return runtime.on_accelerator(x)
 
     def _replicate_cpu(self, x):
-        """Replicate a tree of values for use on multiple devices, allowing CPU arrays."""
-        if self._n_devices <= 1:
-            return x
-
-        def rep(y):
-            if isinstance(y, np.ndarray):
-                return np.broadcast_to(y, (self._n_devices,) + y.shape)
-            elif isinstance(y, jnp.ndarray):
-                return jnp.broadcast_to(y, (self._n_devices,) + y.shape)
+        def f(x):
+            if self._n_devices > 1:
+                return np.broadcast_to(x, (self._n_devices,) + np.asarray(x).shape)
             else:
-                return y
+                return x
 
-        return jax.tree_map(rep, x)
+        return runtime.on_cpu(fastmath.nested_map(f, x))
 
     def _unreplicate(self, x):
-        """Take the first component of a replicated tree of values."""
-        return jax.tree_map(lambda y: y[0], x)
+        if self._n_devices == 1:
+            return runtime.on_cpu(x)
+        return runtime.on_cpu(fastmath.nested_map(lambda x: x[0], x))
 
     def _lazy_unreplicate(self, x):
-        """Like _unreplicate but avoids data movement if possible."""
-        if isinstance(x, list) and len(x) == 1:
-            return x[0]
-        if self._n_devices == 1:
-            return x
+        def unreplicate_and_start_async_copy(y):
+            unreplicated = y if self._n_devices == 1 else y[0]
+            unreplicated.copy_to_host_async()
+            return unreplicated
 
-        def get_first(y):
-            if y.shape[0] == self._n_devices:
-                return y[0]
-            return y
+        return fastmath.nested_map(unreplicate_and_start_async_copy, x)
 
-        return jax.tree_map(get_first, x)
+    def _collect_weights(self, layer):
+        layer.weights = fastmath.nested_map(np.asarray, layer.weights)
 
-    def _collect_weights(self):
-        """Collect weights from all layers into a single list."""
-        weights = []
-        if self._blocks is not None:
-            for block in self._blocks:
-                weights.append(block.weights)
-        weights.append(self._loss_layer.weights)
-        return weights
-
-    def _free_accelerators(
-        self, n_done_per_replica, replica_id, n_to_do_in_replica=None
-    ):
-        """Free accelerator memory not used by a replica at a given step."""
-        if not self._do_free:
-            return
-
-        if n_to_do_in_replica is None:
-            n_to_do_in_replica = len(self._blocks) * 2 + 3
-
-        done_rate = n_done_per_replica / n_to_do_in_replica
-
-        # If we have done a large chunk, we can free memory
-        if done_rate >= 0.5:
-            # Apply JIT compilation to memory operations if configured
-            if self._jit_memory:
-                # Define a memory cleanup function and JIT it
-                @jax.jit
-                def cleanup():
-                    # Reset JAX memory allocation
-                    jax.lax.stop_gradient(0.0)
-                    # Add explicit synchronization
-                    jax.lax.psum(0, axis_name="batch")
-                    return 0
-
-                cleanup()
-            else:
-                # Simple memory cleanup without JIT
-                jax.lax.stop_gradient(0.0)
-                jax.lax.psum(0, axis_name="batch")
+    def _free_accelerators(self, exceptions=(), keep_constants=True):
+        backend = jax.lib.xla_bridge.get_backend()
+        live_buffers = backend.live_buffers()
+        trax_logging.info("Deleting %d live buffers.", len(live_buffers))
+        exceptions_buffers = []
+        for x in fastmath.tree_flatten(exceptions):
+            if hasattr(x, "device_buffer"):
+                exceptions_buffers.append(x.device_buffer)
+            if hasattr(x, "device_buffers"):
+                exceptions_buffers.extend(x.device_buffers)
+        for b in live_buffers:
+            should_delete = True
+            for e in exceptions_buffers:
+                if b is e:
+                    should_delete = False
+            if keep_constants and not b.shape:
+                should_delete = False
+            if should_delete:
+                b.delete()
 
     def _per_device_rngs(self, rng):
-        """Create different RNG keys for different devices."""
-        if isinstance(rng, np.ndarray) and rng.shape == (2,):
-            if self._n_devices == 1:
-                return rng
-            # Create different RNG keys for different devices
-            return jax.random.split(rng, self._n_devices)
-
-        # In multi-device case, we get a precomputed set of rngs
-        return rng
+        per_device_rng = fastmath.random.split(rng, self._n_devices)
+        per_device_rngs = [
+            fastmath.random.split(r, self._n_layers) for r in per_device_rng
+        ]
+        rngs = [
+            jnp.stack([r[i] for r in per_device_rngs]) for i in range(self._n_layers)
+        ]
+        return rngs
 
     def one_step(self, batch, rng, step=0, learning_rate=None):
-        """Run one step of gradient-based training.
-
-        Args:
-            batch: Batch of training data.
-            rng: Random number generator.
-            step: Current training step.
-            learning_rate: Optional learning rate to use.
-
-        Returns:
-            Loss computed on the batch.
-        """
-        # Update the learning rate if needed
         if learning_rate is not None:
-            if self._blocks is not None:
-                for params in self._replicated_opt_params:
-                    params["learning_rate"] = learning_rate
-            self._replicated_loss_opt_params["learning_rate"] = learning_rate
+            self._replicated_loss_opt_params["learning_rate"] = self._replicate_cpu(
+                learning_rate
+            )
+            for (std_op, rev_ops) in self._replicated_opt_params:
+                std_op["learning_rate"] = self._replicate_cpu(learning_rate)
+                for op in rev_ops:
+                    op["learning_rate"] = self._replicate_cpu(learning_rate)
 
-        # Prepare the batch for multiple devices if needed
+        step_int = step
         if self._n_devices > 1:
-            batch_size = batch[0].shape[0]
-            batch_per_device = batch_size // self._n_devices
-
-            batch = jax.tree_map(
-                lambda x: x.reshape(self._n_devices, batch_per_device, *x.shape[1:]),
-                batch,
+            batch = runtime.reshape_by_device(
+                batch, self._n_devices, pure_np=True
             )
+            step = np.repeat(step, self._n_devices)
 
-        # Prepare RNGs for each device
-        device_rngs = self._per_device_rngs(rng)
-
-        if self._blocks is None:
-            # No reversible layers - direct computation
-            # Forward pass through the loss layer
-            output, updated_state = self._loss_layer.pure_fn(
-                batch,
-                self._loss_layer.weights,
-                self._loss_layer.state,
-                device_rngs,
-                True,
-            )
-
-            # Create the input-output gradient function
-            def grad_fn(weights):
-                output, _ = self._loss_layer.pure_fn(
-                    batch, weights, self._loss_layer.state, device_rngs, True
-                )
-                return output
-
-            # Compute gradients for the loss layer
-            gradients = jax.grad(grad_fn)(self._loss_layer.weights)
-
-            # Average gradients across devices if needed
-            if self._n_devices > 1:
-                gradients = _average_multidevice_gradients(
-                    gradients, self._n_devices, self._adasum
-                )
-
-            # Update the weights with the optimizer
-            updates, updated_opt_state = self._loss_opt.tree_update(
-                gradients, self._loss_opt.slots, self._loss_layer.weights, step
-            )
-
-            # Apply updates to weights
-            updated_weights = jax.tree_map(
-                lambda w, u: w + u, self._loss_layer.weights, updates
-            )
-
-            self._loss_layer.weights = updated_weights
-            self._loss_layer.state = updated_state
-            self._loss_opt.slots = updated_opt_state
-
-            return output
-
-        # We have reversible blocks - run the full reversible computation
-        if not self._blocks[0].sublayers[0].has_backward:
-            # Standard case - run forward and backward passes separately
-            (output, updated_state), inputs_stack = self._run_forward_standard(
-                batch, device_rngs
-            )
-
-            # Compute loss gradients
-            loss_gradients = jax.grad(
-                lambda w: self._loss_layer.pure_fn(
-                    output, w, self._loss_layer.state, device_rngs, True
-                )[0]
-            )(self._loss_layer.weights)
-
-            # Average gradients across devices if needed
-            if self._n_devices > 1:
-                loss_gradients = _average_multidevice_gradients(
-                    loss_gradients, self._n_devices, self._adasum
-                )
-
-            # Update loss layer weights
-            loss_updates, loss_updated_opt_state = self._loss_opt.tree_update(
-                loss_gradients, self._loss_opt.slots, self._loss_layer.weights, step
-            )
-
-            self._loss_layer.weights = jax.tree_map(
-                lambda w, u: w + u, self._loss_layer.weights, loss_updates
-            )
-            self._loss_layer.state = updated_state
-
-            # Run backward pass to compute and update weights for all blocks
-            self._run_backward_standard(output, inputs_stack, device_rngs, step)
-
-            return output
+        if self._n_devices == 1:
+            rngs = fastmath.random.split(rng, self._n_layers)
         else:
-            # Reversible case - use specialized forward-backward
-            output, output_grad = self._run_forward_reversible(batch, device_rngs)
+            rngs = self._jit_per_device_rngs(runtime.on_cpu(rng))
+        rng_blocks, rng_i = [], 0
+        for _, rev_layers in self._blocks:
+            l = len(rev_layers)
+            rng_blocks.append((rngs[rng_i], rngs[rng_i + 1 : rng_i + l + 1]))
+            rng_i += l + 1
 
-            # Run backward pass for all reversible blocks
-            loss = self._run_backward_reversible(output, output_grad, device_rngs, step)
-
-            return loss
-
-    def _run_forward_standard(self, batch, rngs):
-        """Run the forward pass in standard (non-reversible) mode."""
-        # Extract inputs and targets
-        inputs_stack = []
-
-        # Forward pass through all blocks
-        for i, block in enumerate(self._blocks):
-            inputs_stack.append(batch)
-            # Run the actual forward pass for this block
-            batch, updated_state = block.pure_fn(
-                batch, block.weights, block.state, rngs, True
+        if self._do_free:
+            self._free_accelerators()
+        process = psutil.Process(os.getpid())
+        if isinstance(batch, (list, tuple)):
+            batch_shapes = [x.shape for x in batch]
+        else:
+            batch_shapes = batch.shape
+        trax_logging.info("running step %d on shapes %s", step_int, str(batch_shapes))
+        if step_int % self._n_steps_per_log == 1:
+            trax_logging.info(
+                "run fwd: cpu memory use (MB): %.2f",
+                process.memory_info().rss / float(1024 * 1024),
             )
 
-            # Update block state
-            if i < len(self._blocks) - 1:
-                block.state = updated_state
-
-        # Final forward pass through the loss layer
-        output, loss_updated_state = self._loss_layer.pure_fn(
-            batch, self._loss_layer.weights, self._loss_layer.state, rngs, True
-        )
-
-        self._loss_layer.state = loss_updated_state
-
-        return (output, loss_updated_state), inputs_stack
-
-    def _run_forward_reversible(self, batch, rngs):
-        """Run the forward pass in reversible mode."""
-        # Extract inputs and targets
-        # Initialize the activations list
-        activations = []
-
-        # Forward pass through all blocks
-        for i, block in enumerate(self._blocks):
-            # Add the current input to activations
-            activations.append(batch)
-
-            # Run the forward pass for this block
-            batch, updated_state = block.pure_fn(
-                batch, block.weights, block.state, rngs, True
+        stack = batch
+        block_inputs_states = []
+        for i, (std_layer, rev_layers) in enumerate(self._blocks):
+            acc_std_layer_fn, acc_rev_layer_fns = self._accelerated_layer_fns[i]
+            std_rng, rev_rngs = rng_blocks[i]
+            stack, std_inputs, std_state = self._run_forward_standard(
+                stack, std_layer, acc_std_layer_fn, std_rng, step_int
             )
-
-            # Update the block state
-            block.state = updated_state
-
-        # Final forward pass through the loss layer
-        output, loss_updated_state = self._loss_layer.pure_fn(
-            batch, self._loss_layer.weights, self._loss_layer.state, rngs, True
-        )
-
-        self._loss_layer.state = loss_updated_state
-
-        # Compute the output gradient
-        def loss_fn(x):
-            return self._loss_layer.pure_fn(
-                x, self._loss_layer.weights, self._loss_layer.state, rngs, True
-            )[0]
-
-        # Get the gradient with respect to the output
-        output_grad = jax.grad(loss_fn)(batch)
-
-        return output, output_grad
-
-    def _run_backward_standard(self, loss, inputs_stack, rngs, step):
-        """Run the backward pass in standard (non-reversible) mode."""
-        # Compute gradients for all blocks
-        def grad_fn(weights, i):
-            return self._blocks[i].pure_fn(inputs_stack[i], weights, self._blocks[i].state, rngs, True)[0]
-
-        # Process blocks in reverse order
-        for i in range(len(self._blocks) - 1, -1, -1):
-            # Compute gradients for this block
-            block_gradients = jax.grad(lambda w: grad_fn(w, i))(self._blocks[i].weights)
-
-            # Average gradients across devices if needed
-            if self._n_devices > 1:
-                block_gradients = _average_multidevice_gradients(
-                    block_gradients, self._n_devices, self._adasum
+            stack, rev_old_states, rev_new_states = self._run_forward_reversible(
+                stack, rev_layers, acc_rev_layer_fns, rev_rngs, step_int
+            )
+            block_inputs_states.append(
+                runtime.on_cpu(
+                    ((std_inputs, std_state), (rev_old_states, rev_new_states))
                 )
+            )
 
-            # Update block weights
-            block_updates, block_updated_opt_state = self._optimizers[i].tree_update(
-                block_gradients,
-                self._optimizers[i].slots,
-                self._blocks[i].weights,
+        if step_int % self._n_steps_per_log == 1:
+            trax_logging.info(
+                "run loss: cpu memory use (MB): %.2f",
+                process.memory_info().rss / float(1024 * 1024),
+            )
+        loss_state = self._replicate(self._loss_layer.state)
+        loss_inputs = cb.inputs_from_stack(stack, self._loss_layer.n_in)
+        loss_stats, grad_stack = self._run_backward_standard(
+            None,
+            step,
+            self._loss_layer,
+            loss_inputs,
+            loss_state,
+            self._loss_fbo,
+            rngs[-1],
+            self._loss_opt,
+            self._replicated_loss_opt_params,
+        )
+        self._collect_weights(self._loss_layer)
+        stats = [runtime.on_cpu(loss_stats)]
+
+        if self._do_free:
+            stack, grad_stack = runtime.on_cpu(stack), runtime.on_cpu(grad_stack)
+            self._free_accelerators()
+
+        if step_int % self._n_steps_per_log == 1:
+            trax_logging.info(
+                "run bwd: cpu memory use (MB): %.2f",
+                process.memory_info().rss / float(1024 * 1024),
+            )
+        for i in range(len(self._blocks) - 1, -1, -1):
+            std_layer, rev_layers = self._blocks[i]
+            (std_inputs, std_state), (
+                rev_old_states,
+                rev_new_states,
+            ) = block_inputs_states[i]
+            std_fbo, rev_fbos = self._fbos[i]
+            std_opt, rev_opts = self._optimizers[i]
+            std_rng, rev_rngs = rng_blocks[i]
+            repl_std_opt_params, repl_rev_opts_params = self._replicated_opt_params[i]
+
+            stack, grad_stack, new_stats = self._run_backward_reversible(
+                stack,
+                grad_stack,
                 step,
+                rev_layers,
+                rev_fbos,
+                rev_old_states,
+                rev_new_states,
+                rev_rngs,
+                rev_opts,
+                repl_rev_opts_params,
             )
+            stats.extend(runtime.on_cpu(new_stats))
 
-            self._blocks[i].weights = jax.tree_map(
-                lambda w, u: w + u, self._blocks[i].weights, block_updates
+            std_layer_stats, grad_stack = self._run_backward_standard(
+                grad_stack,
+                step,
+                std_layer,
+                std_inputs,
+                std_state,
+                std_fbo,
+                std_rng,
+                std_opt,
+                repl_std_opt_params,
             )
-            self._optimizers[i].slots = block_updated_opt_state
+            stack = cb.outputs_onto_stack(std_inputs, stack, std_layer.n_out)
+            stats.append(runtime.on_cpu(std_layer_stats))
 
-            # Free accelerator memory if configured
-            if self._do_free:
-                self._free_accelerators(len(self._blocks) - i, 0)
+            for rev_layer_id in range(self._n_async_layers):
+                self._collect_weights(rev_layers[rev_layer_id])
+            self._collect_weights(std_layer)
 
-    def _run_backward_reversible(self, batch, loss, output_grads, rngs, step):
-        """Run the backward pass in reversible mode.
+        joint_stats = {}
+        for i, stat in enumerate(reversed(stats)):
+            for k, v in stat.items():
+                joint_stats[f"layer{i}/" + k] = v
+        return stats[0]["loss"], joint_stats
 
-        Args:
-            batch: The input batch data
-            loss: The loss value from forward pass
-            output_grads: Gradients of the loss
-            rngs: Random number generators
-            step: Current training step
-
-        Returns:
-            The loss value
-        """
-        # Initialize the gradient to be backpropagated
-        grads = output_grads
-
-        # Process blocks in reverse order
-        for i in range(len(self._blocks) - 1, -1, -1):
-            # Get the input for this block
-            if i > 0:
-                inputs = self._blocks[i - 1].output
-            else:
-                # First block - get the original input
-                inputs = batch[0]  # Assuming batch is a tuple of (inputs, targets)
-
-            # Run the backward pass for this block
-            block_gradients, grads = self._run_backward_one_reversible(
-                i, inputs, grads, rngs
-            )
-
-            # Average gradients across devices if needed
-            if self._n_devices > 1:
-                block_gradients = _average_multidevice_gradients(
-                    block_gradients, self._n_devices, self._adasum
-                )
-
-            # Use the optimizer's update method to get new weights and updated slots
-            block_weights = self._blocks[i].weights
-            opt_slots = self._optimizers[i].slots
-            opt_params = self._optimizers[i].opt_params
-
-            # Update weights using optimizer's own update logic
-            new_weights, new_slots = self._optimizers[i].tree_update(
-                block_gradients, opt_slots, block_weights, step, opt_params
-            )
-
-            # Update block weights and optimizer slots
-            self._blocks[i].weights = new_weights
-            self._optimizers[i].slots = new_slots
-
-            # Free accelerator memory if configured
-            if self._do_free:
-                self._free_accelerators(len(self._blocks) - i, 0)
-
-        return loss
-
-    def _run_backward_one_reversible(self, block_index, inputs, output_grads, rngs):
-        """Run the backward pass for one reversible block."""
-        # Get the block
-        block = self._blocks[block_index]
-
-        # Define the forward function for gradient computation
-        def forward_fn(weights, inputs):
-            output, _ = block.pure_fn(inputs, weights, block.state, rngs, True)
-            return output
-
-        # Compute block gradients with reverse-mode autodiff
-        block_gradients, input_grads = jax.vjp(
-            lambda w: forward_fn(w, inputs), block.weights
-        )[1](output_grads)
-
-        return block_gradients, input_grads
-
-
-def _fbo_with_layer_and_opt(
-    optimizer,
-    layer,
-    inputs,
-    weights,
-    state,
-    rngs,
-    opt_state,
-    opt_params,
-    grads=None,
-    step=None,
-):
-    """Forward + backward + optimize on a single layer."""
-    # JIT-compiled function for forward-backward-optimize
-    if grads is None:
-        # Forward pass
-        output, new_state = layer.pure_fn(inputs, weights, state, rngs, True)
-
-        # Define gradient function
-        def loss_fn(weights):
-            output, _ = layer.pure_fn(inputs, weights, state, rngs, True)
-            return jnp.mean(output)
-
-        # Compute gradients
-        gradients = jax.grad(loss_fn)(weights)
-    else:
-        # Use provided gradients
-        gradients = grads
-        new_state = state
-        output = None
-
-    # Optimize
-    updates, new_opt_state = optimizer.tree_update(
-        gradients, opt_state, weights, step, opt_params
-    )
-
-    # Apply updates
-    new_weights = jax.tree_map(lambda w, u: w + u, weights, updates)
-
-    return output, new_weights, new_state, new_opt_state, gradients
-
-
-def _reverse_and_fbo_with_layer_and_opt(
-    optimizer,
-    reversible_layer,
-    output,
-    output_grad,
-    weights,
-    state,
-    rngs,
-    opt_slots,
-    opt_params,
-    step=None,
-):
-    """Reverse-mode computation + optimize for a reversible layer."""
-
-    # Define the backward function for gradient computation
-    def backward_fn(weights):
-        # Define a forward pass that computes outputs for these weights
-        def forward_fn(x):
-            y, _ = reversible_layer.pure_fn(x, weights, state, rngs, True)
-            return y
-
-        # Use VJP to compute gradients backward
-        _, vjp_fn = jax.vjp(forward_fn, output)
-        return vjp_fn(output_grad)[0]
-
-    # Compute input gradient and weight gradients
-    input_grad = backward_fn(weights)
-
-    # Compute weight gradients using the chain rule
-    weight_grads = jax.grad(
-        lambda w: jnp.sum(
-            reversible_layer.pure_fn(output, w, state, rngs, True)[0] * output_grad
+    def _run_forward_standard(self, stack, layer, accelerated_fn, rng, step):
+        if step % self._n_steps_per_log == 1:
+            trax_logging.info("running forward standard layer %s", str(layer))
+        layer_inputs = cb.inputs_from_stack(stack, layer.n_in)
+        layer_weights = self._replicate(layer.weights)
+        layer_state = self._replicate(layer.state)
+        outputs, layer_new_state = accelerated_fn(
+            layer_inputs, layer_weights, layer_state, rng
         )
-    )(weights)
+        stack = cb.outputs_onto_stack(outputs, stack, layer.n_in)
+        return stack, layer_inputs, layer_new_state
 
-    # Use optimizer to compute new weights and slots
-    new_weights, new_slots = optimizer.tree_update(
-        weight_grads, opt_slots, weights, step, opt_params
-    )
+    def _run_forward_reversible(self, stack, rev_layers, accelerated_fns, rngs, step):
+        old_states, new_states = [], []
+        for i, layer in enumerate(rev_layers):
+            if step % self._n_steps_per_log == 1:
+                trax_logging.info("running forward reversible layer %s", str(layer))
+            weights = self._replicate(layer.weights)
+            state = self._replicate(layer.state)
+            old_states.append(state)
+            inputs = cb.inputs_from_stack(stack, layer.n_in)
+            outputs, new_state = accelerated_fns[i](inputs, weights, state, rngs[i])
+            stack = cb.outputs_onto_stack(outputs, stack, layer.n_in)
+            new_states.append(new_state)
+        return stack, old_states, new_states
 
-    return input_grad, new_weights, state, new_slots
-
-
-def extract_reversible_blocks(layer):
-    """Extract reversible blocks from a serial layer.
-
-    Args:
-        layer: A layer, usually a Serial layer containing reversible blocks.
-
-    Returns:
-        A tuple (reversible_blocks, loss_layer) where reversible_blocks is
-        a list of blocks that are reversible and loss_layer is the final
-        loss layer or None if not present.
-    """
-    if not isinstance(layer, tl.Serial):
-        return [], layer
-
-    blocks = []
-    loss_layer = None
-
-    # Check if the last layer is a loss layer
-    if hasattr(layer.sublayers[-1], "n_in") and layer.sublayers[-1].n_in == 2:
-        loss_layer = layer.sublayers[-1]
-        sublayers = layer.sublayers[:-1]
-    else:
-        sublayers = layer.sublayers
-
-    # Group layers into reversible blocks
-    i = 0
-    while i < len(sublayers):
-        if isinstance(sublayers[i], tl.ReversibleLayer) or (
-            hasattr(sublayers[i], "has_backward") and sublayers[i].has_backward
-        ):
-            blocks.append(sublayers[i])
-            i += 1
-        elif (
-            i + 1 < len(sublayers)
-            and isinstance(sublayers[i], tl.ReversibleHalfResidual)
-            and isinstance(sublayers[i + 1], tl.ReversibleHalfResidual)
-        ):
-            # Pair of ReversibleHalfResidual layers make a reversible block
-            blocks.append(reversible_layer.ReversibleResidual(sublayers[i], sublayers[i + 1]))
-            i += 2
+    def _run_backward_standard(
+        self,
+        grad_stack,
+        step,
+        layer,
+        inp,
+        state,
+        fbo_fn,
+        rng,
+        optimizer,
+        replicated_opt_params,
+    ):
+        step_int = int(step) if self._n_devices < 2 else int(step[0])
+        if step_int % self._n_steps_per_log == 1:
+            trax_logging.info("running backward standard layer %s", str(layer))
+        if grad_stack is not None:
+            grads = cb.inputs_from_stack(grad_stack, layer.n_out)
         else:
-            # Non-reversible layer - wrap it in a serial block
-            blocks.append(tl.Serial(sublayers[i]))
-            i += 1
+            grads = None
+        slots = self._replicate(optimizer.slots)
+        weights = self._replicate(layer.weights)
+        state = runtime.on_accelerator(state)
+        replicated_opt_params = runtime.on_accelerator(replicated_opt_params)
+        rng = runtime.on_accelerator(rng)
+        grads = runtime.on_accelerator(grads)
+        inp = runtime.on_accelerator(inp)
+        new_weights, new_state, new_slots, new_grads, stats = fbo_fn(
+            inp, weights, grads, state, slots, replicated_opt_params, rng, step
+        )
+        layer.weights = self._lazy_unreplicate(new_weights)
+        layer.state = self._unreplicate(new_state)
+        optimizer.slots = self._unreplicate(new_slots)
+        if grad_stack is not None:
+            grad_stack = cb.outputs_onto_stack(new_grads, grad_stack, layer.n_out)
+        else:
+            grad_stack = new_grads
+        return stats, grad_stack
 
+    def _run_backward_reversible(
+        self,
+        stack,
+        grad_stack,
+        step,
+        rev_layers,
+        rev_and_fbos,
+        old_states,
+        new_states,
+        rngs,
+        optimizers,
+        replicated_opt_params,
+    ):
+        counter = 0
+        stats = []
+        step_int = int(step) if self._n_devices < 2 else int(step[0])
+        for layer, reverse_and_fbo, old_state, new_state, rng in reversed(
+            list(zip(rev_layers, rev_and_fbos, old_states, new_states, rngs))
+        ):
+            if step_int % self._n_steps_per_log == 1:
+                trax_logging.info("running backward reversible layer %s", str(layer))
+            counter -= 1
+            stack, grad_stack, layer_stats = self._run_backward_one_reversible(
+                layer,
+                stack,
+                grad_stack,
+                step,
+                rng,
+                optimizers[counter],
+                replicated_opt_params[counter],
+                reverse_and_fbo,
+                old_state,
+                new_state,
+            )
+            stats.append(layer_stats)
+            if counter + self._n_async_layers < 0:
+                self._collect_weights(rev_layers[counter + self._n_async_layers])
+        return stack, grad_stack, stats
+
+    def _run_backward_one_reversible(
+        self,
+        layer,
+        stack,
+        grad_stack,
+        step,
+        rng,
+        optimizer,
+        opt_params,
+        reverse_and_fbo,
+        old_state,
+        new_state,
+    ):
+        outputs = cb.inputs_from_stack(stack, layer.n_out)
+        grads = cb.inputs_from_stack(grad_stack, layer.n_out)
+        slots = self._replicate(optimizer.slots)
+        weights = self._replicate(layer.weights)
+        outputs = runtime.on_accelerator(outputs)
+        grads = runtime.on_accelerator(grads)
+        old_state = runtime.on_accelerator(old_state)
+        new_state = runtime.on_accelerator(new_state)
+        opt_params = runtime.on_accelerator(opt_params)
+        rng = runtime.on_accelerator(rng)
+        new_weights, new_slots, inputs, grads, layer_stats = reverse_and_fbo(
+            outputs, weights, grads, old_state, new_state, slots, opt_params, rng, step
+        )
+        layer.weights = self._lazy_unreplicate(new_weights)
+        layer.state = self._unreplicate(new_state)
+        optimizer.slots = self._unreplicate(new_slots)
+        stack = cb.outputs_onto_stack(inputs, stack, layer.n_out)
+        grad_stack = cb.outputs_onto_stack(grads, grad_stack, layer.n_out)
+        return stack, grad_stack, layer_stats
+
+
+def _fbo_with_layer_and_opt(layer, optimizer, n_devices, stats_name=None, adasum=False):
+    def fbo(inputs, weights, grads, state, slots, opt_params, rng, step):
+        def pure_fn_without_state_and_rng(x, w):
+            return layer.pure_fn(x, w, state, rng)
+
+        activations, vjp_fn, new_state = fastmath.vjp(
+            pure_fn_without_state_and_rng, inputs, weights, has_aux=True
+        )
+
+        if grads is None and stats_name is not None:
+            grads = jnp.ones((), dtype=activations.dtype)
+
+        grads_inputs, grads_weights = vjp_fn(grads)
+
+        if _is_empty_tuple(weights):
+            stats = {}
+            if stats_name is not None:
+                stats[stats_name] = activations
+            return weights, new_state, slots, grads_inputs, stats
+
+        if n_devices > 1:
+            grads_weights = _average_multidevice_gradients(
+                grads_weights, adasum=adasum
+            )
+
+        new_weights, new_slots, stats = optimizer.tree_update(
+            step, grads_weights, weights, slots, opt_params, store_slots=False
+        )
+        if stats_name is not None:
+            stats[stats_name] = activations
+        return new_weights, new_state, new_slots, grads_inputs, stats
+
+    return fbo
+
+
+def _reverse_and_fbo_with_layer_and_opt(layer, optimizer, n_devices, adasum):
+    def reverse_and_fbo(
+        output, weights, grads, state, new_state, slots, opt_params, rng, step
+    ):
+        inputs, (grads_inputs, grads_weights) = layer.reverse_and_grad(
+            output, grads, weights, state, new_state, rng=rng
+        )
+
+        if _is_empty_tuple(weights):
+            return weights, slots, inputs, grads_inputs, {}
+
+        if n_devices > 1:
+            grads_weights = _average_multidevice_gradients(
+                grads_weights, adasum=adasum
+            )
+
+        new_weights, new_slots, stats = optimizer.tree_update(
+            step, grads_weights, weights, slots, opt_params, store_slots=False
+        )
+        return new_weights, new_slots, inputs, grads_inputs, stats
+
+    return reverse_and_fbo
+
+
+def _is_empty_tuple(x):
+    if not isinstance(x, (list, tuple)):
+        return False
+    for y in x:
+        if not _is_empty_tuple(y):
+            return False
+    return True
+
+
+def extract_reversible_blocks(layers, loss_chunk_size=0):
+    def _flatten(l):
+        if isinstance(l, (list, tuple)):
+            return [x for layer in l for x in _flatten(layer)]
+        elif isinstance(l, tl.Serial):
+            return _flatten(l.sublayers)
+        else:
+            return [l]
+
+    blocks, std_layers, rev_layers = [], [], []
+    for layer in _flatten(layers):
+        if isinstance(layer, tl.ReversibleLayer):
+            rev_layers.append(layer)
+        elif not rev_layers:
+            std_layers.append(layer)
+        else:
+            blocks.append((std_layers, rev_layers))
+            std_layers, rev_layers = [], []
+            std_layers.append(layer)
+    if rev_layers:
+        raise ValueError("The final layer must be a standard loss, not reversible.")
+    if loss_chunk_size > 0:
+        border_layers = ["StripFromConcatenateWithPadding", "Select"]
+
+        loss_start = None
+        for index, layer in enumerate(std_layers):
+            if layer.name in border_layers:
+                loss_start = index + 1
+        if loss_start is None:
+            raise ValueError(
+                "Loss layer should be preceeded by one of {}; got {}".format(
+                    border_layers, [l.name for l in std_layers]
+                )
+            )
+        if len(std_layers) - loss_start < 4:
+            raise ValueError("Too short loss layer for chunking")
+        last_3_names = " ".join([l.name for l in std_layers[-3:]])
+        if last_3_names != "LogSoftmax _CrossEntropy _WeightedMean":
+            raise ValueError(
+                'Loss chunking only works with last layers being "'
+                'LogSoftmax, _CrossEntropy, _WeightedMean" but got: ' + last_3_names
+            )
+
+        chunked_xent = tl.Chunk(tl.Serial(std_layers[loss_start:-1]), loss_chunk_size)
+
+        def _reshape_to_batch_and_copy_targets(preds, targets):
+            batched_preds = jnp.reshape(preds, [-1, preds.shape[-1]])
+            batched_targets = jnp.reshape(targets, [-1])
+            return batched_preds, batched_targets, targets
+
+        def _reshape_xent_back(xent, targets):
+            return jnp.reshape(xent, targets.shape)
+
+        batched_xent = tl.Serial(
+            tl.Fn("pre_xent_rebatch", _reshape_to_batch_and_copy_targets, n_out=3),
+            chunked_xent,
+            tl.Fn("after_xent_rebatch", _reshape_xent_back),
+        )
+        loss_layer = tl.Serial(std_layers[:loss_start] + [batched_xent], std_layers[-1])
+    else:
+        loss_layer = tl.Serial(std_layers)
     return blocks, loss_layer
+
+
+def init_reversible_blocks(blocks, loss_layer, input_signature, rng):
+    sig_stack = input_signature
+    process = psutil.Process(os.getpid())
+    mem_use = process.memory_info().rss
+    for (std_layers, rev_layers) in blocks:
+        rngs = fastmath.random.split(rng, len(std_layers) + len(rev_layers) + 1)
+        rng = rngs[0]
+        for layer, layer_rng in zip(std_layers + rev_layers, rngs[1:]):
+            sig = cb.inputs_from_stack(sig_stack, layer.n_in)
+            layer.init(sig, rng=layer_rng)
+            layer.weights = runtime.on_cpu(layer.weights)
+            layer.state = runtime.on_cpu(layer.state)
+            trax_logging.info(
+                "init: layer %s\nadded cpu memory (MB): %.2f",
+                str(layer),
+                (process.memory_info().rss - mem_use) / float(1024 * 1024),
+            )
+            mem_use = process.memory_info().rss
+            trax_logging.info(
+                "init: cpu memory use (MB): %.2f", mem_use / float(1024 * 1024)
+            )
+            out_sig = layer.output_signature(sig)
+            sig_stack = cb.outputs_onto_stack(out_sig, sig_stack, layer.n_in)
+    loss_layer.init(cb.inputs_from_stack(sig_stack, loss_layer.n_in), rng=rng)
+    loss_layer.weights = runtime.on_cpu(loss_layer.weights)
+    loss_layer.state = runtime.on_cpu(loss_layer.state)

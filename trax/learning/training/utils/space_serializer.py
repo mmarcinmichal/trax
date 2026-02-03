@@ -19,8 +19,9 @@ import copy
 import gin
 import gymnasium as gym
 
-from trax.utils import logging as trax_logging
 from jax import numpy as np
+
+from trax.utils import logging as trax_logging
 
 
 class SpaceSerializer:

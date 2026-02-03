@@ -20,7 +20,6 @@ import gin
 # We create a flat layers.* namespace for uniform calling conventions as we
 # upstream changes.
 # pylint: disable=wildcard-import
-from trax.layers.acceleration import *
 from trax.layers.activation_fns import *
 from trax.layers.assert_shape import *
 from trax.layers.attention import *

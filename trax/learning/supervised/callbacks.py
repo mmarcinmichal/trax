@@ -32,9 +32,9 @@ import os
 import gin
 import numpy as np
 
-from trax import layers as tl
+from trax import fastmath
 from trax.learning.supervised import decoding
-from trax.learning.training.utils import serialization_utils
+from trax.learning.training.utils import runtime, serialization_utils
 from trax.utils import shapes
 from trax.utils.board import base
 
@@ -99,7 +99,8 @@ class SerializedModelEvaluation(TrainingStepCallback):
             model before starting prediction.
           horizon_lengths: List of lengths of the predicted sequence.
           n_steps: Number of batches to run evaluation for.
-          accelerate_model (bool): Whether to wrap the model in `tl.Accelerate`.
+          accelerate_model (bool): Whether to wrap the model in a JAX-accelerated
+            evaluation wrapper.
         """
         super().__init__(loop)
 
@@ -111,7 +112,9 @@ class SerializedModelEvaluation(TrainingStepCallback):
 
         predict_model = model.make_predict_model()
         if accelerate_model:
-            predict_model = tl.Accelerate(predict_model)
+            predict_model = runtime.wrap_layer_for_eval(
+                predict_model, n_devices=fastmath.local_device_count(), do_mean=False
+            )
         self._predict_model = predict_model
         self._obs_serializer = observation_serializer
         self._act_serializer = action_serializer

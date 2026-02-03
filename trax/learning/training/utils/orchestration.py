@@ -13,7 +13,7 @@ import dataclasses
 from typing import Callable, Iterable, List, Optional, Protocol
 
 from trax import fastmath
-from trax import layers as tl
+from trax.learning.training.utils import runtime
 
 
 class Callback(Protocol):
@@ -38,7 +38,7 @@ class DeviceManager:
     n_devices: int
 
     def for_n_devices(self, value):
-        return tl.for_n_devices(value, self.n_devices)
+        return runtime.for_n_devices(value, self.n_devices)
 
     def unreplicate(self, value):
         if self.n_devices == 1:
@@ -48,7 +48,7 @@ class DeviceManager:
     def reshape_by_device(self, value):
         if self.n_devices == 1:
             return value
-        return tl.reshape_by_device(value, self.n_devices)
+        return runtime.reshape_by_device(value, self.n_devices)
 
 
 class SeedManager:
@@ -61,8 +61,8 @@ class SeedManager:
     def new_rng(self):
         self._rng, rng = fastmath.random.split(self._rng)
         if self._use_memory_efficient_trainer:
-            self._rng = tl.on_cpu(self._rng)
-            rng = tl.on_cpu(rng)
+            self._rng = runtime.on_cpu(self._rng)
+            rng = runtime.on_cpu(rng)
         return rng
 
 

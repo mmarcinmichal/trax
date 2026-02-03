@@ -51,8 +51,8 @@ from trax import layers as tl
 from trax import models
 from trax.fastmath import numpy as numpy_math
 from trax.learning.supervised import decoding
-from trax.utils import shapes
 from trax.utils import logging as trax_logging
+from trax.utils import shapes
 
 # from colabtools import adhoc_import
 # from colabtools import adhoc_import

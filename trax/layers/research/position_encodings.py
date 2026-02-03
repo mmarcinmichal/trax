@@ -15,8 +15,6 @@
 
 """Experimenting with position encodings."""
 
-from trax.utils import logging as trax_logging
-
 import jax
 import jax.extend as jex
 import numpy as np
@@ -27,6 +25,7 @@ from trax import fastmath
 from trax.fastmath import numpy as jnp
 from trax.layers import base as layer_base
 from trax.layers import initializers as init
+from trax.utils import logging as trax_logging
 
 
 class AxialPositionalEncoding(layer_base.Layer):

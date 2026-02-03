@@ -36,7 +36,6 @@ import os
 import pickle
 import random
 import time
-
 from typing import Iterable, List, Optional, Sequence
 
 import gin
@@ -46,21 +45,19 @@ import psutil
 import tensorflow as tf
 
 import trax.utils.board as board
-
 from trax import fastmath
 from trax import layers as tl
 from trax import optimizers as trax_opt
 from trax.data.preprocessing import inputs as trax_inputs
 from trax.fastmath import numpy as jnp
 from trax.fastmath import random as jax_random
-from trax.layers import base
 from trax.learning.supervised import common
 from trax.learning.supervised import lr_schedules as lr
+from trax.learning.training.utils import runtime
 from trax.optimizers import base as optim_base
 from trax.utils import logging as trax_logging
 from trax.utils import shapes
-
-from .engines import base as trainer_base
+from .engines import jax as trainer_base
 from .task import EvaluationTask, TrainingTask
 from .utils import history as trax_history
 from .utils import orchestration
@@ -254,7 +251,7 @@ class Loop:
         ) = host_device_initializer.initialize(n_devices, random_seed)
         self._n_devices = self._device_manager.n_devices
         if use_memory_efficient_trainer:
-            initial_rng = tl.on_cpu(initial_rng)
+            initial_rng = runtime.on_cpu(initial_rng)
         self._seed_manager = seed_manager_factory.create(initial_rng)
 
         # Handle single task case without lists too.
@@ -360,7 +357,7 @@ class Loop:
             for layer in all_layers:
                 weights_and_state = (layer.weights, layer.state)
                 if not _is_empty(weights_and_state):
-                    layer.weights, layer.state = tl.on_cpu(
+                    layer.weights, layer.state = runtime.on_cpu(
                         self._unreplicate(
                             _make_weights_and_state_same_across_hosts(
                                 self._for_n_devices(weights_and_state)
@@ -377,7 +374,7 @@ class Loop:
             for layer in self._trainer_per_task[0].all_layers:
                 weights_and_state = (layer.weights, layer.state)
                 if not _is_empty(weights_and_state):
-                    layer.weights, layer.state = tl.on_cpu(
+                    layer.weights, layer.state = runtime.on_cpu(
                         self._unreplicate(
                             _make_weights_and_state_same_across_hosts(
                                 self._for_n_devices(weights_and_state)
@@ -473,13 +470,7 @@ class Loop:
             model_in_training = _model_with_ends(
                 self._model, [task.loss_layer], shapes.signature(task.sample_batch)
             )
-            if base.N_WEIGHTS_SHARDS > 1:
-                sharded_weights = fastmath.nested_map(
-                    lambda x: x[0], tl.shard(model_in_training.weights)
-                )
-                optimizer.tree_init(sharded_weights)
-            else:
-                optimizer.tree_init(model_in_training.weights)
+            optimizer.tree_init(model_in_training.weights)
             return trainer_base.TrainingEngine(
                 model_in_training, optimizer, adasum=self._adasum
             )
@@ -509,8 +500,8 @@ class Loop:
         model_with_metrics = _model_with_metrics(self._eval_model, eval_task)
         if self._use_memory_efficient_trainer:
             return _Evaluator(
-                weights=tl.on_cpu(model_with_metrics.weights[1]),
-                state=tl.on_cpu(model_with_metrics.state[1]),
+                weights=runtime.on_cpu(model_with_metrics.weights[1]),
+                state=runtime.on_cpu(model_with_metrics.state[1]),
                 metrics_fn=_accelerate_model_with_metrics(model_with_metrics, 0),
             )
         else:
@@ -600,9 +591,17 @@ class Loop:
                 # NOTE: Only the weights and gradients are synced across the hosts. This
                 # implies the loss here is averaged from this hosts' devices and not
                 # across all hosts.
+                def _mean_across_devices(x):
+                    try:
+                        shape = x.shape
+                    except Exception:
+                        return x
+                    if len(shape) == 0:
+                        return x
+                    return jnp.mean(x, axis=0)
+
                 optimizer_metrics, loss = fastmath.nested_map(
-                    functools.partial(tl.mean, self._n_devices),
-                    (optimizer_metrics, loss),
+                    _mean_across_devices, (optimizer_metrics, loss)
                 )
 
                 loss_acc += loss
@@ -615,10 +614,6 @@ class Loop:
 
                 should_save_ckpt = self._checkpoint_manager.should_save(self.step)
                 should_save_perm = self._permanent_checkpoint_manager.should_save(self.step)
-                if should_save_ckpt:
-                    self.save_checkpoint("model")
-                if should_save_perm:
-                    self.save_checkpoint(f"model_{self.step}")
                 if self._eval_at(self.step):
                     trax_logging.info(
                         "cpu memory use (MB): %.2f",
@@ -633,10 +628,16 @@ class Loop:
                         optimizer_metrics=optimizer_metrics_acc,
                         summary_writer=train_summary_writers[task_index],
                     )
-                    self.run_evals(eval_summary_writers)
-                    # Refresh the checkpoint after eval so history includes the
-                    # latest eval metrics. If eval fails, the pre-eval checkpoint
-                    # above is still preserved.
+                    try:
+                        self.run_evals(eval_summary_writers)
+                    except Exception:
+                        # Ensure we don't lose the checkpoint if eval fails.
+                        if should_save_ckpt:
+                            self.save_checkpoint("model")
+                        if should_save_perm:
+                            self.save_checkpoint(f"model_{self.step}")
+                        raise
+                    # Save after eval so history includes the latest metrics.
                     if should_save_ckpt:
                         self.save_checkpoint("model")
                     if should_save_perm:
@@ -644,6 +645,11 @@ class Loop:
                     loss_acc, step_acc = 0.0, 0
                     start_time = time.time()
                     optimizer_metrics_acc = collections.defaultdict(float)
+                else:
+                    if should_save_ckpt:
+                        self.save_checkpoint("model")
+                    if should_save_perm:
+                        self.save_checkpoint(f"model_{self.step}")
 
                 # For the current step, after all evals are run and recorded in the
                 # event history, check if we need to save special checkpoints because
@@ -657,9 +663,6 @@ class Loop:
         # Store the final values back into their respective objects, for testing
         # or other inspection/use.
         #
-        # We keep the standard model weights/state unreplicated and
-        # tl.Accelerate(model) will carry the replicated weights/state.
-        # TODO(afrozm): Try to use tl.Accelerate(model) everywhere in the Loop.
         self._eval_model.weights = self._model.weights
 
     def close(self):
@@ -740,8 +743,8 @@ class Loop:
     def update_weights_and_state(self, weights=None, state=None):
         """Updates the weights and state of the trained model.
 
-        Sends this data both to the singleton model accessible via Loop.model
-        and to the replicated model on the accelerator.
+        Sends this data to the singleton model accessible via Loop.model and
+        to each per-task trainer model.
 
         Useful when the weights or state are modified outside of training, e.g.
         during data collection in RL agents.
@@ -750,14 +753,47 @@ class Loop:
           weights: Model weights or ``None``. If ``None``, don't set.
           state: Model state or ``None``. If ``None``, don't set.
         """
+        if weights is not None:
+            self._model.weights = weights
+        if state is not None:
+            self._model.state = state
+
+        def _replace_first(container, value):
+            if isinstance(container, list):
+                if container:
+                    container = list(container)
+                    container[0] = value
+                    return container
+                return [value]
+            if isinstance(container, tuple):
+                if container:
+                    container = list(container)
+                    container[0] = value
+                    return tuple(container)
+                return (value,)
+            return value
+
         for trainer in self._trainer_per_task:
-            acc_model_with_loss = trainer.accelerated_model_with_loss
-            if weights is not None:
-                self._model.weights = weights
-                acc_model_with_loss.replicate_weights(trainer.model_with_loss.weights)
-            if state is not None:
-                self._model.state = state
-                acc_model_with_loss.replicate_state(trainer.model_with_loss.state)
+            if hasattr(trainer, "model_with_loss"):
+                new_weights = None
+                new_state = None
+                if weights is not None:
+                    new_weights = _replace_first(
+                        trainer.model_with_loss.weights, weights
+                    )
+                    trainer.model_with_loss.weights = new_weights
+                if state is not None:
+                    new_state = _replace_first(
+                        trainer.model_with_loss.state, state
+                    )
+                    trainer.model_with_loss.state = new_state
+                if hasattr(trainer, "accelerated_model_with_loss"):
+                    if new_weights is not None:
+                        trainer.accelerated_model_with_loss.replicate_weights(
+                            new_weights
+                        )
+                    if new_state is not None:
+                        trainer.accelerated_model_with_loss.replicate_state(new_state)
 
     def _run_one_step(self, task_index, task_changed):
         """Updates model weights/state and optimizer slots by running one step.
@@ -855,7 +891,6 @@ class Loop:
 
         sizes = fastmath.nested_map(_size, self._model.weights)
         total_size = sum(fastmath.tree_flatten(sizes))
-        total_size *= base.N_WEIGHTS_SHARDS
         self._log_step("Total number of trainable weights: %d" % total_size)
 
     # TODO(afrozm): Fix multi-host evals, right now the reported numbers in the
@@ -897,11 +932,8 @@ class Loop:
                 continue
 
             # Extract the actual model weights and state, excluding the loss layer.
-            if self._use_memory_efficient_trainer:
-                model_weights, model_state = self._model.weights, self._model.state
-            else:
-                model_weights = trainer.accelerated_model_with_loss.weights[0]
-                model_state = trainer.accelerated_model_with_loss.state[0]
+            # Use the eval model weights/state to avoid mismatches with loss layers.
+            model_weights, model_state = self._model.weights, self._model.state
 
             # evaluator.{weights,state} are already replicated.
             metrics_weights = (model_weights, evaluator.weights)
@@ -989,9 +1021,6 @@ class Loop:
 
         _log("Saving checkpoint to %s" % pkl_file, stdout=False)
         weights = self._model.weights
-        if base.N_WEIGHTS_SHARDS > 1:
-            weights = self._trainer_per_task[0].accelerated_model_with_loss.weights
-            weights = tl.unshard(weights)
         state = self._model.state
         compresslevel = 0 if self._use_memory_efficient_trainer else 2
         # Serialize optimizer slots.
@@ -1014,12 +1043,13 @@ class Loop:
             f"{dir_and_basename}.weights.npy.gz",
             compresslevel=compresslevel,
         )
+        history_dict = self._history.to_dict()
         d = {
             "step": self.step,
             "flat_weights": compresslevel,  # for compatibility with older format
             "flat_state": flat_state,
             "flat_eval_state": flat_eval_state,
-            "history": self._history.to_dict(),
+            "history": history_dict,
             "slots_per_task": compresslevel,  # for compatibility with older format
             "input_signature": input_signature,
             "version_timestamp": "Mar-10-2021",  # To update in the future if needed.
@@ -1312,7 +1342,8 @@ def train(
 ):
     """Train the model on the inputs via :class:`Loop`."""
 
-    trainer_base.N_WEIGHTS_SHARDS = n_weights_shards
+    if n_weights_shards != 1:
+        raise ValueError("JAX engine does not support n_weights_shards != 1.")
     if permanent_checkpoint_frequency is not None and permanent_checkpoints_at is not None:
         raise ValueError(
             'Only one of ["permanent_checkpoint_frequency", "permanent_checkpoints_at"] should be set.'
@@ -1376,6 +1407,10 @@ def train(
     steps_to_go = steps - loop.step
     if steps_to_go > 0:
         loop.run(steps_to_go)
+        # Ensure the latest eval metrics are persisted even if the final step
+        # isn't a checkpoint step.
+        if loop.output_dir is not None and loop.is_chief:
+            loop.save_checkpoint("model")
     else:
         log("Stop training, already reached the total training steps %d" % steps)
     return loop
@@ -1532,7 +1567,9 @@ def _accelerate_model_with_metrics(
     if not accelerate:
         return model_with_metrics.pure_fn
 
-    return tl.jit_forward(model_with_metrics.pure_fn, n_devices, do_mean=do_mean)
+    return runtime.jit_forward_for_eval(
+        model_with_metrics.pure_fn, n_devices, do_mean=do_mean
+    )
 
 
 @functools.partial(fastmath.pmap, axis_name="devices", donate_argnums=(0,))

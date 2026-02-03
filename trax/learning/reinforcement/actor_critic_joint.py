@@ -25,6 +25,7 @@ from trax.learning.reinforcement import actor_critic, distributions, rl_layers
 from trax.learning.reinforcement import trainer as rl_training
 from trax.learning.training import engines as supervised_trainer
 from trax.learning.training.utils import lr_schedules as lr
+from trax.learning.training.utils import runtime
 from trax.optimizers import base as optim_base
 
 
@@ -58,15 +59,21 @@ class _LoopTrainer:
         metrics_dict = metrics or {"loss": loss_fn}
         names, metrics_layers = zip(*metrics_dict.items())
         opt = _normalize_optimizer(optimizer)
+        def _stream_with_devices(stream_fn):
+            try:
+                return stream_fn(self._n_devices)
+            except TypeError:
+                return stream_fn()
+
         train_task = supervised_trainer.TrainingTask(
-            inputs.train_stream(self._n_devices),
+            _stream_with_devices(inputs.train_stream),
             loss_layer=loss_fn,
             optimizer=opt,
             lr_schedule=lr_schedule,
             n_steps_per_checkpoint=eval_frequency,
         )
         eval_task = supervised_trainer.EvaluationTask(
-            inputs.eval_stream(self._n_devices),
+            _stream_with_devices(inputs.eval_stream),
             metrics_layers,
             metric_names=names,
             n_eval_batches=eval_steps,
@@ -193,7 +200,9 @@ class ActorCriticJointTrainer(rl_training.RLTrainer):
                 "preferred_move": self.preferred_move,
             },
         )
-        self._eval_model = tl.Accelerate(self._joint_model(mode="eval"), n_devices=1)
+        self._eval_model = runtime.wrap_layer_for_eval(
+            self._joint_model(mode="eval"), n_devices=1, do_mean=False
+        )
         example_batch = next(self.batches_stream())
         self._eval_model.init(example_batch)
 
@@ -273,7 +282,7 @@ class ActorCriticJointTrainer(rl_training.RLTrainer):
     def policy(self, trajectory, temperature=1.0):
         """Chooses an action to play after a trajectory."""
         model = self._eval_model
-        model.replicate_weights(self._trainer.model_weights)
+        model.weights = self._trainer.model_weights
         # The two lines below along with the copying
         # before return make the TPU happy
         tr_slice = trajectory.suffix(self._max_slice_length)

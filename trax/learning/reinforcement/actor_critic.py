@@ -30,6 +30,7 @@ from trax.utils import shapes
 
 from ..training import engines as supervised_trainer
 from ..training.utils import lr_schedules as lr
+from ..training.utils import runtime
 from . import advantages as rl_advantages
 from . import distributions, policy_tasks, value_tasks
 from . import trainer as rl_training
@@ -159,8 +160,10 @@ class ActorCriticTrainer(rl_training.PolicyTrainer):
             )
         self._value_eval_model = value_model(mode="eval")
         self._value_eval_model.init(self._value_model_signature)
-        self._value_eval_jit = tl.jit_forward(
-            self._value_eval_model.pure_fn, fastmath.local_device_count(), do_mean=False
+        self._value_eval_jit = runtime.jit_forward_for_eval(
+            self._value_eval_model.pure_fn,
+            fastmath.local_device_count(),
+            do_mean=False,
         )
 
         # Initialize policy training.
@@ -269,8 +272,8 @@ class ActorCriticTrainer(rl_training.PolicyTrainer):
             inputs = (observations,)
 
         n_devices = fastmath.local_device_count()
-        weights = tl.for_n_devices(self._value_eval_model.weights, n_devices)
-        state = tl.for_n_devices(self._value_eval_model.state, n_devices)
+        weights = runtime.for_n_devices(self._value_eval_model.weights, n_devices)
+        state = runtime.for_n_devices(self._value_eval_model.state, n_devices)
         rng = self._value_eval_model.rng
         values, _ = self._value_eval_jit(inputs, weights, state, rng)
         values *= self._value_network_scale

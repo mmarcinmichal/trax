@@ -25,13 +25,13 @@ from trax import optimizers as opt
 from trax.learning.reinforcement import actor_critic_joint
 from trax.learning.reinforcement import task as rl_task
 from trax.learning.supervised import lr_schedules
-from utils.tests import utils
+from trax.utils.tests import utils
 
 
 class ActorCriticJointTest(absltest.TestCase):
     def setUp(self):
         super().setUp()
-        test_utils.ensure_flag("test_tmpdir")
+        utils.ensure_flag("test_tmpdir")
 
     def test_awrjoint_save_restore(self):
         """Check save and restore of joint AWR trainers."""

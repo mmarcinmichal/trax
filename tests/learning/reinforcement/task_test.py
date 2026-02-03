@@ -23,7 +23,7 @@ import numpy as np
 from absl.testing import absltest
 
 from trax.learning.reinforcement import task as rl_task
-from utils.tests import utils
+from trax.utils.tests import utils
 
 
 class DummyEnv:
@@ -49,7 +49,7 @@ class DummyEnv:
 class TaskTest(absltest.TestCase):
     def setUp(self):
         super().setUp()
-        test_utils.ensure_flag("test_tmpdir")
+        utils.ensure_flag("test_tmpdir")
 
     def _extend(
         self,

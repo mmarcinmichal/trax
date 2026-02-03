@@ -30,6 +30,7 @@ from tests.fastmath.jax.config import config
 from trax import fastmath, models
 from trax import layers as tl
 from trax.learning.supervised import decoding
+from trax.learning.training.utils import runtime
 from trax.utils import shapes
 
 
@@ -135,7 +136,7 @@ class DecodingTimingTest(test.TestCase):
             assert False
         # We put acceleration outside of autoregressive_sample_stream, because
         # we want to have a separate run (separate input) for model compilation.
-        pred_model = tl.Accelerate(pred_model)
+        pred_model = runtime.wrap_layer_for_eval(pred_model)
 
         shape11 = shapes.ShapeDtype((1, 1), dtype=np.int32)
         shape1l = shapes.ShapeDtype((1, max_len), dtype=np.int32)
@@ -469,7 +470,7 @@ class DecodingTimingTest(test.TestCase):
                 use_bias=settings["use_bias"],
                 mode="predict",
             )
-            pred_model = tl.Accelerate(pred_model)
+            pred_model = runtime.wrap_layer_for_eval(pred_model)
 
             shape1l = shapes.ShapeDtype((1, settings["input"]))
             pred_model.init(input_signature=shape1l)

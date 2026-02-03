@@ -23,12 +23,12 @@ import jax
 import tensorflow.compat.v2 as tf
 
 from absl import app, flags
-from trax.utils import logging as trax_logging
 from jax.lib import xla_extension as xc
 
 from trax import fastmath
 from trax.learning.training import trainer as supervised_trainer
 from trax.tf import numpy as tf_np
+from trax.utils import logging as trax_logging
 from trax.utils.learning.supervised.trainer import gini as gini_utils
 from trax.utils.learning.supervised.trainer import hydra as hydra_utils
 from trax.utils.learning.training import trainer_flags  # noqa: F401

@@ -19,9 +19,8 @@ import functools
 import inspect
 import string
 
-from trax.utils import logging as trax_logging
-
 from trax.layers import base, combinators
+from trax.utils import logging as trax_logging
 
 
 def assert_shape(specification):

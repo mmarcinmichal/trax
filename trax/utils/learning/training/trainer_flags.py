@@ -19,6 +19,7 @@ We keep these flags in sync across the trainers and the rl_trainer binaries.
 """
 
 from absl import flags
+
 from trax.utils import logging as trax_logging
 
 # Common flags.

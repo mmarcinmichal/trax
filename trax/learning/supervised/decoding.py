@@ -19,6 +19,7 @@ import numpy as np
 
 from trax import fastmath
 from trax import layers as tl
+from trax.learning.training.utils import runtime
 
 
 def autoregressive_sample_stream(
@@ -76,7 +77,12 @@ def autoregressive_sample_stream(
             f"batch_size arg ({batch_size}."
         )
 
-    fast_model = tl.Accelerate(model) if accelerate else model
+    if accelerate:
+        fast_model = runtime.wrap_layer_for_eval(
+            model, n_devices=fastmath.local_device_count(), do_mean=False
+        )
+    else:
+        fast_model = model
     if np.isscalar(start_id):
         start_symbol = np.full((batch_size, 1), start_id, dtype=np.int32)
     else:
@@ -252,7 +258,12 @@ def beam_search(
             f"batch_size arg ({batch_size}."
         )
 
-    fast_model = tl.Accelerate(model) if accelerate else model
+    if accelerate:
+        fast_model = runtime.wrap_layer_for_eval(
+            model, n_devices=fastmath.local_device_count(), do_mean=False
+        )
+    else:
+        fast_model = model
     if np.isscalar(start_id):
         start_symbol = np.full((batch_size, 1), start_id, dtype=np.int32)
     else:

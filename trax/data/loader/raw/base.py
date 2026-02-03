@@ -4,7 +4,6 @@ from typing import Tuple, Union
 import datasets
 import numpy as np
 
-from trax.utils import logging as trax_logging
 from datasets import DatasetDict
 from sklearn.datasets import (
     _twenty_newsgroups,
@@ -12,6 +11,8 @@ from sklearn.datasets import (
     load_digits,
     load_iris,
 )
+
+from trax.utils import logging as trax_logging
 
 trax_logging.set_verbosity(trax_logging.INFO)
 

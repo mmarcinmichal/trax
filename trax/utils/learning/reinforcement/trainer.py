@@ -35,13 +35,13 @@ import gin
 import jax
 
 from absl import app, flags
-from trax.utils import logging as trax_logging
 
 from tests.fastmath.jax.config import config
 from trax import fastmath
 from trax.learning.reinforcement import task as rl_task
 from trax.learning.reinforcement import trainer as light_trainers
 from trax.tf import numpy as tf_np
+from trax.utils import logging as trax_logging
 
 FLAGS = flags.FLAGS
 

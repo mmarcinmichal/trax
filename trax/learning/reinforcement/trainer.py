@@ -38,6 +38,7 @@ from trax.learning.reinforcement import (
 from trax.learning.reinforcement import task as rl_task
 from trax.learning.training import engines as supervised_trainer
 from trax.learning.training.utils import lr_schedules as lr
+from trax.learning.training.utils import runtime
 from trax.optimizers import adam
 from trax.utils import shapes
 
@@ -401,13 +402,13 @@ class PolicyTrainer(RLTrainer):
             eval_at=eval_at,
             checkpoint_at=checkpoint_at,
         )
-        self._policy_collect_model = tl.Accelerate(
-            policy_model(mode="collect"), n_devices=1
+        self._policy_collect_model = runtime.wrap_layer_for_eval(
+            policy_model(mode="collect"), n_devices=1, do_mean=False
         )
         policy_batch = next(self.policy_batches_stream())
         self._policy_collect_model.init(shapes.signature(policy_batch))
-        self._policy_eval_model = tl.Accelerate(
-            policy_model(mode="eval"), n_devices=1
+        self._policy_eval_model = runtime.wrap_layer_for_eval(
+            policy_model(mode="eval"), n_devices=1, do_mean=False
         )  # Not collecting stats
         self._policy_eval_model.init(shapes.signature(policy_batch))
 
@@ -430,7 +431,7 @@ class PolicyTrainer(RLTrainer):
         if temperature != 1.0:  # When evaluating (t != 1.0), don't collect stats
             model = self._policy_eval_model
             model.state = self._policy_collect_model.state
-        model.replicate_weights(self._policy_loop.model.weights)
+        model.weights = self._policy_loop.model.weights
         tr_slice = trajectory.suffix(self._max_slice_length)
         trajectory_np = tr_slice.to_np(timestep_to_np=self.task.timestep_to_np)
         # Add batch dimension to trajectory_np and run the model.
@@ -789,10 +790,7 @@ def network_policy(
     # Copying weights from loop.model should work, because the raw model's
     # weights should be updated automatically during training, but it doesn't.
     # TODO(pkozakowski): Debug.
-    acc = loop._trainer_per_task[
-        0
-    ].accelerated_model_with_loss  # pylint: disable=protected-access
-    model.weights = acc._unreplicate(acc.weights[0])  # pylint: disable=protected-access
+    model.weights = loop.model.weights
     # Add batch dimension to trajectory_np and run the model.
     pred = model(trajectory_np.observation[None, ...])
     if isinstance(pred, (tuple, list)):
@@ -912,8 +910,10 @@ class ValueTrainer(RLTrainer):
         value_train_model = value_model(mode="train")
         self._value_eval_model = value_model(mode="eval")
         self._value_eval_model.init(self._value_model_signature)
-        self._value_eval_jit = tl.jit_forward(
-            self._value_eval_model.pure_fn, fastmath.local_device_count(), do_mean=False
+        self._value_eval_jit = runtime.jit_forward_for_eval(
+            self._value_eval_model.pure_fn,
+            fastmath.local_device_count(),
+            do_mean=False,
         )
 
         value_train_stream = self.value_batches_stream()
@@ -946,7 +946,9 @@ class ValueTrainer(RLTrainer):
             checkpoint_at=value_checkpoint_at,
         )
         value_batch = next(self.value_batches_stream())
-        self._eval_model = tl.Accelerate(value_model(mode="collect"), n_devices=1)
+        self._eval_model = runtime.wrap_layer_for_eval(
+            value_model(mode="collect"), n_devices=1, do_mean=False
+        )
         self._eval_model.init(shapes.signature(value_batch))
 
     @property
@@ -1191,20 +1193,20 @@ class DQN(ValueTrainer):
         """Runs value model."""
         n_devices = fastmath.local_device_count()
         if use_eval_model:
-            weights = tl.for_n_devices(self._value_eval_model.weights, n_devices)
-            state = tl.for_n_devices(self._value_eval_model.state, n_devices)
+            weights = runtime.for_n_devices(self._value_eval_model.weights, n_devices)
+            state = runtime.for_n_devices(self._value_eval_model.state, n_devices)
             rng = self._value_eval_model.rng
         else:
             # TODO(henrykm): this strangely looking solution address the problem that
             # value_batches_stream calls _run_value_model _once_ before
             # the trainers is initialized.
             try:
-                weights = tl.for_n_devices(self._value_loop.model.weights, n_devices)
-                state = tl.for_n_devices(self._value_loop.model.state, n_devices)
+                weights = runtime.for_n_devices(self._value_loop.model.weights, n_devices)
+                state = runtime.for_n_devices(self._value_loop.model.state, n_devices)
                 rng = self._value_loop._rng  # pylint: disable=protected-access
             except AttributeError:
-                weights = tl.for_n_devices(self._value_eval_model.weights, n_devices)
-                state = tl.for_n_devices(self._value_eval_model.state, n_devices)
+                weights = runtime.for_n_devices(self._value_eval_model.weights, n_devices)
+                state = runtime.for_n_devices(self._value_eval_model.state, n_devices)
                 rng = self._value_eval_model.rng
         # TODO(henrykm): the line below fails on TPU with the error
         # ValueError: Number of devices (8) does not evenly divide batch size (1).

@@ -23,7 +23,7 @@ import numpy as np
 from absl.testing import absltest, parameterized
 from jax import numpy as jnp
 from learning.training import engines as loop
-from utils.tests import utils as test_utils
+from trax.utils.tests import utils as test_utils
 
 from trax import data as trax_data
 from trax import models as trax_models

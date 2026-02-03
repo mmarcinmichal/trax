@@ -2,11 +2,10 @@
 
 from pathlib import Path
 
-from trax.utils import logging as trax_logging
-
 from resources.examples.python.base import find_project_root
 from trax.data.builder.graph.textgcn.base import TextGraphConfig, build_textgcn_graph
 from trax.data.loader.raw.base import RawDataset
+from trax.utils import logging as trax_logging
 
 trax_logging.set_verbosity(trax_logging.INFO)
 
