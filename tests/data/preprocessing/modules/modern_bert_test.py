@@ -41,6 +41,22 @@ class ModernBertPreprocessTest(absltest.TestCase):
             outputs[0]["input_ids"], np.asarray([1, 2, 9, 3], dtype=np.int32)
         )
 
+    def test_chunk_fixed_length_no_wrap(self):
+        stream = iter(
+            [
+                {"input_ids": np.asarray([1, 2, 3, 4, 5], dtype=np.int32)},
+                {"input_ids": np.asarray([6, 7, 8], dtype=np.int32)},
+            ]
+        )
+        pipeline = data.Serial(
+            data.AppendDocBoundaryTokens(eos_tokens=[9]),
+            data.ChunkFixedLength(max_seq_len=4, no_wrap=True),
+        )
+        outputs = list(pipeline(stream))
+        self.assertLen(outputs, 2)
+        np.testing.assert_array_equal(outputs[0]["input_ids"], [1, 2, 3, 4])
+        np.testing.assert_array_equal(outputs[1]["input_ids"], [6, 7, 8, 9])
+
     def test_batch_dict_padding(self):
         stream = iter(
             [
@@ -88,7 +104,7 @@ class ModernBertPreprocessTest(absltest.TestCase):
         np.testing.assert_array_equal(out["cu_seqlens"], [[0, 4, 8], [0, 4, 8]])
         np.testing.assert_array_equal(out["max_seqlen"], [4, 4])
         self.assertIsNone(out["labels"])
-        self.assertTrue(np.all(out["attention_mask"] == 1))
+        self.assertNotIn("attention_mask", out)
 
     def test_add_position_ids_and_tuple(self):
         stream = iter(
@@ -149,12 +165,57 @@ class ModernBertPreprocessTest(absltest.TestCase):
             [
                 {"input_ids": np.asarray([1, 2], dtype=np.int32)},
                 {"input_ids": np.asarray([3, 4, 5], dtype=np.int32)},
+                {"input_ids": np.asarray([6], dtype=np.int32)},
             ]
         )
-        outputs = list(data.BatchDictList(batch_size=2)(stream))
-        self.assertLen(outputs, 1)
+        outputs = list(data.BatchDictList(batch_size=2, drop_last=False)(stream))
+        self.assertLen(outputs, 2)
         self.assertIsInstance(outputs[0], list)
         self.assertLen(outputs[0], 2)
+        self.assertLen(outputs[1], 1)
+
+    def test_end_to_end_sample_text(self):
+        text = (
+            "Wikipedia is a free online encyclopedia that is written and maintained "
+            "by a community of volunteers."
+        )
+        stream = iter([{"text": text}])
+
+        def _encode(text_value):
+            return [ord(c) % 97 for c in text_value if c.isascii()]
+
+        pipeline = data.Serial(
+            data.SelectTextField(field="text", output_key="text"),
+            data.TokenizerEncode(encode_fn=_encode, input_key="text", output_key="input_ids"),
+            data.AppendDocBoundaryTokens(eos_tokens=[99]),
+            data.ChunkFixedLength(max_seq_len=16, no_wrap=False),
+            data.BatchDictList(batch_size=4, drop_last=False),
+            data.ModernBertSequencePacker(
+                src_batch_size=4,
+                src_max_seq_len=16,
+                micro_batch_size=2,
+                pad_token_id=0,
+                mask_token_id=99,
+                suppress_masking=True,
+                pad_cu_seqlens_to=3,
+            ),
+            data.AddPositionIds(),
+            data.ToModelTuple(
+                inputs_keys=(
+                    "input_ids",
+                    "position_ids",
+                    "cu_seqlens",
+                    "max_seqlen",
+                )
+            ),
+        )
+        outputs = list(pipeline(stream))
+        self.assertGreater(len(outputs), 0)
+        inputs, labels = outputs[0]
+        self.assertIsNone(labels)
+        self.assertEqual(len(inputs), 4)
+        self.assertEqual(inputs[0].shape[-1], 32)
+        self.assertEqual(inputs[1].shape, inputs[0].shape)
 
 
 if __name__ == "__main__":

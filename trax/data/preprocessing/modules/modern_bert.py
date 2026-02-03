@@ -200,10 +200,11 @@ def ChunkFixedLength(
                 buffer.extend(tokens)
             while len(buffer) >= max_seq_len:
                 chunk = np.asarray(buffer[:max_seq_len], dtype=np.int32)
-                buffer = buffer[max_seq_len:]
+                if no_wrap:
+                    buffer = []
+                else:
+                    buffer = buffer[max_seq_len:]
                 yield {output_key: chunk}
-        if no_wrap:
-            buffer.clear()
 
     return _chunk
 
@@ -256,7 +257,7 @@ def BatchDict(
 
 
 @gin.configurable(module="trax.data")
-def BatchDictList(batch_size: int):
+def BatchDictList(batch_size: int, drop_last: bool = False):
     """Batch dict examples into a list without padding."""
     if batch_size <= 0:
         raise ValueError("BatchDictList requires batch_size > 0.")
@@ -271,6 +272,8 @@ def BatchDictList(batch_size: int):
                 continue
             yield batch
             batch = []
+        if batch and not drop_last:
+            yield batch
 
     return _batch
 
@@ -345,7 +348,7 @@ def ModernBertSequencePacker(
             last -= 1
         return arr[:last]
 
-    def _create_batch(buffer):
+    def _create_batch(buffer, fill_buffer_fn):
         batch = np.full((out_batch_size, out_pseq_len), pad_token_id, dtype=np.int32)
         seq_counts = np.zeros(out_batch_size, dtype=np.int32)
         cum_seq_lens = [[0] for _ in range(out_batch_size)]
@@ -354,7 +357,10 @@ def ModernBertSequencePacker(
 
         while True:
             if not buffer:
-                break
+                items_to_fetch = buffer_size - len(temp_buffer)
+                items_added = fill_buffer_fn(items_to_fetch)
+                if items_added == 0:
+                    break
             seq = buffer.popleft()
             seq_len = len(seq)
             if seq_len == 0:
@@ -381,26 +387,27 @@ def ModernBertSequencePacker(
             return batch, cum_seq_lens
         return None
 
+    epoch = [-1]
+
     def _pack(stream):
         buffer = deque()
-        np_rng = np.random.default_rng(seed)
-        for example in stream:
-            if isinstance(example, list):
-                batch_items = example
-            elif isinstance(example, dict):
-                if input_key not in example:
-                    raise KeyError(f"ModernBertSequencePacker missing key: {input_key}")
-                batch_items = example[input_key]
-            else:
-                raise ValueError("ModernBertSequencePacker expects list or dict batch input.")
+        stream_iter = iter(stream)
+        epoch[0] += 1
+        np_rng = np.random.default_rng(seed + epoch[0])
 
+        def _append_batch(batch_items):
+            items_added = 0
             if isinstance(batch_items, np.ndarray):
                 if batch_items.ndim != 2:
                     raise ValueError("ModernBertSequencePacker expects 2D batch input.")
                 if batch_items.shape[0] > src_batch_size:
                     raise ValueError("Incoming batch larger than src_batch_size.")
                 for row in batch_items:
-                    buffer.append(_trim_pad(np.asarray(row, dtype=np.int32)))
+                    seq = _trim_pad(np.asarray(row, dtype=np.int32))
+                    if seq.size == 0:
+                        continue
+                    buffer.append(seq)
+                    items_added += 1
             else:
                 if len(batch_items) > src_batch_size:
                     raise ValueError("Incoming batch larger than src_batch_size.")
@@ -411,51 +418,80 @@ def ModernBertSequencePacker(
                         seq = np.asarray(item[input_key], dtype=np.int32)
                     else:
                         seq = np.asarray(item, dtype=np.int32)
-                    buffer.append(_trim_pad(seq))
-            while True:
-                created = _create_batch(buffer)
-                if created is None:
-                    break
-                packed, cu_seqlens = created
-                cu_arr = []
-                max_seqlen = []
-                for entry in cu_seqlens:
-                    diffs = np.diff(entry)
-                    max_len = int(np.max(diffs)) if diffs.size else 0
-                    max_seqlen.append(max_len)
-                    if pad_cu_seqlens_to is not None:
-                        if len(entry) > pad_cu_seqlens_to:
-                            raise ValueError("cu_seqlens exceeds pad_cu_seqlens_to.")
-                        padded = np.full(
-                            (pad_cu_seqlens_to,),
-                            pad_cu_seqlens_value,
-                            dtype=np.int32,
-                        )
-                        padded[: len(entry)] = np.asarray(entry, dtype=np.int32)
-                        cu_arr.append(padded)
-                    else:
-                        cu_arr.append(np.asarray(entry, dtype=np.int32))
-                cu_arr = np.stack(cu_arr, axis=0)
-                max_seqlen = np.asarray(max_seqlen, dtype=np.int32)
+                    seq = _trim_pad(seq)
+                    if seq.size == 0:
+                        continue
+                    buffer.append(seq)
+                    items_added += 1
+            return items_added
 
-                attention_mask = (packed != pad_token_id).astype(np.int64)
-                if suppress_masking:
-                    yield {
-                        "input_ids": packed,
-                        "labels": None,
-                        "cu_seqlens": cu_arr,
-                        "max_seqlen": max_seqlen,
-                        "attention_mask": attention_mask,
-                    }
+        def _fill_buffer(max_items_to_add=float("inf")):
+            items_added = 0
+            while (buffer_size - len(buffer)) > src_batch_size:
+                try:
+                    if max_items_to_add < float("inf"):
+                        if (items_added + src_batch_size) > max_items_to_add:
+                            break
+                    example = next(stream_iter)
+                except StopIteration:
+                    break
+
+                if isinstance(example, list):
+                    batch_items = example
+                elif isinstance(example, dict):
+                    if input_key not in example:
+                        raise KeyError(f"ModernBertSequencePacker missing key: {input_key}")
+                    batch_items = example[input_key]
                 else:
-                    masked, labels = _mlm_masking(packed, np_rng)
-                    yield {
-                        "input_ids": masked,
-                        "labels": labels,
-                        "cu_seqlens": cu_arr,
-                        "max_seqlen": max_seqlen,
-                        "attention_mask": attention_mask,
-                    }
+                    raise ValueError("ModernBertSequencePacker expects list or dict batch input.")
+
+                items_added += _append_batch(batch_items)
+            return items_added
+
+        while True:
+            created = _create_batch(buffer, _fill_buffer)
+            if created is None:
+                break
+            packed, cu_seqlens = created
+            cu_arr = []
+            max_seqlen = []
+            for entry in cu_seqlens:
+                diffs = np.diff(entry)
+                max_len = int(np.max(diffs)) if diffs.size else 0
+                max_seqlen.append(max_len)
+                if pad_cu_seqlens_to is not None:
+                    if len(entry) > pad_cu_seqlens_to:
+                        raise ValueError("cu_seqlens exceeds pad_cu_seqlens_to.")
+                    padded = np.full(
+                        (pad_cu_seqlens_to,),
+                        pad_cu_seqlens_value,
+                        dtype=np.int32,
+                    )
+                    padded[: len(entry)] = np.asarray(entry, dtype=np.int32)
+                    cu_arr.append(padded)
+                else:
+                    cu_arr.append(np.asarray(entry, dtype=np.int32))
+            if pad_cu_seqlens_to is not None:
+                cu_arr = np.stack(cu_arr, axis=0)
+            max_seqlen = np.asarray(max_seqlen, dtype=np.int32)
+
+            attention_mask = (packed != pad_token_id).astype(np.int64)
+            if suppress_masking:
+                yield {
+                    "input_ids": packed,
+                    "labels": None,
+                    "cu_seqlens": cu_arr,
+                    "max_seqlen": max_seqlen,
+                }
+            else:
+                masked, labels = _mlm_masking(packed, np_rng)
+                yield {
+                    "input_ids": masked,
+                    "labels": labels,
+                    "cu_seqlens": cu_arr,
+                    "max_seqlen": max_seqlen,
+                    "attention_mask": attention_mask,
+                }
 
     return _pack
 

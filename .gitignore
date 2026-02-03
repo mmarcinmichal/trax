@@ -2,3 +2,11 @@
 resources/data/serialized/graphs/
 **/__pycache__/
 __pycache__/
+/resources/ModernBERT-main/
+/.idea/deployment.xml
+/.idea/misc.xml
+/.idea/inspectionProfiles/profiles_settings.xml
+/.idea/inspectionProfiles/Project_Default.xml
+/.idea/trax.iml
+/.idea/vcs.xml
+/.idea/workspace.xml

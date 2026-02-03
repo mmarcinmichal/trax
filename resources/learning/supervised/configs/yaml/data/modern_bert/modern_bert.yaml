@@ -39,6 +39,7 @@ data:
   BatchToSrcBatch:
     _target_: "trax.data.BatchDictList"
     batch_size: "${data.src_batch_size}"
+    drop_last: false
 
   ModernBertSequencePackerTrain:
     _target_: "trax.data.ModernBertSequencePacker"
