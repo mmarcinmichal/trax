@@ -152,6 +152,34 @@ class LayerNorm(base.Layer):
         self.weights = scale, bias
 
 
+class RMSNorm(base.Layer):
+    """Root Mean Square Layer Normalization."""
+
+    def __init__(self, epsilon=1e-6, center=False):
+        super().__init__()
+        self._epsilon = epsilon
+        self._center = center
+
+    def forward(self, x):
+        scale = self.weights[0]
+        bias = self.weights[1] if self._center else None
+        mean_square = jnp.mean(x * x, axis=-1, keepdims=True)
+        normed = x * jnp.reciprocal(jnp.sqrt(mean_square + self._epsilon))
+        normed = normed * scale
+        if self._center:
+            normed = normed + bias
+        return normed
+
+    def init_weights_and_state(self, input_signature):
+        features = input_signature.shape[-1]
+        scale = jnp.ones(features, dtype=input_signature.dtype)
+        if self._center:
+            bias = jnp.zeros(features, dtype=input_signature.dtype)
+            self.weights = (scale, bias)
+        else:
+            self.weights = (scale,)
+
+
 class FilterResponseNorm(base.Layer):
     """Filter Response Normalization layer without Threshold Linear Unit.
 

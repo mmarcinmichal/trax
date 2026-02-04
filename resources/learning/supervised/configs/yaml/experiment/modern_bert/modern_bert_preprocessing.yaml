@@ -1,6 +1,6 @@
 defaults:
-  - /data: "modern_bert/modern_bert_pretraining"
+  - /data: "modern_bert/modern_bert_pretraining_base"
   - _self_
 
 experiment:
-  note: "Data-only experiment config for ModernBERT preprocessing (no training)."
+  note: "Data-only experiment config for ModernBERT preprocessing (Phase 1 Base, no training)."

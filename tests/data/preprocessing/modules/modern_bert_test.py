@@ -21,9 +21,30 @@ import tensorflow as tf
 from absl.testing import absltest
 
 from trax import data
+from trax.data.encoder import encoder as trax_encoder
 
 
 class ModernBertPreprocessTest(absltest.TestCase):
+    def test_modernbert_tokenizer_matches_hf(self):
+        try:
+            from transformers import AutoTokenizer
+        except Exception:
+            self.skipTest("transformers not available.")
+
+        model_id = "answerdotai/ModernBERT-base"
+        try:
+            hf_tokenizer = AutoTokenizer.from_pretrained(model_id, use_fast=True, local_files_only=True)
+        except Exception:
+            self.skipTest("ModernBERT tokenizer not available in local cache.")
+
+        encoder = trax_encoder.ModernBertEncoder(
+            model_id_or_path=model_id, add_special_tokens=False, local_files_only=True
+        )
+        text = "ModernBERT tokenizer parity check."
+        hf_ids = hf_tokenizer.encode(text, add_special_tokens=False)
+        trax_ids = encoder.encode(text)
+        self.assertEqual(hf_ids, trax_ids)
+
     def test_chunk_fixed_length(self):
         stream = iter(
             [
@@ -189,6 +210,7 @@ class ModernBertPreprocessTest(absltest.TestCase):
             data.TokenizerEncode(encode_fn=_encode, input_key="text", output_key="input_ids"),
             data.AppendDocBoundaryTokens(eos_tokens=[99]),
             data.ChunkFixedLength(max_seq_len=16, no_wrap=False),
+            data.Shuffle(queue_size=1),
             data.BatchDictList(batch_size=4, drop_last=False),
             data.ModernBertSequencePacker(
                 src_batch_size=4,
@@ -196,13 +218,15 @@ class ModernBertPreprocessTest(absltest.TestCase):
                 micro_batch_size=2,
                 pad_token_id=0,
                 mask_token_id=99,
-                suppress_masking=True,
+                mask_prob=0.0,
+                suppress_masking=False,
                 pad_cu_seqlens_to=3,
             ),
             data.AddPositionIds(),
             data.ToModelTuple(
                 inputs_keys=(
                     "input_ids",
+                    "attention_mask",
                     "position_ids",
                     "cu_seqlens",
                     "max_seqlen",
@@ -212,8 +236,8 @@ class ModernBertPreprocessTest(absltest.TestCase):
         outputs = list(pipeline(stream))
         self.assertGreater(len(outputs), 0)
         inputs, labels = outputs[0]
-        self.assertIsNone(labels)
-        self.assertEqual(len(inputs), 4)
+        self.assertIsNotNone(labels)
+        self.assertEqual(len(inputs), 5)
         self.assertEqual(inputs[0].shape[-1], 32)
         self.assertEqual(inputs[1].shape, inputs[0].shape)
 

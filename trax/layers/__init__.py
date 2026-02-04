@@ -68,6 +68,7 @@ GRUCell = layer_configure(GRUCell)
 BatchNorm = layer_configure(BatchNorm)
 LayerNorm = layer_configure(LayerNorm)
 FilterResponseNorm = layer_configure(FilterResponseNorm)
+RMSNorm = layer_configure(RMSNorm)
 ThresholdedLinearUnit = layer_configure(ThresholdedLinearUnit)
 
 Attention = layer_configure(Attention, denylist=["mode"])

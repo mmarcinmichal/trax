@@ -3,6 +3,15 @@ defaults:
   - _self_
 
 data:
+  # Phase 2 (context extension): Base model, max seq len 8,192.
+  # ModernBERT Base context extension per Table 3 in the paper.
+  # Max seq len 8,192, batch size 72 with microbatch 12 => packed_batch_size 6.
+  max_seq_len: 8192
+  micro_batch_size: 12
+  packed_batch_size: 6
+  mlm_probability_train: 0.30
+  mlm_probability_eval: 0.30
+
   make_streams:
     _target_: "trax.data.make_streams"
     train_stream:

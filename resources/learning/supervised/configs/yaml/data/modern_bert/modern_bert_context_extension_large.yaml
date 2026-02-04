@@ -1,0 +1,62 @@
+defaults:
+  - /data/modern_bert/modern_bert
+  - _self_
+
+data:
+  # Phase 2 (context extension): Large model, max seq len 8,192.
+  # ModernBERT Large context extension (Phase 2) per Table 3 in the paper.
+  # Phase 2: max seq len 8,192, batch size 78 with microbatch 6 => packed_batch_size 13.
+  max_seq_len: 8192
+  micro_batch_size: 6
+  packed_batch_size: 13
+  mlm_probability_train: 0.30
+  mlm_probability_eval: 0.30
+
+  make_streams:
+    _target_: "trax.data.make_streams"
+    train_stream:
+      - "${data.train.LoadDataset}"
+      - "${data.SelectTextField}"
+      - "${data.ModernBertTokenize}"
+      - "${data.ModernBertAppendDocBoundaryTokens}"
+      - "${data.ChunkFixedLength}"
+      - "${data.Shuffle}"
+      - "${data.BatchToSrcBatch}"
+      - "${data.ModernBertSequencePackerTrain}"
+      - "${data.AddPositionIds}"
+      - "${data.ToModelTuple}"
+    eval_stream:
+      - "${data.eval.LoadDataset}"
+      - "${data.SelectTextField}"
+      - "${data.ModernBertTokenize}"
+      - "${data.ModernBertAppendDocBoundaryTokens}"
+      - "${data.ChunkFixedLength}"
+      - "${data.BatchToSrcBatch}"
+      - "${data.ModernBertSequencePackerEval}"
+      - "${data.AddPositionIds}"
+      - "${data.ToModelTuple}"
+
+  train:
+    LoadDataset:
+      _target_: "trax.data.TFDS"
+      dataset_name: "wikipedia/20220301.en"
+      data_dir: null
+      keys:
+        - "text"
+      train: true
+      shuffle_train: true
+
+  eval:
+    LoadDataset:
+      _target_: "trax.data.TFDS"
+      dataset_name: "wikipedia/20220301.en"
+      data_dir: null
+      keys:
+        - "text"
+      train: false
+      shuffle_train: false
+
+  SelectTextField:
+    _target_: "trax.data.SelectTextField"
+    field: "text"
+    output_key: "text"

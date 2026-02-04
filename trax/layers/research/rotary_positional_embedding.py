@@ -45,3 +45,41 @@ def rotate(x):
 
 def Rotate():  # pylint: disable=invalid-name
     return core.Fn("Rotate", rotate)
+
+
+def apply_rotary_embedding(q, k, *, rotary_dim=None, base=10000.0):
+    """Apply rotary embeddings to q and k tensors.
+
+    Args:
+      q: Query tensor of shape [..., length, head_dim].
+      k: Key tensor of shape [..., length, head_dim].
+      rotary_dim: Optional int, number of dims to rotate. Defaults to head_dim.
+      base: Rotary base.
+
+    Returns:
+      Tuple of (q_rot, k_rot) with rotary applied to first rotary_dim dims.
+    """
+    head_dim = q.shape[-1]
+    rotary_dim = rotary_dim or head_dim
+    if rotary_dim > head_dim:
+        raise ValueError("rotary_dim cannot exceed head_dim.")
+    seq_len = q.shape[-2]
+
+    inv_freq = jnp.exp(jnp.arange(0, rotary_dim, 2) * -(jnp.log(base) / rotary_dim))
+    positions = jnp.arange(seq_len)
+    freqs = jnp.einsum("i,j->ij", positions, inv_freq)
+    emb = jnp.concatenate((freqs, freqs), axis=-1)
+    cos = jnp.cos(emb)[None, None, :, :]
+    sin = jnp.sin(emb)[None, None, :, :]
+
+    def _rotate_half(x):
+        x1, x2 = x[..., : x.shape[-1] // 2], x[..., x.shape[-1] // 2 :]
+        return jnp.concatenate((-x2, x1), axis=-1)
+
+    def _apply(x):
+        x_rot = x[..., :rotary_dim]
+        x_pass = x[..., rotary_dim:]
+        x_rot = (x_rot * cos) + (_rotate_half(x_rot) * sin)
+        return jnp.concatenate((x_rot, x_pass), axis=-1)
+
+    return _apply(q), _apply(k)

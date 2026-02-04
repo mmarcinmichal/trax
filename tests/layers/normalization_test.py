@@ -127,5 +127,27 @@ class FilterResponseNormTest(parameterized.TestCase):
         self.assertEqual(y.shape, x.shape)
 
 
+class RMSNormTest(parameterized.TestCase):
+    def test_forward_shape(self):
+        layer = tl.RMSNorm()
+        x = np.ones((3, 2, 7)).astype(np.float32)
+        _, _ = layer.init(shapes.signature(x))
+        y = layer(x)
+        self.assertEqual(y.shape, x.shape)
+
+    @parameterized.named_parameters(
+        ("jax32", fastmath.Backend.JAX, np.float32),
+        ("tf32", fastmath.Backend.TFNP, np.float32),
+        ("tf64", fastmath.Backend.TFNP, np.float64),
+    )
+    def test_forward_dtype(self, backend, dtype):
+        with fastmath.use_backend(backend):
+            layer = tl.RMSNorm()
+            x = np.ones((3, 2, 7)).astype(dtype)
+            _, _ = layer.init(shapes.signature(x))
+            y = layer(x)
+            self.assertEqual(y.dtype, dtype)
+
+
 if __name__ == "__main__":
     absltest.main()

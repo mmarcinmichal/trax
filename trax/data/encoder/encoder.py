@@ -1739,13 +1739,20 @@ class ModernBertEncoder:
     Nie przesuwamy ID (używaj n_reserved_ids=0).
     """
 
-    def __init__(self, model_id_or_path="answerdotai/ModernBERT-base", add_special_tokens=False):
+    def __init__(
+        self,
+        model_id_or_path="answerdotai/ModernBERT-base",
+        add_special_tokens=False,
+        local_files_only: bool = False,
+    ):
         if AutoTokenizer is None:
             raise ImportError(
                 "ModernBertEncoder wymaga transformers>=4.48.0. "
                 "pip install -U 'transformers>=4.48.0'"
             )
-        self._tok = AutoTokenizer.from_pretrained(model_id_or_path, use_fast=True)
+        self._tok = AutoTokenizer.from_pretrained(
+            model_id_or_path, use_fast=True, local_files_only=local_files_only
+        )
         self._add_special_tokens = add_special_tokens
 
         # spójnie z SentencePieceEncoder: pole vocab_size
@@ -1753,8 +1760,14 @@ class ModernBertEncoder:
 
         # przydatne w treningu / maskowaniu
         self.pad_id = int(self._tok.pad_token_id)   # zwykle 50283
-        self.eos_id = int(getattr(self._tok, "eos_token_id", self._tok.sep_token_id))  # zwykle 50282
-        self.bos_id = int(getattr(self._tok, "bos_token_id", self._tok.cls_token_id))  # zwykle 50281
+        eos_id = self._tok.eos_token_id
+        if eos_id is None:
+            eos_id = self._tok.sep_token_id
+        self.eos_id = int(eos_id)
+        bos_id = self._tok.bos_token_id
+        if bos_id is None:
+            bos_id = self._tok.cls_token_id
+        self.bos_id = int(bos_id)
         self.mask_id = int(self._tok.mask_token_id)
 
     def encode(self, text):

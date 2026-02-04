@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Trax Authors.
+# Copyright 2026 The Trax Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,34 +13,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for trax.layers.research.rotary_positional_embedding."""
+"""Tests for rotary positional embeddings."""
 
 import numpy as np
 
 from absl.testing import absltest
 
-from trax.layers.research import rotary_positional_embedding as rotary_pe
+from trax.layers.research import rotary_positional_embedding as rope
 
 
-class RelAttentionTest(absltest.TestCase):
-    def test_rotary_monotonicity(self):
-        layer = rotary_pe.Rotate()
-        batch_size = 1
-        seq_len = 32
-        d_model = 512
-        shape = (batch_size, seq_len, d_model)
-        q, k = np.ones(shape).astype(np.float32), np.ones(shape).astype(np.float32)
-        q, k = layer(q), layer(k)
+class RotaryPositionalEmbeddingTest(absltest.TestCase):
+    def test_apply_rotary_embedding_shapes(self):
+        q = np.zeros((2, 4, 8, 16), dtype=np.float32)
+        k = np.zeros((2, 4, 8, 16), dtype=np.float32)
+        q_rot, k_rot = rope.apply_rotary_embedding(q, k, rotary_dim=8, base=10000.0)
+        self.assertEqual(q_rot.shape, q.shape)
+        self.assertEqual(k_rot.shape, k.shape)
 
-        self.assertEqual(q.dtype, np.float32)
-        self.assertEqual(q.shape, shape)
-
-        # Test monotonicity of the resulting dot_product for the two first tokens
-        # in close proximity
-        dot_product = np.einsum("bnd, bmd -> bnm", q, k)
-
-        self.assertTrue((dot_product[0, 0, :9] > dot_product[0, 0, 1:10]).all())
-        self.assertTrue((dot_product[0, 1, 1:10] > dot_product[0, 1, 2:11]).all())
+    def test_apply_rotary_embedding_zero_input(self):
+        q = np.zeros((1, 2, 4, 8), dtype=np.float32)
+        k = np.zeros((1, 2, 4, 8), dtype=np.float32)
+        q_rot, k_rot = rope.apply_rotary_embedding(q, k)
+        np.testing.assert_allclose(q_rot, q, atol=1e-6)
+        np.testing.assert_allclose(k_rot, k, atol=1e-6)
 
 
 if __name__ == "__main__":

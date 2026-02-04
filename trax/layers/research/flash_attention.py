@@ -33,7 +33,12 @@ def flash_attention(q, k, v, *, block_size, mask=None):
     total_len = q.shape[1]
 
     if mask is not None:
-        mask_b = mask[:, None, :]
+        if mask.ndim == 2:
+            mask_b = mask[:, None, :]
+        elif mask.ndim == 3:
+            mask_b = mask
+        else:
+            raise ValueError("mask must be 2D or 3D.")
     else:
         mask_b = None
 
@@ -44,7 +49,11 @@ def flash_attention(q, k, v, *, block_size, mask=None):
         )
         logits = jnp.einsum("bqd,bkd->bqk", q_block, k)
         if mask_b is not None:
-            logits = jnp.where(mask_b, -1e9, logits)
+            if mask_b.ndim == 3:
+                block_mask = mask_b[:, start : start + block_size, :]
+                logits = jnp.where(block_mask, -1e9, logits)
+            else:
+                logits = jnp.where(mask_b, -1e9, logits)
         weights = jax.nn.softmax(logits, axis=-1)
         out_block = jnp.einsum("bqk,bkd->bqd", weights, v)
         outputs.append(out_block)

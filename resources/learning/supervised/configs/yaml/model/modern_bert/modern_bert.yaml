@@ -1,0 +1,37 @@
+defaults:
+  - /model/base
+  - _self_
+
+model:
+  ModernBertConfig:
+    _target_: "trax.models.research.modern_bert.ModernBertConfig"
+    vocab_size: 30522
+    max_len: 512
+    num_layers: 12
+    d_model: 768
+    num_heads: 12
+    mlp_dim: 3072
+    dropout: 0.1
+    attention_dropout: 0.1
+    embed_dropout: 0.1
+    use_rope: true
+    rotary_dim: null
+    rotary_base: 10000.0
+    use_flash_attention: true
+    flash_block_size: 128
+    attn_qkv_bias: false
+    attn_out_bias: false
+    mlp_in_bias: false
+    mlp_out_bias: false
+    mlp_type: "parallel_glu"  # "mlp" | "parallel_glu"
+    normalization: "rmsnorm"  # "layernorm" | "rmsnorm"
+    parallel_block: true
+    final_norm: true
+    tie_word_embeddings: true
+    use_gating: false
+    gating_position: "attention"  # "attention" | "mlp" | "both"
+
+  ModernBertMLM:
+    _target_: "trax.models.research.modern_bert.create_modern_bert_mlm"
+    _partial_: true
+    config: "${model.ModernBertConfig}"

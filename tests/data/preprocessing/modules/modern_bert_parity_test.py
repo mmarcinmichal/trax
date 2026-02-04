@@ -42,6 +42,41 @@ def _load_modernbert_sequence_packer():
 
 
 class ModernBertParityTest(absltest.TestCase):
+    def test_mlm_masking_parity(self):
+        module = _load_modernbert_sequence_packer()
+        if module is None:
+            self.skipTest("ModernBERT sequence_packer.py not found.")
+
+        seq = np.arange(100_000, dtype=np.int32)
+        mask_prob = 0.3
+        pad_token_id = -1
+        mask_token_id = -2
+        ignore_token_id = -100
+        seed = 123
+
+        np_rng = np.random.default_rng(seed)
+        trax_labels = np.where(seq == pad_token_id, ignore_token_id, seq)
+        rand = np_rng.random(seq.shape)
+        mask_mask = rand < mask_prob * 0.8
+        random_mask = (rand >= mask_prob * 0.8) & (rand < mask_prob * 0.9)
+        keep_mask = (rand >= mask_prob * 0.9) & (rand < mask_prob)
+        trax_labels = np.where(mask_mask | random_mask | keep_mask, trax_labels, ignore_token_id)
+        trax_seq = np.where(mask_mask, mask_token_id, seq)
+        random_words = np_rng.integers(0, np.max(trax_seq) + 1, size=trax_seq.shape)
+        trax_seq = np.where(random_mask, random_words, trax_seq)
+
+        mb_seq, mb_labels = module.SequencePacker.mlm_masking(
+            seq.copy(),
+            mask_prob=mask_prob,
+            mask_token=mask_token_id,
+            pad_token=pad_token_id,
+            ignore_index=ignore_token_id,
+            np_rng=np.random.default_rng(seed),
+        )
+
+        np.testing.assert_array_equal(trax_seq, mb_seq)
+        np.testing.assert_array_equal(trax_labels, mb_labels)
+
     def test_sequence_packer_parity(self):
         module = _load_modernbert_sequence_packer()
         if module is None:
