@@ -177,7 +177,7 @@ def AttentionQKV(
     )
 
 
-# 'k' is number of keys/values, while 'l' is number of queries. Typically they
+# 'k' is number of keys/values, while 'l' is number of queries. Typically, they
 # will be the same, but it is not necessary.
 @assert_shape("blq,bkq,bkd,b1xk->bld,b1xk")
 class PureAttention(base.Layer):
@@ -542,9 +542,7 @@ class DotProductCausalAttention(base.Layer):
         self._dropout = dropout
         self._mode = mode
         self._max_len = max_inference_length
-        self._portal_mask = (
-            self.monkey_patched_mask()
-        )  # pylint: disable=assignment-from-none
+        self._portal_mask = self.monkey_patched_mask()  # pylint: disable=assignment-from-none
 
     def monkey_patched_mask(self):
         # This is necessary for Terraformer model. See comments there.
@@ -776,8 +774,7 @@ class PositionalEncoding(base.Layer):
         else:
             if self._dropout != 0:
                 raise ValueError(
-                    f"In predict mode, but dropout rate "
-                    f"({self._dropout}) is not zero."
+                    f"In predict mode, but dropout rate ({self._dropout}) is not zero."
                 )
 
             # State in this class is only used for fast inference. In that case,

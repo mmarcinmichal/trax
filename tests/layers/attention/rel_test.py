@@ -27,14 +27,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for trax.layers.relattention."""
+"""Tests for trax.layers.attention.rel."""
 
 import numpy as np
 
 from absl.testing import absltest
 
 import trax.layers as tl
-import trax.layers.research.rel_attention as ra
+import trax.layers.attention.rel as ra
 
 
 class RelAttentionTest(absltest.TestCase):

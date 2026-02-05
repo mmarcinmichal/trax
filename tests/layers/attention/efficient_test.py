@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for trax.layers.research.efficient_attention."""
+"""Tests for trax.layers.attention.efficient."""
 
 import jax
 import numpy as np
@@ -23,7 +23,7 @@ from tensorflow import test
 
 from trax import fastmath
 from trax.fastmath import numpy as jnp
-from trax.layers.research import efficient_attention
+from trax.layers.attention import efficient as efficient_attention
 from trax.utils import shapes
 
 

@@ -17,7 +17,7 @@
 
 import trax.layers as tl
 
-from trax.layers.research.rel_attention import (
+from trax.layers.attention.rel import (
     RelativeAttentionWrapper,
     get_rel_att_inputs,
 )

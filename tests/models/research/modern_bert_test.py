@@ -24,7 +24,8 @@ from trax.utils import shapes
 
 
 class ModernBertModelTest(absltest.TestCase):
-    def _make_inputs(self, batch_size=2, seq_len=8):
+    @staticmethod
+    def _make_inputs(batch_size=2, seq_len=8):
         input_ids = np.arange(batch_size * seq_len, dtype=np.int32).reshape(
             batch_size, seq_len
         )

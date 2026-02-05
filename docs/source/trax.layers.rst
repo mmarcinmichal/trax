@@ -64,7 +64,7 @@ rnn
 research.efficient\_attention
 -----------------------------
 
-.. automodule:: trax.layers.research.efficient_attention
+.. automodule:: trax.layers.attention.efficient
 
 research.position\_encodings
 ----------------------------

@@ -20,7 +20,7 @@ from trax.layers import combinators as cb
 from trax.layers import core
 from trax.layers.normalization import LayerNorm
 from trax.layers.pooling import AvgPool
-from trax.layers.research.rel_attention import RelativeAttentionLMLayer
+from trax.layers.attention.rel import RelativeAttentionLMLayer
 
 
 def AveragePooling(shorten_factor, *args, **kwargs):

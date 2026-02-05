@@ -18,6 +18,7 @@ model:
     rotary_dim: null
     rotary_base: 10000.0
     use_flash_attention: true
+    attention_implementation: flash
     flash_block_size: 128
     attn_qkv_bias: false
     attn_out_bias: false

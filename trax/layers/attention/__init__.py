@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Trax Authors.
+# Copyright 2026 The Trax Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Research layers."""
+"""Attention layers and variants."""
 
-from . import modern_bert_layers  # noqa: F401
+from .base import *  # noqa: F401,F403
+from .flash import *  # noqa: F401,F403
+from .rel import *  # noqa: F401,F403

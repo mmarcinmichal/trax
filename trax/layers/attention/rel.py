@@ -29,7 +29,7 @@ from trax.layers import base, core
 from trax.layers import combinators as cb
 from trax.layers import initializers as init
 from trax.layers.assert_shape import assert_shape
-from trax.layers.attention import MergeHeads, SplitIntoHeads
+from trax.layers.attention.base import MergeHeads, SplitIntoHeads
 
 # Layers are always CamelCase, but functions in general are snake_case
 # pylint: disable=invalid-name

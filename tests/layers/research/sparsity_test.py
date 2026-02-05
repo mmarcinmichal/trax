@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for trax.layers.research.efficient_attention."""
+"""Tests for trax.layers.research.sparsity."""
 
 import functools
 

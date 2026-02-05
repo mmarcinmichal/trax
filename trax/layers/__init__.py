@@ -32,9 +32,9 @@ from trax.layers.initializers import *
 from trax.layers.metrics import *
 from trax.layers.normalization import *
 from trax.layers.pooling import *
-from trax.layers.research.efficient_attention import *
+from trax.layers.attention.efficient import *
 from trax.layers.research.position_encodings import *
-from trax.layers.research.rel_attention import *
+from trax.layers.attention.rel import *
 from trax.layers.research.resampling import *
 from trax.layers.research.rotary_positional_embedding import *
 from trax.layers.research.sparsity import *
